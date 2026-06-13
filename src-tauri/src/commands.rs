@@ -2,9 +2,11 @@ use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
+use crate::backend::{TranscribeOpts, TranscriptionBackend};
 use crate::history::{self, HistoryEntry};
 use crate::settings::{self, AppSettings};
 use crate::audio::AudioCapture;
+use crate::whisper_backend::WhisperBackend;
 
 static IS_RECORDING: AtomicBool = AtomicBool::new(false);
 static CAPTURE: Mutex<Option<AudioCapture>> = Mutex::new(None);
@@ -153,7 +155,11 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
             let lang = language.clone();
 
             let result = tokio::task::spawn_blocking(move || {
-                crate::transcription::transcribe(&model_path_clone, &snapshot, sample_rate, &lang, &initial_prompt, threshold)
+                WhisperBackend::new(model_path_clone).transcribe(&snapshot, &TranscribeOpts {
+                    language: lang,
+                    initial_prompt,
+                    word_correction_threshold: threshold,
+                })
             }).await;
 
             if let Ok(Ok(text)) = result {
@@ -255,13 +261,13 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     let samples_for_blocking = Arc::clone(&samples);
 
     let result = tokio::task::spawn_blocking(move || {
-        crate::transcription::transcribe(
-            &model_path_str,
+        WhisperBackend::new(model_path_str).transcribe(
             &samples_for_blocking,
-            sample_rate,
-            &language,
-            &initial_prompt,
-            word_correction_threshold,
+            &TranscribeOpts {
+                language,
+                initial_prompt,
+                word_correction_threshold,
+            },
         )
     })
     .await;

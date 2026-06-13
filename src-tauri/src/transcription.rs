@@ -75,7 +75,7 @@ pub fn transcribe(
 
 /// Returns (start, end) sample indices spanning the voiced region plus a small margin.
 /// Skips leading/trailing silence to reduce the audio Whisper processes.
-fn trim_silence_range(samples: &[f32], sample_rate: u32) -> (usize, usize) {
+pub fn trim_silence_range(samples: &[f32], sample_rate: u32) -> (usize, usize) {
     let sr = sample_rate as usize;
     let window = sr * 30 / 1000;       // 30 ms analysis window
     let margin = sr * 150 / 1000;      // 150 ms keep-margin around detected speech
@@ -108,7 +108,7 @@ fn trim_silence_range(samples: &[f32], sample_rate: u32) -> (usize, usize) {
 /// Scans the text word-by-word; replaces a run of 1–3 consecutive words if their
 /// Jaro-Winkler similarity to a vocab entry meets the threshold.
 /// Handles multi-word entries like "Claude Code" or "Node.js".
-fn correct_words(text: &str, vocab_csv: &str, threshold: f32) -> String {
+pub fn correct_words(text: &str, vocab_csv: &str, threshold: f32) -> String {
     if vocab_csv.is_empty() || threshold >= 1.0 { return text.to_string(); }
 
     let vocab: Vec<String> = vocab_csv
