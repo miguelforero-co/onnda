@@ -4,7 +4,7 @@ use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 use crate::history::{self, HistoryEntry};
 use crate::settings::{self, AppSettings};
-use crate::transcription::AudioCapture;
+use crate::audio::AudioCapture;
 
 static IS_RECORDING: AtomicBool = AtomicBool::new(false);
 static CAPTURE: Mutex<Option<AudioCapture>> = Mutex::new(None);

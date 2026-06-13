@@ -1,91 +1,11 @@
-use std::sync::{
-    atomic::{AtomicBool, AtomicU64, Ordering},
-    Arc, Mutex,
-};
-use anyhow::{anyhow, Result};
+use std::sync::Mutex;
+use anyhow::Result;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
-// Cache the loaded model so we don't re-read 469 MB from disk on every recording.
+pub use crate::audio::rms_f32;
+
+// Cache the loaded model so we don't re-read from disk on every recording.
 static MODEL_CACHE: Mutex<Option<(String, WhisperContext)>> = Mutex::new(None);
-
-pub struct AudioCapture {
-    pub sample_rate: u32,
-    samples: Arc<Mutex<Vec<f32>>>,
-    stop: Arc<AtomicBool>,
-    thread: Option<std::thread::JoinHandle<()>>,
-}
-
-impl AudioCapture {
-    pub fn start(on_level: impl Fn(f32) + Send + 'static) -> Result<Self> {
-        use cpal::traits::{DeviceTrait, HostTrait};
-
-        let host = cpal::default_host();
-        let device = host
-            .default_input_device()
-            .ok_or_else(|| anyhow!("No se encontró micrófono"))?;
-
-        let config = device.default_input_config()?;
-        let sample_rate = config.sample_rate().0;
-        let channels = config.channels() as usize;
-
-        let samples = Arc::new(Mutex::new(Vec::<f32>::new()));
-        let stop = Arc::new(AtomicBool::new(false));
-        let last_emit_ms = Arc::new(AtomicU64::new(0));
-
-        let samples_thread = Arc::clone(&samples);
-        let stop_thread = Arc::clone(&stop);
-
-        let thread = std::thread::spawn(move || {
-            use cpal::traits::StreamTrait;
-            let samples_cb = Arc::clone(&samples_thread);
-            let last_emit = Arc::clone(&last_emit_ms);
-
-            let stream = device
-                .build_input_stream(
-                    &config.into(),
-                    move |data: &[f32], _| {
-                        {
-                            let mut buf = samples_cb.lock().unwrap();
-                            for frame in data.chunks(channels) {
-                                let mono = frame.iter().sum::<f32>() / channels as f32;
-                                buf.push(mono);
-                            }
-                        }
-                        let now_ms = std::time::SystemTime::now()
-                            .duration_since(std::time::UNIX_EPOCH)
-                            .unwrap_or_default()
-                            .as_millis() as u64;
-                        let prev = last_emit.load(Ordering::Relaxed);
-                        if now_ms.saturating_sub(prev) >= 50 {
-                            last_emit.store(now_ms, Ordering::Relaxed);
-                            on_level(rms_f32(data));
-                        }
-                    },
-                    |err| eprintln!("cpal error: {err}"),
-                    None,
-                )
-                .expect("failed to build input stream");
-
-            stream.play().expect("failed to start stream");
-            while !stop_thread.load(Ordering::Relaxed) {
-                std::thread::sleep(std::time::Duration::from_millis(10));
-            }
-        });
-
-        Ok(Self { sample_rate, samples, stop, thread: Some(thread) })
-    }
-
-    pub fn samples_arc(&self) -> Arc<Mutex<Vec<f32>>> {
-        Arc::clone(&self.samples)
-    }
-
-    pub fn stop(mut self) -> (Vec<f32>, u32) {
-        self.stop.store(true, Ordering::SeqCst);
-        if let Some(t) = self.thread.take() { let _ = t.join(); }
-        let samples = self.samples.lock().unwrap().clone();
-        (samples, self.sample_rate)
-    }
-}
 
 pub fn transcribe(
     model_path: &str,
@@ -103,7 +23,10 @@ pub fn transcribe(
         let mut ctx_params = WhisperContextParameters::default();
         // Metal GPU only available on Apple Silicon; x86_64 falls back to CPU.
         #[cfg(target_arch = "aarch64")]
-        ctx_params.use_gpu(true);
+        {
+            ctx_params.use_gpu(true);
+            ctx_params.flash_attn(true);
+        }
         let ctx = WhisperContext::new_with_params(model_path, ctx_params)?;
         *cache = Some((model_path.to_string(), ctx));
     }
@@ -112,7 +35,7 @@ pub fn transcribe(
     let mut state = ctx.create_state()?;
 
     let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-    params.set_n_threads(4);
+    params.set_n_threads(6);
     params.set_n_max_text_ctx(224);
     params.set_print_progress(false);
     params.set_print_realtime(false);
@@ -130,7 +53,12 @@ pub fn transcribe(
     // Trim leading/trailing silence before resampling — reduces the audio Whisper
     // needs to process, cutting inference time by 20-40% on typical short recordings.
     let (trim_start, trim_end) = trim_silence_range(samples, sample_rate);
-    let audio = resample(&samples[trim_start..trim_end], sample_rate as usize, 16000);
+    let mut trimmed = samples[trim_start..trim_end].to_vec();
+    // Append 500ms of silence at the native sample rate so Whisper sees a clean
+    // pause after the last word — without this, the final token is often cut off.
+    let tail = (sample_rate as usize * 500) / 1000;
+    trimmed.extend(vec![0.0f32; tail]);
+    let audio = resample(&trimmed, sample_rate as usize, 16000);
     state.full(params, &audio)?;
 
     let n = state.full_n_segments()?;
@@ -175,11 +103,6 @@ fn trim_silence_range(samples: &[f32], sample_rate: u32) -> (usize, usize) {
     (start, end)
 }
 
-/// RMS energy of a sample buffer. Returns 0.0 for empty input.
-pub fn rms_f32(samples: &[f32]) -> f32 {
-    if samples.is_empty() { return 0.0; }
-    (samples.iter().map(|s| s * s).sum::<f32>() / samples.len() as f32).sqrt()
-}
 
 /// Replace transcribed words with custom vocabulary entries when they are close matches.
 /// Scans the text word-by-word; replaces a run of 1–3 consecutive words if their
