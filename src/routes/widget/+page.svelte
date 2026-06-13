@@ -7,7 +7,6 @@
 
   let phase = $state<Phase>("recording");
   let levels = $state<number[]>(Array(18).fill(0.04));
-  let partialText = $state("");
   let hideTimer: ReturnType<typeof setTimeout> | null = null;
 
   const unlisten: (() => void)[] = [];
@@ -19,22 +18,16 @@
         levels = [...levels.slice(1), v];
       }),
       await listen<boolean>("recording-state", (e) => {
-        if (e.payload) partialText = ""; // clear only when NEW recording starts
         phase = e.payload ? "recording" : "transcribing";
       }),
       await listen<boolean>("transcribing", (e) => {
         if (e.payload) phase = "transcribing";
       }),
-      await listen<string>("partial-transcript", (e) => {
-        partialText = e.payload;
-      }),
       await listen<string>("transcription-done", () => {
-        partialText = "";
         phase = "done";
         hideTimer = setTimeout(() => invoke("hide_widget"), 1000);
       }),
       await listen<string>("transcribe-error", () => {
-        partialText = "";
         phase = "error";
         hideTimer = setTimeout(() => invoke("hide_widget"), 2000);
       }),
@@ -66,13 +59,8 @@
 
   {:else if phase === "transcribing"}
     <span class="dot amber"></span>
-    {#if partialText}
-      <span class="partial">{partialText.length > 48 ? '…' + partialText.slice(-48) : partialText}</span>
-      <div class="spin"></div>
-    {:else}
-      <div class="spin"></div>
-      <span class="label">Transcribiendo</span>
-    {/if}
+    <div class="spin"></div>
+    <span class="label">Transcribiendo</span>
 
   {:else if phase === "done"}
     <span class="dot blue"></span>
@@ -130,12 +118,6 @@
     color: rgba(255,255,255,0.88); flex: 1;
   }
   .label.err { color: rgba(255,255,255,0.45); }
-
-  .partial{
-    font-size: 11px; font-weight: 400; letter-spacing: -.01em;
-    color: rgba(255,255,255,0.75); flex: 1;
-    white-space: nowrap; overflow: hidden;
-  }
 
   .spin{
     width: 13px; height: 13px; flex-shrink: 0;

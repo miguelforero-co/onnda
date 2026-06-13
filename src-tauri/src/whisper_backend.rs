@@ -17,10 +17,11 @@ impl WhisperBackend {
     pub fn new(model_path: String) -> Self {
         Self { model_path }
     }
-}
 
-impl TranscriptionBackend for WhisperBackend {
-    fn transcribe(&self, samples: &[f32], opts: &TranscribeOpts) -> Result<String> {
+    /// Load the model into the shared cache if it isn't already loaded for this
+    /// path. Called at recording start to warm the model so the final pass is
+    /// pure inference (no cold load) — this is what the old chunking did for free.
+    pub fn ensure_loaded(&self) -> Result<()> {
         let mut cache = MODEL_CACHE.lock().unwrap();
 
         let needs_load = cache
@@ -39,7 +40,14 @@ impl TranscriptionBackend for WhisperBackend {
             let ctx = WhisperContext::new_with_params(&self.model_path, ctx_params)?;
             *cache = Some((self.model_path.clone(), ctx));
         }
+        Ok(())
+    }
+}
 
+impl TranscriptionBackend for WhisperBackend {
+    fn transcribe(&self, samples: &[f32], opts: &TranscribeOpts) -> Result<String> {
+        self.ensure_loaded()?;
+        let cache = MODEL_CACHE.lock().unwrap();
         let ctx = &cache.as_ref().unwrap().1;
         let mut state = ctx.create_state()?;
 
@@ -60,15 +68,25 @@ impl TranscriptionBackend for WhisperBackend {
         params.set_language(lang);
 
         // Resample to 16kHz then VAD trim.
+        let t_pre = std::time::Instant::now();
         let audio_16k = crate::transcription::resample(samples, opts.sample_rate as usize, 16000);
+        let t_resample = t_pre.elapsed();
+        let t_v = std::time::Instant::now();
         let (trim_start, trim_end) = vad_trim(&audio_16k);
         let mut trimmed = audio_16k[trim_start..trim_end].to_vec();
+        let t_vad = t_v.elapsed();
         // Amplify quiet recordings to 90% peak (only if peak < 30%).
         normalize(&mut trimmed, 0.9, 0.3);
         // 500ms of silence so Whisper closes the last spoken token.
         trimmed.extend(vec![0.0f32; 8000]);
 
+        let t_inf = std::time::Instant::now();
         state.full(params, &trimmed)?;
+        eprintln!(
+            "[voz-local][timing] resample={:?} vad={:?} infer={:?} | in_samples={} trimmed_16k={} ({:.1}s audio)",
+            t_resample, t_vad, t_inf.elapsed(),
+            samples.len(), trimmed.len(), trimmed.len() as f32 / 16000.0
+        );
 
         let n = state.full_n_segments()?;
         let text = (0..n)

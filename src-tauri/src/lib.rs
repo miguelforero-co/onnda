@@ -11,6 +11,7 @@ mod history;
 mod mic_permission;
 mod settings;
 mod shortcut;
+mod streaming;
 mod transcription;
 mod vad;
 mod whisper_backend;

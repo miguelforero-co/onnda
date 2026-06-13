@@ -1,5 +1,5 @@
 use std::sync::{Arc, Mutex};
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
 use crate::backend::{TranscribeOpts, TranscriptionBackend};
@@ -10,8 +10,16 @@ use crate::whisper_backend::WhisperBackend;
 
 static IS_RECORDING: AtomicBool = AtomicBool::new(false);
 static CAPTURE: Mutex<Option<AudioCapture>> = Mutex::new(None);
-static CHUNK_HANDLE: Mutex<Option<tauri::async_runtime::JoinHandle<()>>> = Mutex::new(None);
-static PARTIAL_TRANSCRIPTS: Mutex<Vec<String>> = Mutex::new(Vec::new());
+
+// ── Streaming (incremental) transcription state ─────────────────────────────
+// While recording, completed speech segments (audio up to a real pause) are
+// transcribed and their text committed here, in order. COMMITTED_SAMPLES tracks
+// how many native-rate samples have already been committed, so at stop only the
+// short un-committed tail needs transcribing. STREAM_HANDLE is the background
+// segment loop, awaited briefly at stop so the last in-flight segment lands.
+static COMMITTED_TEXT: Mutex<Vec<String>> = Mutex::new(Vec::new());
+static COMMITTED_SAMPLES: AtomicUsize = AtomicUsize::new(0);
+static STREAM_HANDLE: Mutex<Option<tauri::async_runtime::JoinHandle<()>>> = Mutex::new(None);
 
 #[cfg(target_os = "macos")]
 fn ax_is_trusted() -> bool {
@@ -99,83 +107,120 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
     })
     .map_err(|e| e.to_string())?;
 
-    PARTIAL_TRANSCRIPTS.lock().unwrap().clear();
+    // Reset streaming state for this recording.
+    COMMITTED_TEXT.lock().unwrap().clear();
+    COMMITTED_SAMPLES.store(0, Ordering::SeqCst);
 
     let samples_arc = capture.samples_arc();
     let sample_rate = capture.sample_rate;
-    let app_for_chunk = app.clone();
 
+    *CAPTURE.lock().unwrap() = Some(capture);
+    IS_RECORDING.store(true, Ordering::SeqCst);
+    app.emit("recording-state", true).ok();
+
+    // Background streaming loop: warm the model, then commit completed speech
+    // segments (audio up to a real pause) while the user is still talking, so at
+    // stop only the short tail remains. Model-agnostic — uses whatever model the
+    // user selected. Degrades to a single final pass if speech never pauses.
+    let app_for_stream = app.clone();
     let handle = tauri::async_runtime::spawn(async move {
-        let settings = crate::settings::load(&app_for_chunk);
+        let settings = settings::load(&app_for_stream);
         let language = settings.selected_language.clone();
-        let threshold = settings.word_correction_threshold;
+        let custom_words = settings.custom_words.clone();
         let model_name = if settings.selected_model.is_empty() {
             "large-v3-turbo".to_string()
         } else {
             settings.selected_model.clone()
         };
-
-        let model_path = match app_for_chunk.path().app_data_dir().ok() {
-            Some(dir) => {
-                let primary = dir.join("models").join(format!("ggml-{}.bin", model_name));
-                let fallback = dir.join("models").join("ggml-base.bin");
-                if primary.exists() { primary } else if fallback.exists() { fallback } else { return; }
-            }
-            None => return,
+        let Some(dir) = models_dir(&app_for_stream) else { return; };
+        let primary = dir.join(format!("ggml-{}.bin", model_name));
+        let fallback = dir.join("ggml-base.bin");
+        let model_path = if primary.exists() {
+            primary
+        } else if fallback.exists() {
+            fallback
+        } else {
+            return;
         };
-        let model_path_str = match model_path.to_str().map(str::to_owned) {
-            Some(s) => s,
-            None => return,
-        };
+        let Some(model_path_str) = model_path.to_str().map(str::to_owned) else { return; };
 
-        let window_samples = (30 * sample_rate) as usize;
-        let min_new_samples = (4 * sample_rate) as usize;
-        let mut last_processed_len: usize = 0;
-        let mut polls: u32 = 0;
+        // Warm the model so the first segment (and the final tail) is pure inference.
+        {
+            let mp = model_path_str.clone();
+            let _ = tokio::task::spawn_blocking(move || {
+                let _ = WhisperBackend::new(mp).ensure_loaded();
+            })
+            .await;
+        }
+
+        // Whisper processes audio in fixed ~30s blocks (it pads short audio to
+        // 30s), so every inference costs roughly the same fixed time regardless
+        // of length. Committing on every small pause means many inferences, each
+        // paying that toll — slower than a single final pass. So we only
+        // pre-commit once the un-committed audio approaches a full block: typical
+        // dictation (< ~25s) does ONE final pass at stop (optimal), and only long
+        // dictation is chunked here, always cutting at a real pause so no word is
+        // split. This keeps the number of inferences minimal — never worse than
+        // the single-pass baseline, and faster for long dictation.
+        let min_pending_samples = sample_rate as usize * 25;
 
         loop {
-            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
-            if !IS_RECORDING.load(Ordering::SeqCst) { break; }
+            tokio::time::sleep(tokio::time::Duration::from_millis(1000)).await;
+            if !IS_RECORDING.load(Ordering::SeqCst) {
+                break;
+            }
 
-            polls += 1;
-            if polls < 10 { continue; } // fire every 5s (10 × 500ms)
-            polls = 0;
-
-            let snapshot: Vec<f32> = {
+            let committed = COMMITTED_SAMPLES.load(Ordering::SeqCst);
+            let pending: Vec<f32> = {
                 let buf = samples_arc.lock().unwrap();
-                if buf.len() < last_processed_len + min_new_samples { continue; }
-                let start = buf.len().saturating_sub(window_samples);
-                buf[start..].to_vec()
+                // Only act once there's ~a full block of un-committed audio.
+                if buf.len() <= committed + min_pending_samples {
+                    continue;
+                }
+                buf[committed..].to_vec()
             };
 
-            last_processed_len = samples_arc.lock().unwrap().len();
+            let Some(cut) = crate::streaming::find_commit_point(&pending, sample_rate) else {
+                continue;
+            };
+            // Don't bother committing a trivially short head.
+            if cut < sample_rate as usize {
+                continue;
+            }
 
-            let initial_prompt = PARTIAL_TRANSCRIPTS.lock().unwrap().last().cloned().unwrap_or_default();
-            let model_path_clone = model_path_str.clone();
+            let segment = pending[..cut].to_vec();
+            let mp = model_path_str.clone();
             let lang = language.clone();
+            // Custom vocabulary as prompt helps recognition; word correction is
+            // applied once over the whole text at stop, not per segment.
+            let prompt = custom_words.clone();
+            let text = tokio::task::spawn_blocking(move || {
+                WhisperBackend::new(mp).transcribe(
+                    &segment,
+                    &TranscribeOpts {
+                        language: lang,
+                        initial_prompt: prompt,
+                        word_correction_threshold: 1.0,
+                        sample_rate,
+                    },
+                )
+            })
+            .await;
 
-            let result = tokio::task::spawn_blocking(move || {
-                WhisperBackend::new(model_path_clone).transcribe(&snapshot, &TranscribeOpts {
-                    language: lang,
-                    initial_prompt,
-                    word_correction_threshold: threshold,
-                    sample_rate,
-                })
-            }).await;
-
-            if let Ok(Ok(text)) = result {
-                if !text.is_empty() {
-                    PARTIAL_TRANSCRIPTS.lock().unwrap().push(text.clone());
-                    app_for_chunk.emit("partial-transcript", &text).ok();
+            // Advance the committed marker regardless, so we never reprocess this
+            // audio even if the segment came back empty or errored.
+            COMMITTED_SAMPLES.fetch_add(cut, Ordering::SeqCst);
+            if let Ok(Ok(t)) = text {
+                let t = t.trim().to_string();
+                if !t.is_empty() {
+                    COMMITTED_TEXT.lock().unwrap().push(t);
                 }
             }
         }
     });
 
-    *CHUNK_HANDLE.lock().unwrap() = Some(handle);
-    *CAPTURE.lock().unwrap() = Some(capture);
-    IS_RECORDING.store(true, Ordering::SeqCst);
-    app.emit("recording-state", true).ok();
+    *STREAM_HANDLE.lock().unwrap() = Some(handle);
+
     Ok(())
 }
 
@@ -184,10 +229,11 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     IS_RECORDING.store(false, Ordering::SeqCst);
     app.emit("recording-state", false).ok();
 
-    // Drop the lock immediately so the guard doesn't cross the await boundary
-    let chunk_handle = CHUNK_HANDLE.lock().unwrap().take();
-    if let Some(handle) = chunk_handle {
-        let _ = tokio::time::timeout(tokio::time::Duration::from_secs(2), handle).await;
+    // Let the streaming loop finish its in-flight segment (short) so its text is
+    // committed before we read it. The loop exits on the next IS_RECORDING check.
+    let stream_handle = STREAM_HANDLE.lock().unwrap().take();
+    if let Some(handle) = stream_handle {
+        let _ = tokio::time::timeout(tokio::time::Duration::from_secs(8), handle).await;
     }
 
     let Some(cap) = capture else {
@@ -254,50 +300,85 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
         return;
     };
 
-    // Final pass runs clean with custom vocabulary — chunks were for visual feedback only
-    let initial_prompt = custom_words.clone();
-
     let app_clone = app.clone();
     let samples: Arc<[f32]> = Arc::from(samples);
-    let samples_for_blocking = Arc::clone(&samples);
 
-    let result = tokio::task::spawn_blocking(move || {
-        WhisperBackend::new(model_path_str).transcribe(
-            &samples_for_blocking,
-            &TranscribeOpts {
-                language,
-                initial_prompt,
-                word_correction_threshold,
-                sample_rate,
-            },
-        )
-    })
-    .await;
+    // Segments transcribed while the user spoke; the tail is everything since the
+    // last committed pause. Process only the tail, then stitch + correct once.
+    let committed_text = COMMITTED_TEXT.lock().unwrap().clone();
+    let committed = COMMITTED_SAMPLES.load(Ordering::SeqCst).min(samples.len());
+    let tail: Vec<f32> = samples[committed..].to_vec();
+
+    eprintln!(
+        "[voz-local] streaming: {} committed segment(s), tail = {:.1}s of {:.1}s total",
+        committed_text.len(),
+        tail.len() as f32 / sample_rate as f32,
+        samples.len() as f32 / sample_rate as f32,
+    );
+
+    let lang_tail = language.clone();
+    let prompt_tail = custom_words.clone();
+    let min_tail = (sample_rate as usize) / 10; // 100ms — skip a negligible tail
+    let tail_result = if tail.len() > min_tail {
+        tokio::task::spawn_blocking(move || {
+            WhisperBackend::new(model_path_str).transcribe(
+                &tail,
+                &TranscribeOpts {
+                    language: lang_tail,
+                    initial_prompt: prompt_tail,
+                    word_correction_threshold: 1.0,
+                    sample_rate,
+                },
+            )
+        })
+        .await
+    } else {
+        Ok(Ok(String::new()))
+    };
 
     app.emit("transcribing", false).ok();
 
-    match result {
-        Ok(Ok(text)) if !text.is_empty() => {
-            history::save_entry(&app_clone, text.clone(), &samples, sample_rate);
-            // Notify the widget FIRST so it starts its close countdown.
-            app.emit("transcription-done", &text).ok();
-            // 300ms: time for the previously-active app to regain keyboard focus before Cmd+V.
-            let text_for_paste = text.clone();
-            tokio::spawn(async move {
-                tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-                paste_text(&text_for_paste);
-            });
-        }
-        Ok(Ok(_)) => {
-            app.emit("transcribe-error", "No se detectó voz").ok();
-        }
+    // If the tail fails but we already committed segments, fall back to those.
+    let tail_text = match tail_result {
+        Ok(Ok(t)) => t.trim().to_string(),
         Ok(Err(e)) => {
-            app.emit("transcribe-error", e.to_string()).ok();
+            if committed_text.is_empty() {
+                app.emit("transcribe-error", e.to_string()).ok();
+                return;
+            }
+            String::new()
         }
         Err(e) => {
-            app.emit("transcribe-error", e.to_string()).ok();
+            if committed_text.is_empty() {
+                app.emit("transcribe-error", e.to_string()).ok();
+                return;
+            }
+            String::new()
         }
+    };
+
+    // Stitch committed segments + tail, normalize whitespace, correct vocabulary once.
+    let mut parts = committed_text;
+    if !tail_text.is_empty() {
+        parts.push(tail_text);
     }
+    let assembled = parts.join(" ").split_whitespace().collect::<Vec<_>>().join(" ");
+    let text = crate::transcription::correct_words(&assembled, &custom_words, word_correction_threshold);
+
+    if text.is_empty() {
+        app.emit("transcribe-error", "No se detectó voz").ok();
+        return;
+    }
+
+    history::save_entry(&app_clone, text.clone(), &samples, sample_rate);
+    // Notify the widget FIRST so it starts its close countdown.
+    app.emit("transcription-done", &text).ok();
+    // 300ms: time for the previously-active app to regain keyboard focus before Cmd+V.
+    let text_for_paste = text.clone();
+    tokio::spawn(async move {
+        tokio::time::sleep(std::time::Duration::from_millis(300)).await;
+        paste_text(&text_for_paste);
+    });
 }
 
 /// Returns "ok" if paste should work, or an error description if not
