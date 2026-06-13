@@ -4,12 +4,16 @@ use tauri::{
     AppHandle, Manager, Runtime,
 };
 
+mod audio;
+mod backend;
 mod commands;
 mod history;
 mod mic_permission;
 mod settings;
 mod shortcut;
 mod transcription;
+mod vad;
+mod whisper_backend;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {

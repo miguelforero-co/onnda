@@ -30,6 +30,9 @@ futures-util = "0.3"
 # Audio capture
 cpal = "0.15"
 
+# Voice activity detection
+webrtc-vad = "0.4"
+
 # Whisper transcription — Metal GPU acceleration only on Apple Silicon
 whisper-rs = "0.14"
 
