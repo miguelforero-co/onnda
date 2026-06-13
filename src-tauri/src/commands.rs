@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::sync::atomic::{AtomicBool, Ordering};
 use tauri::{AppHandle, Emitter, Manager, Runtime};
 
@@ -8,6 +8,8 @@ use crate::transcription::AudioCapture;
 
 static IS_RECORDING: AtomicBool = AtomicBool::new(false);
 static CAPTURE: Mutex<Option<AudioCapture>> = Mutex::new(None);
+static CHUNK_HANDLE: Mutex<Option<tokio::task::JoinHandle<()>>> = Mutex::new(None);
+static PARTIAL_TRANSCRIPTS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 #[cfg(target_os = "macos")]
 fn ax_is_trusted() -> bool {
@@ -95,6 +97,77 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
     })
     .map_err(|e| e.to_string())?;
 
+    PARTIAL_TRANSCRIPTS.lock().unwrap().clear();
+
+    let samples_arc = capture.samples_arc();
+    let sample_rate = capture.sample_rate;
+    let app_for_chunk = app.clone();
+
+    let handle = tokio::spawn(async move {
+        let settings = crate::settings::load(&app_for_chunk);
+        let language = settings.selected_language.clone();
+        let custom_words = settings.custom_words.clone();
+        let threshold = settings.word_correction_threshold;
+        let model_name = if settings.selected_model.is_empty() {
+            "large-v3-turbo".to_string()
+        } else {
+            settings.selected_model.clone()
+        };
+
+        let model_path = match app_for_chunk.path().app_data_dir().ok() {
+            Some(dir) => {
+                let primary = dir.join("models").join(format!("ggml-{}.bin", model_name));
+                let fallback = dir.join("models").join("ggml-base.bin");
+                if primary.exists() { primary } else if fallback.exists() { fallback } else { return; }
+            }
+            None => return,
+        };
+        let model_path_str = match model_path.to_str().map(str::to_owned) {
+            Some(s) => s,
+            None => return,
+        };
+
+        let window_samples = (30 * sample_rate) as usize;
+        let min_new_samples = (4 * sample_rate) as usize;
+        let mut last_processed_len: usize = 0;
+        let mut polls: u32 = 0;
+
+        loop {
+            tokio::time::sleep(tokio::time::Duration::from_millis(500)).await;
+            if !IS_RECORDING.load(Ordering::SeqCst) { break; }
+
+            polls += 1;
+            if polls < 10 { continue; } // fire every 5s (10 × 500ms)
+            polls = 0;
+
+            let snapshot: Vec<f32> = {
+                let buf = samples_arc.lock().unwrap();
+                if buf.len() < last_processed_len + min_new_samples { continue; }
+                let start = buf.len().saturating_sub(window_samples);
+                buf[start..].to_vec()
+            };
+
+            last_processed_len = samples_arc.lock().unwrap().len();
+
+            let initial_prompt = PARTIAL_TRANSCRIPTS.lock().unwrap().last().cloned().unwrap_or_default();
+            let model_path_clone = model_path_str.clone();
+            let lang = language.clone();
+            let words = custom_words.clone();
+
+            let result = tokio::task::spawn_blocking(move || {
+                crate::transcription::transcribe(&model_path_clone, &snapshot, sample_rate, &lang, &words, threshold)
+            }).await;
+
+            if let Ok(Ok(text)) = result {
+                if !text.is_empty() {
+                    PARTIAL_TRANSCRIPTS.lock().unwrap().push(text.clone());
+                    app_for_chunk.emit("partial-transcript", &text).ok();
+                }
+            }
+        }
+    });
+
+    *CHUNK_HANDLE.lock().unwrap() = Some(handle);
     *CAPTURE.lock().unwrap() = Some(capture);
     IS_RECORDING.store(true, Ordering::SeqCst);
     app.emit("recording-state", true).ok();
@@ -105,6 +178,12 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     let capture = CAPTURE.lock().unwrap().take();
     IS_RECORDING.store(false, Ordering::SeqCst);
     app.emit("recording-state", false).ok();
+
+    // Drop the lock immediately so the guard doesn't cross the await boundary
+    let chunk_handle = CHUNK_HANDLE.lock().unwrap().take();
+    if let Some(handle) = chunk_handle {
+        let _ = tokio::time::timeout(tokio::time::Duration::from_secs(2), handle).await;
+    }
 
     let Some(cap) = capture else {
         app.emit("transcribe-error", "No hay grabación activa").ok();
@@ -170,16 +249,20 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
         return;
     };
 
+    // Accumulated partials give Whisper full context to correct boundaries and style
+    let initial_prompt = PARTIAL_TRANSCRIPTS.lock().unwrap().join(" ");
+
     let app_clone = app.clone();
-    let samples_clone = samples.clone();
+    let samples: Arc<[f32]> = Arc::from(samples);
+    let samples_for_blocking = Arc::clone(&samples);
 
     let result = tokio::task::spawn_blocking(move || {
         crate::transcription::transcribe(
             &model_path_str,
-            &samples_clone,
+            &samples_for_blocking,
             sample_rate,
             &language,
-            &custom_words,
+            &initial_prompt,
             word_correction_threshold,
         )
     })
@@ -304,7 +387,7 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
         ModelInfo {
             id: "large-v3-turbo".to_string(),
             name: "Whisper Large v3 Turbo".to_string(),
-            size_mb: 809,
+            size_mb: 874,
             downloaded: model_exists("large-v3-turbo"),
         },
         ModelInfo {
@@ -319,7 +402,7 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
 #[tauri::command]
 pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> Result<(), String> {
     let url = match model_id.as_str() {
-        "large-v3-turbo" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo.bin",
+        "large-v3-turbo" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q8_0.bin",
         "base"           => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
         other            => return Err(format!("Modelo desconocido: {}", other)),
     };

@@ -75,6 +75,10 @@ impl AudioCapture {
         Ok(Self { sample_rate, samples, stop, thread: Some(thread) })
     }
 
+    pub fn samples_arc(&self) -> Arc<Mutex<Vec<f32>>> {
+        Arc::clone(&self.samples)
+    }
+
     pub fn stop(mut self) -> (Vec<f32>, u32) {
         self.stop.store(true, Ordering::SeqCst);
         if let Some(t) = self.thread.take() { let _ = t.join(); }
@@ -250,7 +254,7 @@ fn jaro_winkler_match(candidate: &str, entry: &str, threshold: f32) -> bool {
     strsim::jaro_winkler(&a, &b) >= threshold as f64
 }
 
-fn resample(samples: &[f32], from_hz: usize, to_hz: usize) -> Vec<f32> {
+pub fn resample(samples: &[f32], from_hz: usize, to_hz: usize) -> Vec<f32> {
     if from_hz == to_hz || samples.is_empty() { return samples.to_vec(); }
     let ratio = from_hz as f64 / to_hz as f64;
     let out_len = (samples.len() as f64 / ratio) as usize;
