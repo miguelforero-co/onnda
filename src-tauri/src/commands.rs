@@ -216,6 +216,7 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
 
     let settings = settings::load(&app);
     let language = settings.selected_language.clone();
+    let custom_words = settings.custom_words.clone();
     let word_correction_threshold = settings.word_correction_threshold;
     let model_name = if settings.selected_model.is_empty() {
         "large-v3-turbo"
@@ -246,8 +247,8 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
         return;
     };
 
-    // Accumulated partials give Whisper full context to correct boundaries and style
-    let initial_prompt = PARTIAL_TRANSCRIPTS.lock().unwrap().join(" ");
+    // Final pass runs clean with custom vocabulary — chunks were for visual feedback only
+    let initial_prompt = custom_words.clone();
 
     let app_clone = app.clone();
     let samples: Arc<[f32]> = Arc::from(samples);
