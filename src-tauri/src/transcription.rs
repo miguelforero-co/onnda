@@ -1,5 +1,18 @@
 pub use crate::audio::rms_f32;
 
+pub fn resample(samples: &[f32], from_hz: usize, to_hz: usize) -> Vec<f32> {
+    if from_hz == to_hz || samples.is_empty() { return samples.to_vec(); }
+    let ratio = from_hz as f64 / to_hz as f64;
+    let out_len = (samples.len() as f64 / ratio) as usize;
+    (0..out_len).map(|i| {
+        let pos = i as f64 * ratio;
+        let lo = pos as usize;
+        let hi = (lo + 1).min(samples.len() - 1);
+        let frac = (pos - lo as f64) as f32;
+        samples[lo] * (1.0 - frac) + samples[hi] * frac
+    }).collect()
+}
+
 /// Replace transcribed words with custom vocabulary entries when they are close matches.
 /// Scans the text word-by-word; replaces a run of 1–3 consecutive words if their
 /// Jaro-Winkler similarity to a vocab entry meets the threshold.

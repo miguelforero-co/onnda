@@ -9,6 +9,8 @@ pub struct TranscribeOpts {
     pub initial_prompt: String,
     /// Jaro-Winkler threshold for vocabulary correction (0.0–1.0).
     pub word_correction_threshold: f32,
+    /// Sample rate of the audio passed in (Hz). Backend resamples to 16kHz internally.
+    pub sample_rate: u32,
 }
 
 /// A model backend that transcribes 16kHz mono f32 PCM audio.

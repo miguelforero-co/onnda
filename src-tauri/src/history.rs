@@ -48,7 +48,8 @@ pub fn save_entry<R: Runtime>(
     let audio_filename = if !samples.is_empty() {
         let filename = format!("{}.wav", id);
         let path = recordings_dir(app).join(&filename);
-        if write_wav(&path, samples, 16000).is_ok() {
+        let samples_16k = crate::transcription::resample(samples, sample_rate as usize, 16000);
+        if write_wav(&path, &samples_16k, 16000).is_ok() {
             Some(filename)
         } else {
             None

@@ -59,9 +59,10 @@ impl TranscriptionBackend for WhisperBackend {
         let lang = if opts.language == "auto" { None } else { Some(opts.language.as_str()) };
         params.set_language(lang);
 
-        // Audio is already 16kHz from AudioCapture. WebRTC VAD trims silence.
-        let (trim_start, trim_end) = vad_trim(samples);
-        let mut trimmed = samples[trim_start..trim_end].to_vec();
+        // Resample to 16kHz then VAD trim.
+        let audio_16k = crate::transcription::resample(samples, opts.sample_rate as usize, 16000);
+        let (trim_start, trim_end) = vad_trim(&audio_16k);
+        let mut trimmed = audio_16k[trim_start..trim_end].to_vec();
         // Amplify quiet recordings to 90% peak (only if peak < 30%).
         normalize(&mut trimmed, 0.9, 0.3);
         // 500ms of silence so Whisper closes the last spoken token.

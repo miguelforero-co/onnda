@@ -159,6 +159,7 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
                     language: lang,
                     initial_prompt,
                     word_correction_threshold: threshold,
+                    sample_rate,
                 })
             }).await;
 
@@ -267,6 +268,7 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
                 language,
                 initial_prompt,
                 word_correction_threshold,
+                sample_rate,
             },
         )
     })
