@@ -1,6 +1,6 @@
 [package]
 name = "voz-local"
-version = "1.6.0"
+version = "1.7.0"
 description = "Voz Local - transcripción de voz a texto 100% local"
 authors = ["you"]
 edition = "2021"
@@ -44,7 +44,8 @@ whisper-rs = { version = "0.14", features = ["metal"] }
 
 [target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
-objc2-foundation = { version = "0.3", features = ["NSString"] }
+objc2-foundation = { version = "0.3", features = ["NSString", "NSGeometry"] }
+objc2-app-kit = { version = "0.3", features = ["NSScreen", "NSWindow", "NSResponder", "NSView"] }
 block2 = "0.6"
 window-vibrancy = "0.6"
 

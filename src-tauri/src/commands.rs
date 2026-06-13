@@ -411,6 +411,13 @@ pub fn is_recording() -> bool {
     IS_RECORDING.load(Ordering::SeqCst)
 }
 
+/// Short git commit hash (with `-dirty` suffix on uncommitted builds), embedded
+/// at compile time. Lets the UI distinguish builds beyond the SemVer number.
+#[tauri::command]
+pub fn get_build_hash() -> String {
+    env!("GIT_HASH").to_string()
+}
+
 // ── Tauri commands (still expose for any direct frontend use) ─────────────
 
 #[tauri::command]

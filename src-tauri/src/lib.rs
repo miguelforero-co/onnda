@@ -9,6 +9,8 @@ mod backend;
 mod commands;
 mod history;
 mod mic_permission;
+#[cfg(target_os = "macos")]
+mod notch;
 mod settings;
 mod shortcut;
 mod streaming;
@@ -45,6 +47,7 @@ pub fn run() {
             commands::get_recording_audio,
             commands::hide_widget,
             commands::test_paste,
+            commands::get_build_hash,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -76,6 +79,9 @@ pub fn run() {
                     // radius = 26 → perfect pill for 52px tall window (height/2)
                     apply_vibrancy(&widget, NSVisualEffectMaterial::HudWindow, None, Some(26.0))
                         .unwrap_or_else(|e| eprintln!("[vibrancy] {e}"));
+
+                    // Raise above the menu bar so the widget can live in the notch.
+                    notch::elevate_widget(&widget);
                 }
             }
 

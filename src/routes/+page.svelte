@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
+  import { getVersion } from "@tauri-apps/api/app";
   import { onMount, onDestroy } from "svelte";
 
   interface Settings {
@@ -43,6 +44,8 @@
   // Download state keyed by model_id
   let downloadProgress = $state<Record<string, DownloadProgress>>({});
   let downloadErrors = $state<Record<string, string>>({});
+  let appVersion = $state("");
+  let buildHash = $state("");
 
   const LANGUAGES = [
     { value: "auto", label: "Automático" },
@@ -61,6 +64,8 @@
   const unlisten: (() => void)[] = [];
 
   onMount(async () => {
+    appVersion = await getVersion();
+    buildHash = await invoke<string>("get_build_hash").catch(() => "");
     settings = await invoke("get_settings");
     models = await invoke("get_models");
     await checkPerms();
@@ -172,7 +177,7 @@
 
   <!-- ── Header ── -->
   <header>
-    <span class="wordmark">Voz Local</span>
+    <span class="wordmark">Voz Local{#if appVersion}<span class="version">v{appVersion}{#if buildHash} · {buildHash}{/if}</span>{/if}</span>
     {#if settings.onboarding_done}
       <nav class="tabs">
         <button class="tab" class:on={view==="settings"} onclick={() => view="settings"}>Ajustes</button>
@@ -518,6 +523,10 @@
   .wordmark{
     font-size:13.5px; font-weight:650; color:var(--text);
     letter-spacing:-.02em;
+  }
+  .version{
+    margin-left:6px; font-size:10.5px; font-weight:500;
+    color:var(--faint); letter-spacing:0; vertical-align:middle;
   }
 
   .tabs{ display:flex; gap:2px; }
