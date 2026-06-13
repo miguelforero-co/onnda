@@ -3,7 +3,8 @@ use anyhow::Result;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
 use crate::backend::{TranscribeOpts, TranscriptionBackend};
-use crate::transcription::{correct_words, trim_silence_range};
+use crate::transcription::correct_words;
+use crate::vad::vad_trim;
 
 static MODEL_CACHE: Mutex<Option<(String, WhisperContext)>> = Mutex::new(None);
 
@@ -57,9 +58,8 @@ impl TranscriptionBackend for WhisperBackend {
         let lang = if opts.language == "auto" { None } else { Some(opts.language.as_str()) };
         params.set_language(lang);
 
-        // Audio is already 16kHz from AudioCapture. Trim silence then add tail.
-        // In Task 5, trim_silence_range is replaced by vad::vad_trim.
-        let (trim_start, trim_end) = trim_silence_range(samples, 16000);
+        // Audio is already 16kHz from AudioCapture. WebRTC VAD trims silence.
+        let (trim_start, trim_end) = vad_trim(samples);
         let mut trimmed = samples[trim_start..trim_end].to_vec();
         // 500ms of silence so Whisper closes the last spoken token.
         trimmed.extend(vec![0.0f32; 8000]);
