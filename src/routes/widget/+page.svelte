@@ -19,7 +19,7 @@
         levels = [...levels.slice(1), v];
       }),
       await listen<boolean>("recording-state", (e) => {
-        if (!e.payload) partialText = "";
+        if (e.payload) partialText = ""; // clear only when NEW recording starts
         phase = e.payload ? "recording" : "transcribing";
       }),
       await listen<boolean>("transcribing", (e) => {
@@ -58,20 +58,21 @@
 
   {#if phase === "recording"}
     <span class="dot red"></span>
-    {#if partialText}
-      <span class="partial">{partialText.length > 48 ? '…' + partialText.slice(-48) : partialText}</span>
-    {:else}
-      <div class="bars">
-        {#each levels as v, i}
-          <div class="bar" style="height:{barH(v,i)}px"></div>
-        {/each}
-      </div>
-    {/if}
+    <div class="bars">
+      {#each levels as v, i}
+        <div class="bar" style="height:{barH(v,i)}px"></div>
+      {/each}
+    </div>
 
   {:else if phase === "transcribing"}
     <span class="dot amber"></span>
-    <div class="spin"></div>
-    <span class="label">Transcribiendo</span>
+    {#if partialText}
+      <span class="partial">{partialText.length > 48 ? '…' + partialText.slice(-48) : partialText}</span>
+      <div class="spin"></div>
+    {:else}
+      <div class="spin"></div>
+      <span class="label">Transcribiendo</span>
+    {/if}
 
   {:else if phase === "done"}
     <span class="dot blue"></span>

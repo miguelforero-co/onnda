@@ -8,7 +8,7 @@ use crate::transcription::AudioCapture;
 
 static IS_RECORDING: AtomicBool = AtomicBool::new(false);
 static CAPTURE: Mutex<Option<AudioCapture>> = Mutex::new(None);
-static CHUNK_HANDLE: Mutex<Option<tokio::task::JoinHandle<()>>> = Mutex::new(None);
+static CHUNK_HANDLE: Mutex<Option<tauri::async_runtime::JoinHandle<()>>> = Mutex::new(None);
 static PARTIAL_TRANSCRIPTS: Mutex<Vec<String>> = Mutex::new(Vec::new());
 
 #[cfg(target_os = "macos")]
@@ -103,10 +103,9 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
     let sample_rate = capture.sample_rate;
     let app_for_chunk = app.clone();
 
-    let handle = tokio::spawn(async move {
+    let handle = tauri::async_runtime::spawn(async move {
         let settings = crate::settings::load(&app_for_chunk);
         let language = settings.selected_language.clone();
-        let custom_words = settings.custom_words.clone();
         let threshold = settings.word_correction_threshold;
         let model_name = if settings.selected_model.is_empty() {
             "large-v3-turbo".to_string()
@@ -152,10 +151,9 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
             let initial_prompt = PARTIAL_TRANSCRIPTS.lock().unwrap().last().cloned().unwrap_or_default();
             let model_path_clone = model_path_str.clone();
             let lang = language.clone();
-            let words = custom_words.clone();
 
             let result = tokio::task::spawn_blocking(move || {
-                crate::transcription::transcribe(&model_path_clone, &snapshot, sample_rate, &lang, &words, threshold)
+                crate::transcription::transcribe(&model_path_clone, &snapshot, sample_rate, &lang, &initial_prompt, threshold)
             }).await;
 
             if let Ok(Ok(text)) = result {
@@ -218,7 +216,6 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
 
     let settings = settings::load(&app);
     let language = settings.selected_language.clone();
-    let custom_words = settings.custom_words.clone();
     let word_correction_threshold = settings.word_correction_threshold;
     let model_name = if settings.selected_model.is_empty() {
         "large-v3-turbo"
