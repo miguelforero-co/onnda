@@ -84,58 +84,63 @@
 
   section { margin-top: 24px; display: flex; flex-direction: column; gap: 10px; }
 
-  /* ── Hero ── */
+  /* ── Hero — the signature dark glass surface ── */
   .hero {
-    background: var(--panel);
-    border-radius: var(--r);
-    padding: 24px;
+    position: relative;
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line); border-radius: var(--r-lg);
+    box-shadow: var(--glass-edge), var(--glass-glow), var(--glass-shadow);
+    padding: 28px;
     align-items: center;
     gap: 12px;
   }
-  /* ── Dictar hero — metallic body + slow specular sheen sweep ──
-     The ONE expressive iridescent moment per screen (Raycast rule). A warm-metal
-     wash blended (soft-light) over solid coral so the white label stays legible. */
+  /* ── Dictar hero — dark glass core, iridescent edge ring, slow holographic
+     sheen sweep (Vercel beam), warm inner glow. The ONE expressive moment. */
   .btn-primary.dictar {
     position: relative;
     overflow: hidden;                 /* clips the sheen band */
-    background:
-      var(--iris-sheen) 0 0 / 220% 100%,
-      var(--coral);
-    background-blend-mode: soft-light, normal;
-    color: #fff; border: none;
-    border-radius: var(--r); padding: 11px 22px; font-size: 13.5px; font-weight: 600;
-    cursor: default; letter-spacing: -.01em;
     display: inline-flex; align-items: center; gap: 8px;
+    padding: 13px 26px; border-radius: var(--r);
+    font-size: 13.5px; font-weight: 600; letter-spacing: -.01em;
+    color: var(--text); cursor: default;
+    /* dark glass core + iridescent ring via padding-box/border-box (respects radius) */
+    background:
+      linear-gradient(var(--elev-2), var(--elev-2)) padding-box,
+      var(--iris-ramp) border-box;
+    border: 1.5px solid transparent;
     box-shadow:
-      var(--emboss-hi),
-      var(--emboss-lo),
-      0 2px 8px rgba(232,85,53,0.28);
-    transition: transform .14s ease, box-shadow .14s ease;
+      inset 0 1px 0 var(--edge-hi),
+      0 0 22px -6px rgba(180,140,252,0.45),
+      var(--accent-glow);
+    transition: transform .14s var(--ease-soft), box-shadow .14s;
   }
-  .btn-primary.dictar svg { width: 18px; height: 18px; position: relative; z-index: 1; }
-  .dictar-label { position: relative; z-index: 1; }
-  /* keep the disabled hero readable but premium — no flat dimming on the metal */
+  .btn-primary.dictar svg { width: 18px; height: 18px; position: relative; z-index: 2; }
+  .dictar-label { position: relative; z-index: 2; }
+  /* stays premium when informational/disabled — no flat dimming */
   .btn-primary.dictar:disabled { opacity: 1; }
+  .btn-primary.dictar:hover:not(:disabled) { transform: translateY(-1px); }
+  .btn-primary.dictar:focus-visible { outline: 2px solid var(--iris-4); outline-offset: 3px; }
 
-  /* Specular sheen band — skewed translucent highlight that slowly sweeps across,
-     the CSS analog of the shader's pow(core,3.0)*spec crest highlight. */
+  /* Holographic sheen sweep — Vercel's prism beam, skewed, swept across.
+     mix-blend screen so it GLOWS on dark instead of glaring. */
   .btn-primary.dictar::after {
-    content: ""; position: absolute; inset: 0; left: -120%;
-    background: var(--sheen-band);
-    transform: skewX(-18deg);
-    pointer-events: none;
+    content: ""; position: absolute; inset: 0; left: -130%; z-index: 1;
+    background: var(--iris-sheen); transform: skewX(-16deg);
+    pointer-events: none; mix-blend-mode: screen;
   }
   @media (prefers-reduced-motion: no-preference) {
     .btn-primary.dictar::after {
-      animation: dictar-sheen var(--sheen-dur) ease-in-out infinite;
+      animation: dictar-sheen var(--sheen-dur) var(--ease-soft) infinite;
     }
     @keyframes dictar-sheen {
-      0%, 60% { left: -120%; }   /* long pause, brief sweep — restrained */
-      100%    { left: 120%; }
+      0%, 55% { left: -130%; }   /* long pause, brief sweep — restrained */
+      100%    { left: 130%; }
     }
   }
   @media (prefers-contrast: more) {
-    .btn-primary.dictar { background: var(--coral); }
+    .btn-primary.dictar { background: var(--elev-2); border-color: var(--accent); box-shadow: none; }
+    .btn-primary.dictar::after { display: none; }
   }
 
   .hero-hint { font-size: 12px; color: var(--muted); line-height: 1.5; text-align: center; }
@@ -146,10 +151,14 @@
     letter-spacing: .06em; color: var(--faint); padding: 0 3px;
   }
 
-  /* ── Stats ── */
+  /* ── Stats — dark glass panels ── */
   .stats { display: flex; gap: 10px; }
   .stat-card {
-    flex: 1; background: var(--panel); border-radius: var(--r);
+    flex: 1; position: relative;
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line); border-radius: var(--r);
+    box-shadow: var(--glass-edge), var(--sh-2);
     padding: 16px; display: flex; flex-direction: column; gap: 4px;
   }
   .stat-num { font-size: 24px; font-weight: 600; color: var(--text); letter-spacing: -.02em; }
@@ -168,18 +177,28 @@
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
 
-  /* ── Quick actions ── */
+  /* ── Quick actions — dark glass cards ── */
   .quick { display: flex; gap: 10px; }
   .quick-card {
-    flex: 1; background: var(--panel); border: none; border-radius: var(--r);
+    flex: 1; position: relative;
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line); border-radius: var(--r);
+    box-shadow: var(--glass-edge), var(--sh-2);
     padding: 14px 16px; font-size: 13px; font-weight: 450; color: var(--text);
-    text-align: left; cursor: pointer; transition: background .12s, opacity .12s;
+    text-align: left; cursor: pointer;
+    transition: transform .16s var(--ease-soft), background .16s, border-color .16s, box-shadow .16s;
   }
-  .quick-card:hover { opacity: .8; }
+  .quick-card:hover {
+    transform: translateY(-1px);
+    background: var(--glass-fill-hi);
+    border-color: var(--line-strong);
+    box-shadow: var(--glass-edge), var(--sh-3);
+  }
 
   kbd {
-    display: inline-block; background: rgba(0,0,0,.06);
-    border-radius: 4px; padding: 1px 5px;
+    display: inline-block; background: rgba(255,255,255,0.08);
+    border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px;
     font-size: 11px; font-family: inherit; color: var(--muted);
   }
 </style>
