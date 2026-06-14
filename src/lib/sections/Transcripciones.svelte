@@ -1,11 +1,10 @@
 <script lang="ts">
   import type { HistoryEntry } from "$lib/types";
   import { invoke } from "@tauri-apps/api/core";
-  import { listen } from "@tauri-apps/api/event";
-  import { open } from "@tauri-apps/plugin-dialog";
   import { onMount, onDestroy } from "svelte";
 
-  // Prop contract from 01-03. D-16/D-17/D-18: unified list + source filter + file upload.
+  // Pure unified list: source filter + play + delete + copy.
+  // File upload lives in the Importar section now.
   let {
     history,
     onRefresh,
@@ -20,41 +19,8 @@
     filter === "all" ? history : history.filter((e) => e.source === filter)
   );
 
-  // ── Upload state ── "" | "Decodificando…" | "Transcribiendo…" | error text
-  let uploadState = $state("");
-
-  async function uploadAudio() {
-    const path = await open({
-      multiple: false,
-      filters: [{ name: "Audio", extensions: ["wav", "mp3", "m4a"] }],
-    });
-    if (!path || Array.isArray(path)) return;
-    uploadState = "Decodificando…";
-    try {
-      await invoke("transcribe_file", { path });
-    } catch (e) {
-      console.error(e);
-      uploadState = "No se pudo transcribir el archivo. Formatos admitidos: WAV, MP3, M4A.";
-    }
-  }
-
-  // ── File-transcribe events from 01-05 ──
-  const unlisten: (() => void)[] = [];
-  onMount(async () => {
-    unlisten.push(
-      await listen<string>("file-transcribe-progress", ({ payload }) => {
-        uploadState = payload === "decoding" ? "Decodificando…" : "Transcribiendo…";
-      }),
-      await listen("file-transcribe-done", () => {
-        uploadState = "";
-        onRefresh(); // re-pull history so the new file entry shows
-      }),
-      await listen("file-transcribe-error", () => {
-        uploadState = "No se pudo transcribir el archivo. Formatos admitidos: WAV, MP3, M4A.";
-      }),
-    );
-  });
-  onDestroy(() => unlisten.forEach((fn) => fn()));
+  // Re-pull history on mount so the list is current when navigated to.
+  onMount(() => onRefresh());
 
   // ── Playback (lifted from pre-refactor +page.svelte) ──
   let playingId = $state<string | null>(null);
@@ -96,9 +62,6 @@
 
 <div class="head">
   <h1 class="page-title">Transcripciones</h1>
-  <button class="btn-primary" onclick={uploadAudio} disabled={uploadState === "Decodificando…" || uploadState === "Transcribiendo…"}>
-    Subir audio
-  </button>
 </div>
 
 <div class="toolbar">
@@ -107,7 +70,6 @@
     <button class="seg-btn" class:on={filter === "dictation"} onclick={() => (filter = "dictation")}>Dictado</button>
     <button class="seg-btn" class:on={filter === "file"} onclick={() => (filter = "file")}>Archivo</button>
   </div>
-  {#if uploadState}<span class="upload-status">{uploadState}</span>{/if}
 </div>
 
 {#if filtered.length === 0}
@@ -155,15 +117,6 @@
   .page-title { font-size: 16px; font-weight: 600; line-height: 1.3; color: var(--text); }
 
   .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
-  .btn-primary {
-    background: var(--coral); color: #fff; border: none;
-    border-radius: var(--r); padding: 8px 16px; font-size: 12.5px; font-weight: 600;
-    cursor: pointer; letter-spacing: -.01em; white-space: nowrap;
-    transition: opacity .15s, transform .1s;
-  }
-  .btn-primary:hover:not(:disabled) { opacity: .88; }
-  .btn-primary:active:not(:disabled) { transform: scale(.98); }
-  .btn-primary:disabled { opacity: .4; cursor: default; }
 
   /* ── Toolbar / filter ── */
   .toolbar { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
@@ -175,7 +128,6 @@
   }
   .seg-btn:hover { color: var(--text); }
   .seg-btn.on { background: var(--bg); color: var(--text); font-weight: 600; }
-  .upload-status { font-size: 12px; color: var(--muted); }
 
   /* ── History list (reused from pre-refactor +page.svelte) ── */
   .empty {
