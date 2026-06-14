@@ -1,102 +1,78 @@
-//! Pause/resume media playback via the system Play/Pause media key.
-//! Implemented in plan 01-04.
+//! Mute/unmute system audio output while dictating.
 //!
-//! There is no public API to query "is something playing" (the only path is
-//! private MediaRemote, rejected in RESEARCH). So we model pause/resume as a
-//! single symmetric toggle of the hardware Play/Pause key (NX_KEYTYPE_PLAY):
+//! Earlier this module synthesized the hardware Play/Pause media key, but that
+//! was wrong: toggling Play/Pause RESUMES already-paused music, and there's no
+//! way to know "is something playing". The user wants the opposite — while
+//! listening, SILENCE whatever is playing (Spotify/YouTube/etc.) and restore it
+//! afterward, and NEVER start playback.
 //!
-//!   - On recording start (`pause_if_playing`): send the toggle once and record
-//!     that WE toggled it (`I_PAUSED = true`).
-//!   - On stop/cancel (`resume_if_paused`): if WE toggled it, send the toggle
-//!     again to undo, and clear the flag.
+//! So we mute the macOS system output volume instead:
 //!
-//! The `I_PAUSED` AtomicBool guards against desync from repeated toggles
-//! (threat T-01-08): exactly one pause is ever matched by one resume. The whole
-//! feature is gated behind the opt-in `pause_media` setting in commands.rs, so
-//! if nothing was playing the user just gets a harmless no-op pause/resume pair.
+//!   - On recording start (`mute_outputs`): read the current muted state via
+//!     AppleScript (`output muted of (get volume settings)`). If output is NOT
+//!     already muted, mute it (`set volume output muted true`) and record that
+//!     WE muted it (`WE_MUTED = true`). If it was already muted, do nothing.
+//!   - On stop/cancel (`restore_outputs`): only if WE muted, unmute
+//!     (`set volume output muted false`) and clear the flag. We never unmute
+//!     something the user had already muted, and never start playback.
 //!
-//! The Play/Pause key is delivered as an NSSystemDefined CGEvent (event type
-//! 14, subtype 8) carrying NX_KEYTYPE_PLAY in data1 — the standard way apps
-//! synthesize media keys. FFI mirrors `commands::post_cmd_v`.
+//! The `WE_MUTED` AtomicBool keeps mute/unmute symmetric (threat T-01-08). The
+//! whole feature is gated behind the opt-in `pause_media` setting.
+//!
+//! Implementation is `osascript` (AppleScript) via `std::process::Command` — no
+//! private APIs, no CoreAudio FFI. The mute is applied on a short-delayed
+//! background thread (~280ms) so the recording-start cue is heard BEFORE output
+//! goes silent.
 
 #[cfg(target_os = "macos")]
 use std::sync::atomic::{AtomicBool, Ordering};
 
 #[cfg(target_os = "macos")]
-static I_PAUSED: AtomicBool = AtomicBool::new(false);
+static WE_MUTED: AtomicBool = AtomicBool::new(false);
 
 #[cfg(target_os = "macos")]
-fn send_play_pause() {
-    use std::ffi::c_void;
-
-    // NSEvent's otherEventWithType:... builds the NSSystemDefined event; we then
-    // post its underlying CGEvent. This is the reliable, public path for media
-    // keys (a bare CGEventCreate can't set the system-defined subtype/data).
-    use objc2::msg_send;
-    use objc2::runtime::AnyClass;
-
-    #[link(name = "CoreGraphics", kind = "framework")]
-    extern "C" {
-        fn CGEventPost(tap: i32, event: *mut c_void);
+fn osascript(script: &str) -> Option<String> {
+    use std::process::Command;
+    let out = Command::new("osascript").arg("-e").arg(script).output().ok()?;
+    if !out.status.success() {
+        return None;
     }
-
-    const NS_SYSTEM_DEFINED: u64 = 14; // NSEventTypeSystemDefined
-    const SUBTYPE: i16 = 8; // NX_SUBTYPE_AUX_CONTROL_BUTTONS
-    const NX_KEYTYPE_PLAY: i64 = 16;
-    const HID_TAP: i32 = 0; // kCGHIDEventTap
-
-    unsafe {
-        let Some(cls) = AnyClass::get(c"NSEvent") else {
-            return;
-        };
-
-        // data1 packs the key code in the high 16 bits and the key state in the
-        // low bits: 0xA00 = key down, 0xB00 = key up.
-        let post = |key_down: bool| {
-            let data1: i64 = (NX_KEYTYPE_PLAY << 16) | if key_down { 0xA00 } else { 0xB00 };
-            // otherEventWithType:location:modifierFlags:timestamp:windowNumber:context:subtype:data1:data2:
-            let event: *mut objc2::runtime::AnyObject = msg_send![
-                cls,
-                otherEventWithType: NS_SYSTEM_DEFINED,
-                location: objc2_foundation::NSPoint { x: 0.0, y: 0.0 },
-                modifierFlags: 0xA00_u64,
-                timestamp: 0.0_f64,
-                windowNumber: 0_i64,
-                context: std::ptr::null_mut::<objc2::runtime::AnyObject>(),
-                subtype: SUBTYPE,
-                data1: data1,
-                data2: -1_i64,
-            ];
-            if event.is_null() {
-                return;
-            }
-            // -[NSEvent CGEvent] returns the underlying CGEventRef (autoreleased,
-            // owned by the NSEvent — do not release it ourselves).
-            let cg: *mut c_void = msg_send![event, CGEvent];
-            if !cg.is_null() {
-                CGEventPost(HID_TAP, cg);
-            }
-        };
-
-        post(true);
-        post(false);
-    }
+    Some(String::from_utf8_lossy(&out.stdout).trim().to_string())
 }
 
 #[cfg(target_os = "macos")]
-pub fn pause_if_playing() {
-    send_play_pause();
-    I_PAUSED.store(true, Ordering::SeqCst);
+fn is_output_muted() -> bool {
+    matches!(
+        osascript("output muted of (get volume settings)").as_deref(),
+        Some("true")
+    )
 }
 
 #[cfg(target_os = "macos")]
-pub fn resume_if_paused() {
-    if I_PAUSED.swap(false, Ordering::SeqCst) {
-        send_play_pause();
+pub fn mute_outputs() {
+    // Delay so the start cue plays before output is silenced; do the AppleScript
+    // off the recording thread so we never block it.
+    std::thread::spawn(|| {
+        std::thread::sleep(std::time::Duration::from_millis(280));
+        if !is_output_muted() {
+            if osascript("set volume output muted true").is_some() {
+                WE_MUTED.store(true, Ordering::SeqCst);
+            }
+        }
+    });
+}
+
+#[cfg(target_os = "macos")]
+pub fn restore_outputs() {
+    if WE_MUTED.swap(false, Ordering::SeqCst) {
+        // Run off-thread too; unmute is best-effort and shouldn't block stop.
+        std::thread::spawn(|| {
+            osascript("set volume output muted false");
+        });
     }
 }
 
 #[cfg(not(target_os = "macos"))]
-pub fn pause_if_playing() {}
+pub fn mute_outputs() {}
 #[cfg(not(target_os = "macos"))]
-pub fn resume_if_paused() {}
+pub fn restore_outputs() {}
