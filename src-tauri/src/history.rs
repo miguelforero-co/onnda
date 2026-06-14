@@ -17,8 +17,7 @@ pub struct HistoryEntry {
 }
 
 fn default_source() -> String {
-    // STUB (RED): intentionally wrong so tests fail.
-    "STUB".to_string()
+    "dictation".to_string()
 }
 
 fn history_path<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
