@@ -371,7 +371,7 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
         return;
     }
 
-    history::save_entry(&app_clone, text.clone(), &samples, sample_rate);
+    history::save_entry(&app_clone, text.clone(), &samples, sample_rate, "dictation".to_string(), None);
     // Notify the widget FIRST so it starts its close countdown.
     app.emit("transcription-done", &text).ok();
     // 300ms: time for the previously-active app to regain keyboard focus before Cmd+V.

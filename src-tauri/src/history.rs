@@ -10,6 +10,15 @@ pub struct HistoryEntry {
     pub text: String,
     pub audio_filename: Option<String>,
     pub duration_secs: f32,
+    #[serde(default = "default_source")]
+    pub source: String, // "dictation" | "file"
+    #[serde(default)]
+    pub original_filename: Option<String>, // set for source == "file"
+}
+
+fn default_source() -> String {
+    // STUB (RED): intentionally wrong so tests fail.
+    "STUB".to_string()
 }
 
 fn history_path<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
@@ -37,6 +46,8 @@ pub fn save_entry<R: Runtime>(
     text: String,
     samples: &[f32],
     sample_rate: u32,
+    source: String,
+    original_filename: Option<String>,
 ) -> HistoryEntry {
     let ts = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -64,6 +75,8 @@ pub fn save_entry<R: Runtime>(
         text,
         audio_filename,
         duration_secs,
+        source,
+        original_filename,
     };
 
     let mut history = load(app);
@@ -132,4 +145,23 @@ fn write_wav(path: &PathBuf, samples: &[f32], sample_rate: u32) -> std::io::Resu
         f.write_all(&pcm.to_le_bytes())?;
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn old_history_entry_defaults_to_dictation() {
+        let old = r#"{"id":"1","timestamp_ms":0,"text":"hola","audio_filename":null,"duration_secs":1.0}"#;
+        let e: HistoryEntry =
+            serde_json::from_str(old).expect("old history entry must deserialize");
+        assert_eq!(e.source, "dictation");
+        assert_eq!(e.original_filename, None);
+    }
+
+    #[test]
+    fn default_source_constant() {
+        assert_eq!(default_source(), "dictation");
+    }
 }
