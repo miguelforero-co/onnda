@@ -33,6 +33,9 @@ cpal = "0.15"
 # Voice activity detection
 webrtc-vad = "0.4"
 
+# FFT for the spectrum visualizer (audio-bands)
+rustfft = "6"
+
 # Whisper transcription — Metal GPU acceleration only on Apple Silicon
 whisper-rs = "0.14"
 

@@ -102,8 +102,9 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
         return Ok(());
     }
     let app_clone = app.clone();
-    let capture = AudioCapture::start(move |rms| {
+    let capture = AudioCapture::start(move |rms, bands| {
         app_clone.emit("audio-level", rms).ok();
+        app_clone.emit("audio-bands", bands).ok();
     })
     .map_err(|e| e.to_string())?;
 

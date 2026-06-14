@@ -51,6 +51,18 @@
 
   const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
+  // --- spectrum nodes: FFT bands → peak-hold smoothing → Catmull-Rom curve ---
+  const N_BANDS = 12;
+  const WAVE_RES = 128; // upsampled curve resolution (node-curve texture width)
+  let bandsRaw = new Float32Array(N_BANDS); // latest bands from Rust
+  const nodes = new Float32Array(N_BANDS);  // smoothed node heights (peak-hold)
+  const waveLut = new Uint8Array(WAVE_RES * 4); // baked Catmull-Rom curve (R channel)
+  const cr = (p0: number, p1: number, p2: number, p3: number, t: number) => {
+    const t2 = t * t, t3 = t2 * t;
+    return 0.5 * (2 * p1 + (-p0 + p2) * t + (2 * p0 - 5 * p1 + 4 * p2 - p3) * t2 + (-p0 + 3 * p1 - 3 * p2 + p3) * t3);
+  };
+  const ci = (i: number) => (i < 0 ? 0 : i > N_BANDS - 1 ? N_BANDS - 1 : i);
+
   // --- palette LUTs ------------------------------------------------------
   function hex2rgb(h: string): [number, number, number] {
     return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -79,20 +91,24 @@
     precision highp float;
     uniform vec2 u_res;
     uniform sampler2D u_pal;
+    uniform sampler2D u_wave;
     uniform float u_phase,u_time,u_amp,u_thick,u_freq,u_packet,u_wf,u_center,u_maxamp;
     uniform float u_harm,u_glow,u_rise,u_edge;
-    uniform float u_disp,u_dispW,u_pos,u_flow,u_height,u_drift,u_idxBase,u_pSat,u_pGamma,u_spec,u_bright,u_fbmScale;
+    uniform float u_disp,u_dispW,u_pos,u_flow,u_height,u_drift,u_idxBase,u_pSat,u_pGamma,u_spec,u_bright,u_fbmScale,u_voice,u_cK,u_cSpeed;
     float hash(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
     float noise(vec2 p){ vec2 i=floor(p),f=fract(p); vec2 u=f*f*(3.0-2.0*f);
       return mix(mix(hash(i+vec2(0.0,0.0)),hash(i+vec2(1.0,0.0)),u.x),
                  mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0,1.0)),u.x),u.y); }
     float fbm(vec2 p){ float v=0.0,a=0.5; for(int k=0;k<5;k++){ v+=a*noise(p); p*=2.02; a*=0.5; } return v; }
     float wave(float x){
-      float w=sin(x*u_freq*6.28318+u_phase)+u_harm*0.6*sin(x*u_freq*6.28318*1.9+u_phase*1.4+1.3);
-      // organic shimmer: the shape keeps morphing even at constant volume
-      w+=0.16*sin(x*u_freq*6.28318*0.6 - u_phase*0.6 + u_time*1.1);
-      w+=0.24*(fbm(vec2(x*2.2 + u_time*0.5, u_time*0.4))-0.5);
-      return w/(1.0+u_harm*0.6+0.28);
+      float a=x*u_freq*6.28318;
+      // A few smooth TRAVELLING sines → an organic, audio-like waveform whose
+      // peaks vary in height and scroll across, with no noisy jitter.
+      float w=sin(a+u_phase)
+             +u_harm*0.6*sin(a*1.9+u_phase*1.4+1.3)
+             +0.22*sin(a*1.3+u_phase*0.8-u_time*0.7)
+             +0.14*sin(a*0.55-u_phase*0.5+u_time*0.5);
+      return w/(1.0+u_harm*0.6+0.36);
     }
     void main(){
       vec2 uv=gl_FragCoord.xy/u_res;
@@ -100,10 +116,17 @@
       float inside=step(0.0,xm)*step(xm,1.0);
       float ed=max(u_edge,0.001);
       float edge=smoothstep(0.0,ed,xm)*smoothstep(1.0,1.0-ed,xm);
-      float pk=exp(-pow(xm-0.5,2.0)/(2.0*0.045));
-      float env=mix(1.0,pk,u_packet);
-      float w=wave(xm);
-      float cy=u_center + w*env*u_amp*u_maxamp;
+      // Speaking: centreline = the smoothed FFT-node curve (real spectrum, peaks
+      // hold steady at each frequency → no jitter). Processing: a calm idle sine.
+      // u_packet = 1 speaking, 0 processing. edge tapers the ends to baseline.
+      // Spectrum envelope (0..1) sets HOW TALL the wave is at each spot; a
+      // travelling bipolar carrier makes the actual up & down peaks — a wave of
+      // W's. Tall where you have energy, FLAT when silent, and it drifts left.
+      float ev=texture2D(u_wave, vec2(clamp(xm,0.0,1.0),0.5)).r;
+      float carrier=sin(xm*u_cK*6.28318 + u_time*u_cSpeed)
+                   +0.55*sin(xm*u_cK*1.7*6.28318 - u_time*u_cSpeed*0.6);
+      float w=mix(wave(xm), carrier*ev*0.7, u_packet);
+      float cy=u_center + w*edge*u_amp*u_maxamp;
       float dist=uv.y-cy;
       float tk=u_thick*mix(1.0,u_rise,smoothstep(-0.01,0.06,dist));
       float core=exp(-(dist*dist)/(2.0*tk*tk));
@@ -122,7 +145,8 @@
   `;
 
   let gl: WebGLRenderingContext | null = null;
-  let tex: WebGLTexture | null = null;
+  let tex: WebGLTexture | null = null;       // palette LUT
+  let nodeTex: WebGLTexture | null = null;   // node-curve (spectrum) LUT
   let uni: Record<string, WebGLUniformLocation | null> = {};
 
   function compile(g: WebGLRenderingContext, type: number, src: string) {
@@ -156,9 +180,17 @@
     g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_S, g.CLAMP_TO_EDGE);
     g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_T, g.CLAMP_TO_EDGE);
 
-    const names = ["u_res","u_pal","u_phase","u_time","u_amp","u_thick","u_freq","u_packet","u_wf","u_center","u_maxamp","u_harm","u_glow","u_rise","u_edge","u_disp","u_dispW","u_pos","u_flow","u_height","u_drift","u_idxBase","u_pSat","u_pGamma","u_spec","u_bright","u_fbmScale"];
+    nodeTex = g.createTexture();
+    g.bindTexture(g.TEXTURE_2D, nodeTex);
+    g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MIN_FILTER, g.LINEAR);
+    g.texParameteri(g.TEXTURE_2D, g.TEXTURE_MAG_FILTER, g.LINEAR);
+    g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_S, g.CLAMP_TO_EDGE);
+    g.texParameteri(g.TEXTURE_2D, g.TEXTURE_WRAP_T, g.CLAMP_TO_EDGE);
+
+    const names = ["u_res","u_pal","u_wave","u_phase","u_time","u_amp","u_thick","u_freq","u_packet","u_wf","u_center","u_maxamp","u_harm","u_glow","u_rise","u_edge","u_disp","u_dispW","u_pos","u_flow","u_height","u_drift","u_idxBase","u_pSat","u_pGamma","u_spec","u_bright","u_fbmScale","u_voice","u_cK","u_cSpeed"];
     for (const n of names) uni[n] = g.getUniformLocation(prog, n);
     g.uniform1i(uni.u_pal, 0);
+    g.uniform1i(uni.u_wave, 1);
 
     const dpr = window.devicePixelRatio || 1;
     canvas.width = W * dpr;
@@ -177,23 +209,48 @@
     const P: Cfg = {};
     for (const k of KEYS) P[k] = lerp(SPK[k], PRC[k], morph);
 
-    const spkAmp = 0.2 + voiceLevel * 0.62;
+    // Speaking gain is constant (the spectrum carries the dynamics);
+    // processing is the calm idle swell.
+    const spkAmp = 0.92;
     const prcAmp = 0.42 + 0.06 * Math.sin(now / 1100);
     const target = lerp(spkAmp, prcAmp, morph);
     amp += (target - amp) * lerp(0.16, 0.05, morph);
-    phaseAcc += P.waveSpeed * lerp(0.6 + voiceLevel * 0.8, 0.4, morph) * 1.4;
+    phaseAcc += P.waveSpeed * lerp(0.7, 0.4, morph) * 1.4;
     voiceLevel *= 0.88;
 
-    // blend the two palettes by morph, upload as the LUT
+    // Smooth the spectrum nodes with peak-hold (fast attack, slow decay) so
+    // peaks rise quickly and settle smoothly instead of jittering.
+    for (let i = 0; i < N_BANDS; i++) {
+      const tgt = bandsRaw[i];
+      nodes[i] = tgt > nodes[i] ? nodes[i] * 0.25 + tgt * 0.75 : nodes[i] * 0.92 + tgt * 0.08;
+    }
+    // Bake the smoothed spectrum ENVELOPE (0..1, unipolar) as a Catmull-Rom
+    // curve. The shader modulates a bipolar carrier with it → a wave of W's
+    // that's tall where you have energy and flat when silent. ×1.6 = sensitivity.
+    for (let i = 0; i < WAVE_RES; i++) {
+      const f = (i / (WAVE_RES - 1)) * (N_BANDS - 1);
+      const k = Math.floor(f), t = f - k;
+      const v = cr(nodes[ci(k - 1)], nodes[ci(k)], nodes[ci(k + 1)], nodes[ci(k + 2)], t);
+      const e = Math.max(0, Math.min(255, v * 1.8 * 255));
+      waveLut[i * 4] = e; waveLut[i * 4 + 1] = e; waveLut[i * 4 + 2] = e; waveLut[i * 4 + 3] = 255;
+    }
+
+    // blend the two palettes by morph, upload as the palette LUT (unit 0)
     for (let i = 0; i < lutCur.length; i++) lutCur[i] = lerp(LUT_SPK[i], LUT_PRC[i], morph);
     g.activeTexture(g.TEXTURE0);
     g.bindTexture(g.TEXTURE_2D, tex);
     g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, 256, 1, 0, g.RGBA, g.UNSIGNED_BYTE, lutCur);
+    // upload the node curve (unit 1)
+    g.activeTexture(g.TEXTURE1);
+    g.bindTexture(g.TEXTURE_2D, nodeTex);
+    g.texImage2D(g.TEXTURE_2D, 0, g.RGBA, WAVE_RES, 1, 0, g.RGBA, g.UNSIGNED_BYTE, waveLut);
 
     g.uniform1f(uni.u_phase, phaseAcc);
     g.uniform1f(uni.u_time, now * 0.001);
     g.uniform1f(uni.u_amp, amp);
     g.uniform1f(uni.u_packet, 1 - morph);
+    g.uniform1f(uni.u_cK, 4.0);      // ~W's across the width
+    g.uniform1f(uni.u_cSpeed, 1.0);  // leftward travel of the W's
     g.uniform1f(uni.u_maxamp, P.maxAmp / H);
     g.uniform1f(uni.u_thick, P.thick / H);
     g.uniform1f(uni.u_wf, P.widthFrac);
@@ -244,12 +301,18 @@
     // (expands & shows) even if WebGL init fails for any reason.
     unlisten.push(
       await listen<number>("audio-level", (e) => {
-        const v = Math.min(1, e.payload * 8);
-        voiceLevel = voiceLevel * 0.55 + v * 0.45;
+        const v = Math.min(1, e.payload * 9);
+        voiceLevel = voiceLevel * 0.5 + v * 0.5; // smooth follow, no jitter
+      }),
+      await listen<number[]>("audio-bands", (e) => {
+        const b = e.payload;
+        for (let i = 0; i < N_BANDS; i++) bandsRaw[i] = b[i] ?? 0;
       }),
       await listen<boolean>("recording-state", (e) => {
-        if (e.payload) { clearTimers(); phase = "recording"; open = true; }
-        else phase = "transcribing";
+        if (e.payload) {
+          clearTimers(); phase = "recording"; open = true;
+          bandsRaw.fill(0); nodes.fill(0); // fresh start, no stale spectrum flash
+        } else phase = "transcribing";
       }),
       await listen<boolean>("transcribing", (e) => { if (e.payload) phase = "transcribing"; }),
       await listen<string>("transcription-done", () => { phase = "done"; scheduleClose(450); }),
