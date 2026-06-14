@@ -63,9 +63,14 @@ impl Default for AppSettings {
 /// comma/newline-separated `custom_words` ONLY when `dictionary` is still empty.
 /// Never clobbers user edits once items exist.
 pub fn migrate_dictionary(dictionary: &[String], custom_words: &str) -> Vec<String> {
-    // STUB (RED): intentionally wrong — returns empty so tests fail.
-    let _ = (dictionary, custom_words);
-    Vec::new()
+    if !dictionary.is_empty() {
+        return dictionary.to_vec();
+    }
+    custom_words
+        .split([',', '\n'])
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .collect()
 }
 
 // In-process cache so shortcut handlers don't hit disk on every key event.
@@ -95,10 +100,13 @@ pub fn load<R: Runtime>(app: &AppHandle<R>) -> AppSettings {
         return cached.clone();
     }
     let path = settings_path(app);
-    let settings: AppSettings = fs::read_to_string(&path)
+    let mut settings: AppSettings = fs::read_to_string(&path)
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
         .unwrap_or_default();
+    // Idempotent one-time migration of the legacy CSV custom_words into discrete
+    // dictionary items (D-19/D-20). Only derives when dictionary is still empty.
+    settings.dictionary = migrate_dictionary(&settings.dictionary, &settings.custom_words);
     *CACHE.lock().unwrap() = Some(settings.clone());
     settings
 }
