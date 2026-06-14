@@ -486,6 +486,123 @@ pub async fn stop_and_transcribe<R: Runtime>(app: AppHandle<R>) -> Result<(), St
     Ok(())
 }
 
+/// Transcribe an arbitrary audio file (wav/mp3/m4a) picked by the user.
+///
+/// Pipeline (all heavy work off the async runtime via spawn_blocking):
+/// decode → resample to 16kHz → Whisper → vocabulary correction → save a
+/// unified history entry with `source = "file"`. Emits `file-transcribe-*`
+/// events the frontend (01-08) listens for. Unlike dictation, this never pastes.
+#[tauri::command]
+pub async fn transcribe_file<R: Runtime>(app: AppHandle<R>, path: String) -> Result<String, String> {
+    let original_filename = std::path::Path::new(&path)
+        .file_name()
+        .and_then(|n| n.to_str())
+        .map(str::to_owned);
+
+    // 1. Decode the untrusted file off the async runtime.
+    app.emit("file-transcribe-progress", "decoding").ok();
+    let decode_path = path.clone();
+    let (samples_native, rate) = match tokio::task::spawn_blocking(move || {
+        crate::audio_decode::decode_file(&decode_path)
+    })
+    .await
+    {
+        Ok(Ok(decoded)) => decoded,
+        Ok(Err(_)) | Err(_) => {
+            let msg = "No se pudo transcribir el archivo. Formatos admitidos: WAV, MP3, M4A.";
+            app.emit("file-transcribe-error", msg).ok();
+            return Err(msg.to_string());
+        }
+    };
+
+    // 2. Resample to the 16kHz mono f32 Whisper expects.
+    let samples = crate::transcription::resample(&samples_native, rate as usize, 16000);
+
+    // 3. Load settings + resolve the model path (mirrors stop_and_transcribe_internal).
+    let settings = settings::load(&app);
+    let language = settings.selected_language.clone();
+    let custom_words = settings.custom_words.clone();
+    let word_correction_threshold = settings.word_correction_threshold;
+    let model_name = if settings.selected_model.is_empty() {
+        "large-v3-turbo"
+    } else {
+        settings.selected_model.as_str()
+    };
+
+    let Some(dir) = models_dir(&app) else {
+        let msg = "Modelo no encontrado. Descárgalo en Ajustes → Modelos.";
+        app.emit("file-transcribe-error", msg).ok();
+        return Err(msg.to_string());
+    };
+    let primary = dir.join(format!("ggml-{}.bin", model_name));
+    let fallback = dir.join("ggml-base.bin");
+    let model_path = if primary.exists() {
+        primary
+    } else if fallback.exists() {
+        fallback
+    } else {
+        let msg = "Modelo no encontrado. Descárgalo en Ajustes → Modelos.";
+        app.emit("file-transcribe-error", msg).ok();
+        return Err(msg.to_string());
+    };
+    let Some(model_path_str) = model_path.to_str().map(str::to_owned) else {
+        let msg = "Ruta del modelo contiene caracteres inválidos";
+        app.emit("file-transcribe-error", msg).ok();
+        return Err(msg.to_string());
+    };
+
+    // 4. Transcribe off the async runtime.
+    app.emit("file-transcribe-progress", "transcribing").ok();
+    let lang = language.clone();
+    let prompt = custom_words.clone();
+    let transcribe_samples = samples.clone();
+    let raw = match tokio::task::spawn_blocking(move || {
+        WhisperBackend::new(model_path_str).transcribe(
+            &transcribe_samples,
+            &TranscribeOpts {
+                language: lang,
+                initial_prompt: prompt,
+                word_correction_threshold: 1.0,
+                sample_rate: 16000,
+            },
+        )
+    })
+    .await
+    {
+        Ok(Ok(t)) => t,
+        Ok(Err(e)) => {
+            app.emit("file-transcribe-error", e.to_string()).ok();
+            return Err(e.to_string());
+        }
+        Err(e) => {
+            app.emit("file-transcribe-error", e.to_string()).ok();
+            return Err(e.to_string());
+        }
+    };
+
+    // 5. Correct vocabulary once over the assembled text.
+    let text = crate::transcription::correct_words(raw.trim(), &custom_words, word_correction_threshold);
+    if text.is_empty() {
+        let msg = "No se detectó voz";
+        app.emit("file-transcribe-error", msg).ok();
+        return Err(msg.to_string());
+    }
+
+    // 6. Save as a unified entry tagged source="file" (samples already 16k mono).
+    history::save_entry(
+        &app,
+        text.clone(),
+        &samples,
+        16000,
+        "file".to_string(),
+        original_filename,
+    );
+
+    // 7. Done — no paste (file transcription is not a dictation).
+    app.emit("file-transcribe-done", &text).ok();
+    Ok(text)
+}
+
 #[tauri::command]
 pub fn is_recording_cmd() -> bool {
     is_recording()

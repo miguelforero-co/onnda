@@ -46,6 +46,7 @@ pub fn run() {
             commands::save_settings,
             commands::start_recording,
             commands::stop_and_transcribe,
+            commands::transcribe_file,
             commands::is_recording_cmd,
             commands::get_models,
             commands::download_model,
