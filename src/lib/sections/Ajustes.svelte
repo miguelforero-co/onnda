@@ -15,6 +15,7 @@
     downloadErrors,
     micGranted,
     a11yGranted,
+    appVersion = "",
     onSave,
     onDownload,
     onCheckPerms,
@@ -25,6 +26,7 @@
     downloadErrors: Record<string, string>;
     micGranted: boolean;
     a11yGranted: boolean;
+    appVersion?: string;
     onSave: (shortcutChanged?: boolean) => void;
     onDownload: (modelId: string) => void;
     onCheckPerms: () => void;
@@ -55,7 +57,6 @@
 
   // ── Actualizaciones (D-14) ──
   let updateMsg = $state("");
-  let updateVersion = $state("");
   let checkingUpdates = $state(false);
 
   async function checkUpdates() {
@@ -63,7 +64,6 @@
     updateMsg = "";
     try {
       const st = await invoke<UpdateStatus>("check_for_updates");
-      updateVersion = st.current_version;
       updateMsg = st.up_to_date
         ? "Estás al día"
         : `Hay una versión nueva disponible (v${st.available_version})`;
@@ -217,7 +217,7 @@
   <h2 class="section-label">Actualizaciones</h2>
   <div class="rows">
     <div class="row">
-      <span class="row-label">Versión {updateVersion || "actual"}</span>
+      <span class="row-label">Versión {appVersion}</span>
       <div class="update-action">
         {#if updateMsg}<span class="update-msg">{updateMsg}</span>{/if}
         <button class="link-btn" onclick={checkUpdates} disabled={checkingUpdates}>

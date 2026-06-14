@@ -1,7 +1,6 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
-  import { getVersion } from "@tauri-apps/api/app";
   import { onMount, onDestroy } from "svelte";
   import "$lib/styles/tokens.css";
   import type { Settings, HistoryEntry, ModelInfo, DownloadProgress, View } from "$lib/types";
@@ -42,7 +41,7 @@
   const unlisten: (() => void)[] = [];
 
   onMount(async () => {
-    appVersion = await getVersion();
+    appVersion = await invoke<string>("get_app_version").catch(() => "");
     buildHash = await invoke<string>("get_build_hash").catch(() => "");
     settings = await invoke("get_settings");
     models = await invoke("get_models");
@@ -214,7 +213,7 @@
       {#if view === "ajustes"}
         <Ajustes
           {settings} {models} {downloadProgress} {downloadErrors}
-          {micGranted} {a11yGranted}
+          {micGranted} {a11yGranted} {appVersion}
           onSave={(sc) => schedSave(sc)}
           onDownload={startDownload}
           onCheckPerms={checkPerms}
