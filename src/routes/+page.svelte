@@ -211,16 +211,18 @@
     {/if}
   </div>
 {:else}
-  <!-- ── SHELL ── -->
-  <div class="shell">
-    <!-- Full-width drag handle for the hidden title bar (Apple HIG: provide a way
-         to move the window when the title bar is hidden). Sits over the empty top
-         strip; native traffic lights render above it and stay clickable. -->
+  <!-- ── WINDOW ── -->
+  <div class="winroot">
+    <!-- Real top bar (app color) = the window's only chrome besides the native
+         traffic lights, which float over its left. Full-width drag handle (Apple
+         HIG: give a way to move the window when the title bar is hidden). It's an
+         in-flow bar (not an overlay), so it never covers interactive content. -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div class="titlebar" aria-hidden="true"
          onmousedown={startWindowDrag} ondblclick={titlebarDblClick}></div>
-    <Sidebar bind:view />
-    <main class="content">
+    <div class="shell">
+      <Sidebar bind:view />
+      <main class="content">
       {#if view === "home"}
         <Home {history} />
       {/if}
@@ -242,21 +244,22 @@
           onCheckPerms={checkPerms}
         />
       {/if}
-    </main>
+      </main>
+    </div>
   </div>
 {/if}
 
 <style>
-  /* ── Shell ── */
-  .shell { position: relative; display: flex; height: 100vh; background: var(--bg); }
+  /* ── Window ── */
+  .winroot { display: flex; flex-direction: column; height: 100vh; background: var(--bg); }
 
-  /* Window drag handle (hidden title bar). Spans the top; the area beneath is
-     empty padding so it never blocks interactive content. Traffic lights are
-     native chrome rendered above the webview, so they remain clickable. */
-  .titlebar {
-    position: absolute; top: 0; left: 0; right: 0; height: 44px;
-    z-index: 100;
-  }
+  /* Top bar (app color) — the only chrome besides the native traffic lights that
+     float over its left. In-flow (not an overlay) so it never blocks content.
+     The whole bar is the window drag handle (onmousedown → startDragging). */
+  .titlebar { height: 34px; flex-shrink: 0; background: var(--bg); }
+
+  /* ── Shell (sidebar + content row, below the bar) ── */
+  .shell { position: relative; display: flex; flex: 1; min-height: 0; background: var(--bg); }
 
   /* Aurora mesh — warm top-left, violet top-right, aqua bottom, all ≤0.20
      alpha so the void stays near-black. Blurred to melt the blob seams, plus

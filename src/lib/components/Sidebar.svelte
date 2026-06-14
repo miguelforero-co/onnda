@@ -79,9 +79,7 @@
     border-right: 1px solid var(--line);
     box-shadow: var(--glass-edge);
     display: flex; flex-direction: column;
-    /* extra top padding clears the macOS traffic lights that now float over the
-       hidden title bar (Overlay style) in this top-left corner. */
-    padding: 32px 12px 16px;
+    padding: 16px 12px;
     gap: 18px;
   }
 
