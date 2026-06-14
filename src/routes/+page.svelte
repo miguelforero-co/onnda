@@ -232,27 +232,28 @@
   /* ── Shell ── */
   .shell { position: relative; display: flex; height: 100vh; background: var(--bg); }
 
-  /* Aurora wash — the two notch hue poles (warm top-left, cool top-right) at
-     ~8–10%, plus a 4% film grain so the gradient never bands. Pointer-transparent
-     decorative layers, content sits above via z-index. */
+  /* Aurora mesh — warm top-left, violet top-right, aqua bottom, all ≤0.20
+     alpha so the void stays near-black. Blurred to melt the blob seams, plus
+     a 5% film grain so the gradient never bands. Pointer-transparent decorative
+     layers; content sits above via z-index. */
   .shell::before {
-    content: ""; position: absolute; inset: 0; z-index: 0;
-    background: var(--aurora-warm), var(--aurora-cool);
-    pointer-events: none;
+    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
+    background: var(--aurora-warm), var(--aurora-violet), var(--aurora-aqua);
+    filter: blur(8px);
   }
   .shell::after {
     content: ""; position: absolute; inset: 0; z-index: 0;
     background-image: var(--grain);
-    opacity: 0.04; mix-blend-mode: overlay; pointer-events: none;
+    opacity: 0.05; mix-blend-mode: overlay; pointer-events: none;
   }
   .shell > :global(*) { position: relative; z-index: 1; }
 
   @media (prefers-reduced-motion: no-preference) {
     .shell::before {
-      animation: aurora-drift var(--drift-slow) ease-in-out infinite alternate;
+      animation: aurora-drift var(--drift-slow) var(--ease-soft) infinite alternate;
     }
     @keyframes aurora-drift {
-      to { transform: translate3d(2%, 1%, 0) scale(1.04); opacity: 0.85; }
+      to { transform: translate3d(2.5%, 1.5%, 0) scale(1.06); opacity: 0.85; }
     }
   }
   @media (prefers-reduced-transparency: reduce) {
@@ -280,21 +281,26 @@
   .hint { font-size: 11.5px; color: var(--faint); line-height: 1.55; }
 
   .btn-primary {
-    width: 100%; background: var(--coral); color: #fff; border: none;
+    width: 100%; background: var(--accent); color: #fff; border: none;
     border-radius: var(--r); padding: 11px; font-size: 13.5px; font-weight: 600;
     cursor: pointer; letter-spacing: -.01em;
-    transition: opacity .15s, transform .1s;
+    box-shadow: var(--accent-glow);
+    transition: opacity .15s, transform .1s, box-shadow .15s;
   }
-  .btn-primary:hover:not(:disabled) { opacity: .88; }
+  .btn-primary:hover:not(:disabled) { opacity: .92; transform: translateY(-1px); }
   .btn-primary:active:not(:disabled) { transform: scale(.98); }
-  .btn-primary:disabled { opacity: .3; cursor: default; }
+  .btn-primary:disabled {
+    opacity: 1; cursor: default;
+    background: rgba(255,255,255,0.06); color: var(--faint);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
 
   /* Onboarding step progress dots */
   .ob-steps { display: flex; gap: 5px; justify-content: center; }
   .ob-step-dot {
     width: 5px; height: 5px; border-radius: 50%;
-    background: rgba(0,0,0,.15);
+    background: rgba(255,255,255,.18);
     transition: background .2s;
   }
-  .ob-step-dot.active { background: var(--coral); }
+  .ob-step-dot.active { background: var(--accent); box-shadow: 0 0 8px -1px rgba(255,106,61,.7); }
 </style>
