@@ -43,6 +43,37 @@ pub fn clear_history<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     Ok(())
 }
 
+/// Total disk used by saved transcriptions, in bytes: the sum of every file in
+/// the `recordings` directory plus `history.json` if present. Reuses the same
+/// `app_data_dir` + recordings path logic as `clear_history` / `history.rs`, so
+/// the figure matches exactly what `clear_history` would delete. Feeds the
+/// "X MB en uso" metric in the frontend. Missing dir/file → counts as 0.
+#[tauri::command]
+pub fn get_storage_usage<R: Runtime>(app: AppHandle<R>) -> u64 {
+    let Some(dir) = data_dir(&app) else {
+        return 0;
+    };
+    let mut total: u64 = 0;
+
+    let rec = dir.join("recordings");
+    if let Ok(entries) = fs::read_dir(&rec) {
+        for entry in entries.flatten() {
+            if let Ok(meta) = entry.metadata() {
+                if meta.is_file() {
+                    total += meta.len();
+                }
+            }
+        }
+    }
+
+    let hist = dir.join("history.json");
+    if let Ok(meta) = fs::metadata(&hist) {
+        total += meta.len();
+    }
+
+    total
+}
+
 /// Delete downloaded models. Restricted to `*.bin` files inside
 /// `app_data_dir/models` so unrelated files are never touched.
 #[tauri::command]

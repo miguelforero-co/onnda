@@ -63,6 +63,7 @@ pub fn run() {
             data_mgmt::reveal_data_dir,
             data_mgmt::clear_history,
             data_mgmt::clear_models,
+            data_mgmt::get_storage_usage,
             updater_check::check_for_updates,
         ])
         .on_window_event(|window, event| {
