@@ -259,20 +259,24 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
         crate::sounds::play_stop();
     }
 
-    // Let the streaming loop finish its in-flight segment (short) so its text is
-    // committed before we read it. The loop exits on the next IS_RECORDING check.
-    let stream_handle = STREAM_HANDLE.lock().unwrap().take();
-    if let Some(handle) = stream_handle {
-        let _ = tokio::time::timeout(tokio::time::Duration::from_secs(8), handle).await;
-    }
-
+    // Stop the mic IMMEDIATELY so we stop listening the instant the user releases
+    // (or taps stop) — do NOT keep the input stream open during transcription.
+    // cap.stop() returns a snapshot of the captured samples; the streaming loop
+    // holds its own Arc to the (now-frozen) buffer, so it can still finish below.
     let Some(cap) = capture else {
         app.emit("transcribe-error", "No hay grabación activa").ok();
         return;
     };
-
-    app.emit("transcribing", true).ok();
     let (samples, sample_rate) = cap.stop();
+    app.emit("transcribing", true).ok();
+
+    // Now let the streaming loop finish its in-flight segment (short) so its
+    // committed text is ready before we assemble the tail. The buffer is frozen
+    // (mic stopped above); the loop exits on the next IS_RECORDING check.
+    let stream_handle = STREAM_HANDLE.lock().unwrap().take();
+    if let Some(handle) = stream_handle {
+        let _ = tokio::time::timeout(tokio::time::Duration::from_secs(8), handle).await;
+    }
 
     let rms = crate::transcription::rms_f32(&samples);
     eprintln!("[voz-local] samples: {}, rate: {}, rms: {:.6}", samples.len(), sample_rate, rms);

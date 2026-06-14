@@ -34,7 +34,7 @@
 <aside class="sidebar" onmousedown={railDrag}>
   <!-- Brand area sits below the floating macOS traffic lights (title bar hidden,
        Overlay style). The whole rail is a window drag handle (see railDrag). -->
-  <div class="brand" data-tauri-drag-region>
+  <div class="brand">
     <span class="wordmark">Voz Local</span>
   </div>
 

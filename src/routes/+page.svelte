@@ -217,7 +217,7 @@
          to move the window when the title bar is hidden). Sits over the empty top
          strip; native traffic lights render above it and stay clickable. -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="titlebar" data-tauri-drag-region aria-hidden="true"
+    <div class="titlebar" aria-hidden="true"
          onmousedown={startWindowDrag} ondblclick={titlebarDblClick}></div>
     <Sidebar bind:view />
     <main class="content">
