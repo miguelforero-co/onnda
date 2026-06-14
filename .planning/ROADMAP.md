@@ -34,7 +34,7 @@ Plans:
 - [x] 01-05-PLAN.md — Transcripción por archivos: audio_decode.rs (symphonia) + comando transcribe_file → history source="file"
 - [x] 01-06-PLAN.md — Gestión de datos (reveal/clear) + check-for-updates (con fallback check-only)
 - [x] 01-07-PLAN.md — Sección Ajustes: hotkey, sonidos, pause-media, lenguaje, launch-at-login, permisos, modelos+Parakeet, updates, datos
-- [ ] 01-08-PLAN.md — Secciones Home + Transcripciones (filtro+upload) + Diccionario (items)
+- [x] 01-08-PLAN.md — Secciones Home + Transcripciones (filtro+upload) + Diccionario (items)
 - [ ] 01-09-PLAN.md — Integración final + checklist de verificación manual (7 criterios)
 
 ### Phase 2: Parakeet como motor seleccionable
