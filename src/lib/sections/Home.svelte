@@ -42,7 +42,7 @@
       <path d="M5 10a7 7 0 0 0 14 0"/>
       <line x1="12" y1="19" x2="12" y2="22"/>
     </svg>
-    Dictar
+    <span class="dictar-label">Dictar</span>
   </button>
   <p class="hero-hint">
     Presiona <kbd>{shortcutLabel || "Alt + Space"}</kbd> para dictar en cualquier app.
@@ -92,15 +92,52 @@
     align-items: center;
     gap: 12px;
   }
-  .btn-primary {
-    background: var(--coral); color: #fff; border: none;
+  /* ── Dictar hero — metallic body + slow specular sheen sweep ──
+     The ONE expressive iridescent moment per screen (Raycast rule). A warm-metal
+     wash blended (soft-light) over solid coral so the white label stays legible. */
+  .btn-primary.dictar {
+    position: relative;
+    overflow: hidden;                 /* clips the sheen band */
+    background:
+      var(--iris-sheen) 0 0 / 220% 100%,
+      var(--coral);
+    background-blend-mode: soft-light, normal;
+    color: #fff; border: none;
     border-radius: var(--r); padding: 11px 22px; font-size: 13.5px; font-weight: 600;
-    cursor: pointer; letter-spacing: -.01em;
+    cursor: default; letter-spacing: -.01em;
     display: inline-flex; align-items: center; gap: 8px;
-    transition: opacity .15s, transform .1s;
+    box-shadow:
+      var(--emboss-hi),
+      var(--emboss-lo),
+      0 2px 8px rgba(232,85,53,0.28);
+    transition: transform .14s ease, box-shadow .14s ease;
   }
-  .btn-primary svg { width: 18px; height: 18px; }
-  .btn-primary:disabled { opacity: .55; cursor: default; }
+  .btn-primary.dictar svg { width: 18px; height: 18px; position: relative; z-index: 1; }
+  .dictar-label { position: relative; z-index: 1; }
+  /* keep the disabled hero readable but premium — no flat dimming on the metal */
+  .btn-primary.dictar:disabled { opacity: 1; }
+
+  /* Specular sheen band — skewed translucent highlight that slowly sweeps across,
+     the CSS analog of the shader's pow(core,3.0)*spec crest highlight. */
+  .btn-primary.dictar::after {
+    content: ""; position: absolute; inset: 0; left: -120%;
+    background: var(--sheen-band);
+    transform: skewX(-18deg);
+    pointer-events: none;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .btn-primary.dictar::after {
+      animation: dictar-sheen var(--sheen-dur) ease-in-out infinite;
+    }
+    @keyframes dictar-sheen {
+      0%, 60% { left: -120%; }   /* long pause, brief sweep — restrained */
+      100%    { left: 120%; }
+    }
+  }
+  @media (prefers-contrast: more) {
+    .btn-primary.dictar { background: var(--coral); }
+  }
+
   .hero-hint { font-size: 12px; color: var(--muted); line-height: 1.5; text-align: center; }
 
   /* ── Blocks ── */

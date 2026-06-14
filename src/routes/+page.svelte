@@ -230,10 +230,38 @@
 
 <style>
   /* ── Shell ── */
-  .shell { display: flex; height: 100vh; }
+  .shell { position: relative; display: flex; height: 100vh; background: var(--bg); }
+
+  /* Aurora wash — the two notch hue poles (warm top-left, cool top-right) at
+     ~8–10%, plus a 4% film grain so the gradient never bands. Pointer-transparent
+     decorative layers, content sits above via z-index. */
+  .shell::before {
+    content: ""; position: absolute; inset: 0; z-index: 0;
+    background: var(--aurora-warm), var(--aurora-cool);
+    pointer-events: none;
+  }
+  .shell::after {
+    content: ""; position: absolute; inset: 0; z-index: 0;
+    background-image: var(--grain);
+    opacity: 0.04; mix-blend-mode: overlay; pointer-events: none;
+  }
+  .shell > :global(*) { position: relative; z-index: 1; }
+
+  @media (prefers-reduced-motion: no-preference) {
+    .shell::before {
+      animation: aurora-drift var(--drift-slow) ease-in-out infinite alternate;
+    }
+    @keyframes aurora-drift {
+      to { transform: translate3d(2%, 1%, 0) scale(1.04); opacity: 0.85; }
+    }
+  }
+  @media (prefers-reduced-transparency: reduce) {
+    .shell::before, .shell::after { display: none; }
+  }
+
   .content {
     flex: 1; overflow-y: auto; overflow-x: hidden;
-    background: var(--bg); padding: 32px;
+    background: transparent; padding: 32px;
   }
 
   /* ── Onboarding (preserved) ── */
