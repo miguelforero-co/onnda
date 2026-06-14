@@ -223,7 +223,7 @@
        top-left, like Wispr Flow). The top header band is a drag handle. ── -->
   <div class="shell">
     <Sidebar bind:view />
-    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <main class="content" onmousedown={contentDrag} ondblclick={contentDblClick}>
       {#if view === "home"}
         <Home {history} />
