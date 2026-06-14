@@ -140,14 +140,19 @@
 
   .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
   .btn-primary {
-    background: var(--coral); color: #fff; border: none;
+    background: var(--accent); color: #fff; border: none;
     border-radius: var(--r); padding: 8px 16px; font-size: 12.5px; font-weight: 600;
     cursor: pointer; letter-spacing: -.01em; white-space: nowrap;
-    transition: opacity .15s, transform .1s;
+    box-shadow: var(--accent-glow);
+    transition: opacity .15s, transform .1s, box-shadow .15s;
   }
-  .btn-primary:hover:not(:disabled) { opacity: .88; }
+  .btn-primary:hover:not(:disabled) { opacity: .92; transform: translateY(-1px); }
   .btn-primary:active:not(:disabled) { transform: scale(.98); }
-  .btn-primary:disabled { opacity: .4; cursor: default; }
+  .btn-primary:disabled {
+    opacity: 1; cursor: default;
+    background: rgba(255,255,255,0.06); color: var(--faint);
+    box-shadow: inset 0 0 0 1px var(--line);
+  }
 
   .toolbar { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
   .upload-status { font-size: 12px; color: var(--muted); }
@@ -170,7 +175,7 @@
   .hist-time { font-size: 11px; color: var(--faint); }
   .hist-file {
     font-size: 10.5px; color: var(--muted);
-    background: rgba(123,155,210,.12); border-radius: 10px; padding: 1px 7px;
+    background: rgba(127,200,255,.12); border-radius: 10px; padding: 1px 7px;
     max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .hist-actions { display: flex; gap: 2px; margin-left: auto; }
@@ -181,7 +186,7 @@
     transition: background .12s, color .12s;
   }
   .icon-btn svg { width: 9px; height: 9px; }
-  .icon-btn:hover { background: rgba(0,0,0,.06); color: var(--muted); }
+  .icon-btn:hover { background: rgba(255,255,255,.06); color: var(--muted); }
   .icon-btn.active { color: var(--amber); }
   .icon-btn.del:hover { color: var(--coral); }
 

@@ -264,8 +264,10 @@
   }
 
   .rows {
-    background: var(--panel);
-    border-radius: var(--r);
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line); border-radius: var(--r);
+    box-shadow: var(--glass-edge), var(--sh-2);
     overflow: hidden;
   }
   .sep { height: 1px; background: var(--line); margin: 0 12px; }
@@ -278,13 +280,16 @@
   .row-label { font-size: 13px; font-weight: 450; color: var(--text); }
 
   .sel {
-    font-size: 12.5px; color: var(--text); background: var(--bg);
-    border: 1px solid var(--line); border-radius: 6px;
+    font-size: 12.5px; color: var(--text); background: var(--bg-2);
+    border: 1px solid var(--line); border-radius: var(--r-sm);
     padding: 4px 9px; outline: none; appearance: none; -webkit-appearance: none;
     text-align: right; width: auto; max-width: 190px; cursor: pointer;
-    transition: border-color .15s;
+    transition: border-color .15s, box-shadow .15s, background .15s;
   }
-  .sel:focus { border-color: rgba(232,85,53,.4); }
+  .sel:focus {
+    background: var(--elev-1); border-color: transparent;
+    box-shadow: 0 0 0 1px var(--iris-4), 0 0 0 4px rgba(127,200,255,0.16);
+  }
 
   /* ── Permisos ── */
   .perm-list { display: flex; flex-direction: column; }

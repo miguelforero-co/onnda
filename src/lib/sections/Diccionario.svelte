@@ -134,12 +134,16 @@
   .add-row { display: flex; align-items: center; gap: 12px; }
 
   .ipt {
-    font-size: 12.5px; color: var(--text); background: var(--panel);
-    border: 1px solid var(--line); border-radius: 6px;
+    font-size: 12.5px; color: var(--text); background: var(--bg-2);
+    border: 1px solid var(--line); border-radius: var(--r-sm);
     padding: 7px 10px; outline: none; flex: 1;
-    transition: border-color .15s;
+    transition: border-color .15s, box-shadow .15s, background .15s;
   }
-  .ipt:focus { border-color: rgba(232,85,53,.4); }
+  .ipt::placeholder { color: var(--faint); }
+  .ipt:focus {
+    background: var(--elev-1); border-color: transparent;
+    box-shadow: 0 0 0 1px var(--iris-4), 0 0 0 4px rgba(127,200,255,0.16);
+  }
 
   .link-btn {
     background: none; border: none; padding: 4px 0;
@@ -153,7 +157,8 @@
   .chips { display: flex; flex-wrap: wrap; gap: 8px; }
   .chip {
     display: inline-flex; align-items: center; gap: 4px;
-    background: var(--panel); border: 1px solid var(--line);
+    background: var(--glass-fill); border: 1px solid var(--line);
+    box-shadow: var(--glass-edge);
     border-radius: 16px; padding: 4px 6px 4px 12px;
   }
   .chip-word {
@@ -169,7 +174,7 @@
     transition: background .12s, color .12s;
   }
   .icon-btn svg { width: 8px; height: 8px; }
-  .icon-btn.del:hover { background: rgba(232,85,53,.1); color: var(--coral); }
+  .icon-btn.del:hover { background: rgba(255,106,61,.14); color: var(--coral); }
 
   /* ── Empty state ── */
   .empty {

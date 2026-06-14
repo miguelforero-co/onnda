@@ -120,14 +120,19 @@
 
   /* ── Toolbar / filter ── */
   .toolbar { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
-  .seg { display: inline-flex; background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 2px; }
+  .seg {
+    display: inline-flex; padding: 2px; border-radius: var(--r-sm);
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line); box-shadow: var(--glass-edge);
+  }
   .seg-btn {
     background: none; border: none; cursor: pointer;
     font-size: 12px; font-weight: 450; color: var(--muted);
-    padding: 4px 12px; border-radius: 5px; transition: background .12s, color .12s;
+    padding: 4px 12px; border-radius: 6px; transition: background .12s, color .12s;
   }
   .seg-btn:hover { color: var(--text); }
-  .seg-btn.on { background: var(--bg); color: var(--text); font-weight: 600; }
+  .seg-btn.on { background: rgba(255,255,255,0.10); color: var(--text); font-weight: 600; }
 
   /* ── History list (reused from pre-refactor +page.svelte) ── */
   .empty {
@@ -147,12 +152,12 @@
   .hist-meta { display: flex; align-items: center; gap: 6px; }
   .hist-time { font-size: 11px; color: var(--faint); }
   .hist-dur {
-    font-size: 10.5px; color: var(--faint);
-    background: rgba(0,0,0,.05); border-radius: 10px; padding: 1px 6px;
+    font-size: 10.5px; color: var(--muted);
+    background: rgba(255,255,255,.07); border-radius: 10px; padding: 1px 6px;
   }
   .hist-file {
     font-size: 10.5px; color: var(--muted);
-    background: rgba(123,155,210,.12); border-radius: 10px; padding: 1px 7px;
+    background: rgba(127,200,255,.12); border-radius: 10px; padding: 1px 7px;
     max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .hist-actions { display: flex; gap: 2px; margin-left: auto; }
@@ -163,7 +168,7 @@
     transition: background .12s, color .12s;
   }
   .icon-btn svg { width: 9px; height: 9px; }
-  .icon-btn:hover { background: rgba(0,0,0,.06); color: var(--muted); }
+  .icon-btn:hover { background: rgba(255,255,255,.06); color: var(--muted); }
   .icon-btn.active { color: var(--amber); }
   .icon-btn.del:hover { color: var(--coral); }
 
