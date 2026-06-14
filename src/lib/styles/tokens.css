@@ -10,6 +10,82 @@
   --amber:  #F4AA6A;
   --blue:   #7B9BD2;
   --r:      9px;
+
+  /* ── Iridescent / metallic accent layer (derived from the notch thin-film LUT) ──
+     Iridescence/metal is a THIN ACCENT painted only on focal/active/brand
+     surfaces. Warm paper + solid text carry all legibility. */
+
+  /* Thin-film accent ramp (notch SPK_PAL LUT): coral → amber → white specular
+     → icy blue → deep blue. Canonical iridescent stops for the whole app. */
+  --film-1: #FF6524;   /* coral edge    (LUT stop 0) */
+  --film-2: #E29746;   /* amber         (LUT stop 1) */
+  --film-3: #FFFFFF;   /* specular core (LUT stop 2) */
+  --film-4: #BFE9FF;   /* icy blue      (LUT stop 3) */
+  --film-5: #3171C4;   /* deep blue     (LUT stop 4) */
+
+  /* Toned-down, app-friendly variants (lower chroma so they sit on paper,
+     matching the shader's pSat/bright/gamma muting). Use these on UI. */
+  --film-warm: #F0894A;   /* coral+amber blended, softened   */
+  --film-cool: #8FC4E8;   /* icy/deep blue blended, softened */
+
+  /* Iridescent gradients (reusable recipes). */
+  --iris-sheen:  linear-gradient(105deg,
+                   var(--film-warm) 0%, var(--film-2) 22%,
+                   #FFFFFF 48%, var(--film-4) 72%, var(--film-cool) 100%);
+  --iris-ring:   conic-gradient(from var(--iris-angle, 120deg) in oklch shorter hue,
+                   var(--film-warm), var(--film-4), var(--film-cool),
+                   var(--film-2), var(--film-warm));
+  /* Aurora wash for the shell background — extremely low opacity blobs. */
+  --aurora-warm: radial-gradient(60% 80% at 18% 0%,
+                   rgba(255,101,36,0.10), transparent 70%);
+  --aurora-cool: radial-gradient(55% 75% at 92% 12%,
+                   rgba(49,113,196,0.08), transparent 72%);
+
+  /* Metallic surface tokens (warm metal + chrome + emboss).
+     Hard mid-band reversal = the "metal snap"; warm-tinted for paper UI. */
+  --metal-warm: linear-gradient(180deg,
+                   #FFF7EF 0%, #F4D9C2 26%, #C98A5E 50%,
+                   #F4D9C2 74%, #FFF7EF 100%);
+  --metal-chrome: linear-gradient(180deg,
+                   #FFFFFF 0%, #D9DCE1 25%, #9AA0A8 45%,
+                   #4A4F57 50%, #9AA0A8 55%, #E8EBEF 80%, #FFFFFF 100%);
+  --emboss-hi:  inset 0 1px 0 rgba(255,255,255,0.75);
+  --emboss-lo:  inset 0 -1px 2px rgba(0,0,0,0.14);
+
+  /* Glass tokens (warm-tinted; light-mode safe). Garnish only. */
+  --glass-film:   rgba(255, 250, 245, 0.55);
+  --glass-blur:   saturate(180%) blur(16px);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.6);
+  --glass-edge:   inset 0 1px 0 rgba(255,255,255,0.7);
+  --glass-shadow: 0 8px 24px rgba(60, 50, 40, 0.12);
+
+  /* Sheen / specular tokens (the moving highlight band). */
+  --sheen-band: linear-gradient(120deg,
+                   rgba(255,255,255,0) 30%,
+                   rgba(255,255,255,0.55) 50%,
+                   rgba(255,255,255,0) 70%);
+
+  /* Subtle film-grain (SVG feTurbulence, GPU-cheap, no asset). */
+  --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+
+  /* Motion tokens (slow, matching the shader's sin(time*0.25)). */
+  --drift-slow: 16s;   /* hue / aurora drift  */
+  --sheen-dur:  2.2s;  /* one sheen sweep     */
+}
+
+/* Registered custom property so the conic ring angle is actually animatable. */
+@property --iris-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 120deg;
+}
+
+/* ── Global accessibility fallbacks: flatten everything to solid/static ── */
+@media (prefers-contrast: more) {
+  :root { --glass-film: var(--panel); }
+}
+@media (prefers-reduced-transparency: reduce) {
+  :root { --glass-film: var(--panel); --glass-blur: none; }
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
