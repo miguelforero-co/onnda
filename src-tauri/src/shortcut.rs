@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 
 fn register_shortcut<R: Runtime>(app: &AppHandle<R>, shortcut_str: &str) -> tauri::Result<()> {
@@ -59,61 +59,24 @@ pub fn re_register<R: Runtime>(app: &AppHandle<R>, new_shortcut: &str) -> tauri:
 
 fn show_widget<R: Runtime>(app: &AppHandle<R>) {
     if let Some(widget) = app.get_webview_window("widget") {
-        // Show on the screen the user is working on — the one under the cursor.
-        // (Tracking text focus across apps is unreliable; the mouse is the proxy
-        // every menu-bar/notch app uses.) Fall back to the primary monitor.
-        let pos_xy: Option<(i32, i32)> = pick_monitor_under_cursor(app, &widget).map(|monitor| {
-            let scale = monitor.scale_factor();
-            let pos = monitor.position(); // physical, global coords
-            let size = monitor.size(); // physical
-            let widget_w_phys = 300.0 * scale;
-            // Top-center of that monitor, flush with its top edge so the widget
-            // sits in (or simulates) the notch.
-            let x = pos.x as f64 + (size.width as f64 - widget_w_phys) / 2.0;
-            let y = pos.y as f64;
-            (x.round() as i32, y.round() as i32)
-        });
-
-        let set_pos = |x: i32, y: i32| {
-            widget
-                .set_position(tauri::Position::Physical(tauri::PhysicalPosition::new(x, y)))
-                .ok();
-        };
-
-        // Position once while hidden (best effort), show, then position AGAIN:
-        // positioning a hidden window on macOS lags a cycle (tauri), so the
-        // post-show call is the one that reliably lands it on the right screen.
-        if let Some((x, y)) = pos_xy {
-            set_pos(x, y);
-        }
-        // Re-assert the window level every time — macOS can drop it across
-        // Spaces/fullscreen transitions (tauri#5566).
+        // Position natively (objc2) at the top-center of the screen under the
+        // cursor — atomic and reliable even while hidden, unlike Tauri's
+        // set_position which lagged a cycle. Re-assert the window level too,
+        // since macOS can drop it across Space/fullscreen transitions.
         #[cfg(target_os = "macos")]
-        crate::notch::elevate_widget(&widget);
+        {
+            crate::notch::position_widget_at_notch(&widget);
+            crate::notch::elevate_widget(&widget);
+        }
         widget.show().ok();
-        if let Some((x, y)) = pos_xy {
-            set_pos(x, y);
+        // Re-apply after show as a belt-and-suspenders against any reflow, and
+        // tell the UI whether this screen has a real notch so it can render a
+        // compact shape on external displays.
+        #[cfg(target_os = "macos")]
+        {
+            let has_notch = crate::notch::position_widget_at_notch(&widget);
+            widget.emit("screen-notch", has_notch).ok();
         }
         // Do NOT steal focus — user is in another app
     }
-}
-
-/// The monitor whose bounds contain the mouse cursor, or the primary monitor.
-fn pick_monitor_under_cursor<R: Runtime>(
-    app: &AppHandle<R>,
-    widget: &tauri::WebviewWindow<R>,
-) -> Option<tauri::Monitor> {
-    if let (Ok(cursor), Ok(monitors)) = (app.cursor_position(), widget.available_monitors()) {
-        let hit = monitors.into_iter().find(|m| {
-            let p = m.position();
-            let s = m.size();
-            let (left, top) = (p.x as f64, p.y as f64);
-            let (right, bottom) = (left + s.width as f64, top + s.height as f64);
-            cursor.x >= left && cursor.x < right && cursor.y >= top && cursor.y < bottom
-        });
-        if hit.is_some() {
-            return hit;
-        }
-    }
-    widget.primary_monitor().ok().flatten()
 }

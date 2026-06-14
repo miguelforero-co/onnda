@@ -1,52 +1,80 @@
 //! macOS notch integration for the widget window.
 //!
-//! Two jobs: (1) read the real notch geometry from `NSScreen` so the widget can
-//! align with it, and (2) raise the widget above the menu bar — Tauri's
-//! `set_always_on_top` only reaches the floating level (3), which sits *below*
-//! the menu bar (24). We push it to `NSMainMenuWindowLevel + 1` via objc2.
+//! Two jobs: (1) position the widget at the top-center of the screen under the
+//! cursor and report whether that screen has a notch, and (2) raise the widget
+//! above the menu bar — Tauri's `set_always_on_top` only reaches the floating
+//! level (3), which sits *below* the menu bar (24). We push it to
+//! `NSMainMenuWindowLevel + 1` via objc2.
 
+/// Position the widget flush at the top-center of the screen under the cursor,
+/// natively via `setFrameOrigin`. This is atomic and works even while the
+/// window is hidden — unlike Tauri's `set_position`, which lags a cycle and
+/// causes the widget to appear off-center or on the wrong screen.
+///
+/// Returns whether that screen physically has a notch, so the UI can render a
+/// compact shape on external displays instead of leaving the notch-sized gap.
 #[cfg(target_os = "macos")]
-#[derive(Debug, Clone, Copy)]
-pub struct NotchInfo {
-    /// Screen width in logical points.
-    pub screen_w: f64,
-    /// Notch height (safe-area top inset) in points; 0 when there is no notch.
-    pub notch_height: f64,
-    /// Width of the notch cutout in points; 0 when there is no notch.
-    pub notch_width: f64,
-    /// Whether this screen physically has a notch.
-    pub has_notch: bool,
-}
-
-#[cfg(target_os = "macos")]
-pub fn read_notch() -> Option<NotchInfo> {
-    use objc2_app_kit::NSScreen;
+pub fn position_widget_at_notch<R: tauri::Runtime>(widget: &tauri::WebviewWindow<R>) -> bool {
+    use objc2_app_kit::{NSEvent, NSScreen, NSWindow};
     use objc2_foundation::MainThreadMarker;
 
-    // NSScreen geometry must be read on the main thread.
-    let mtm = MainThreadMarker::new()?;
-    let screen = NSScreen::mainScreen(mtm)?;
-
-    let frame = screen.frame();
-    let screen_w = frame.size.width;
-
-    // A non-zero top safe-area inset is the reliable "this screen has a notch"
-    // signal; on screens without one it is 0.
-    let notch_height = screen.safeAreaInsets().top;
-    let has_notch = notch_height > 0.0;
-
-    // The notch is the gap between the free area to its left and to its right.
-    let notch_width = if has_notch {
-        let left = screen.auxiliaryTopLeftArea();
-        let right = screen.auxiliaryTopRightArea();
-        let left_edge = left.origin.x + left.size.width;
-        let right_edge = right.origin.x;
-        (right_edge - left_edge).max(0.0)
-    } else {
-        0.0
+    let Some(mtm) = MainThreadMarker::new() else {
+        return false;
     };
+    let ptr = match widget.ns_window() {
+        Ok(p) if !p.is_null() => p,
+        _ => return false,
+    };
+    let ns_window: &NSWindow = unsafe { &*(ptr as *const NSWindow) };
 
-    Some(NotchInfo { screen_w, notch_height, notch_width, has_notch })
+    // Cursor location in global screen coordinates (bottom-left origin).
+    let mouse = NSEvent::mouseLocation();
+
+    // Find the screen under the cursor; fall back to the main screen. Capture
+    // its frame and whether it has a notch in one pass.
+    let (mut sx, mut sy, mut sw, mut sh) = (0.0_f64, 0.0_f64, 0.0_f64, 0.0_f64);
+    let mut has_notch = false;
+    let mut found = false;
+    let screens = NSScreen::screens(mtm);
+    for screen in screens.iter() {
+        let f = screen.frame();
+        if mouse.x >= f.origin.x
+            && mouse.x < f.origin.x + f.size.width
+            && mouse.y >= f.origin.y
+            && mouse.y < f.origin.y + f.size.height
+        {
+            sx = f.origin.x;
+            sy = f.origin.y;
+            sw = f.size.width;
+            sh = f.size.height;
+            has_notch = screen.safeAreaInsets().top > 0.0;
+            found = true;
+            break;
+        }
+    }
+    if !found {
+        match NSScreen::mainScreen(mtm) {
+            Some(s) => {
+                let f = s.frame();
+                sx = f.origin.x;
+                sy = f.origin.y;
+                sw = f.size.width;
+                sh = f.size.height;
+                has_notch = s.safeAreaInsets().top > 0.0;
+            }
+            None => return false,
+        }
+    }
+
+    // setFrameOrigin places the window's bottom-left corner. Center horizontally,
+    // pin the window's top edge to the screen's top edge.
+    let win = ns_window.frame();
+    let mut origin = win.origin;
+    origin.x = sx + (sw - win.size.width) / 2.0;
+    origin.y = sy + sh - win.size.height;
+    ns_window.setFrameOrigin(origin);
+
+    has_notch
 }
 
 /// Raise the widget above the menu bar and make it visible on every Space

@@ -71,16 +71,9 @@ pub fn run() {
                 app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
                 if let Some(widget) = app.get_webview_window("widget") {
-                    // Apply native frosted-glass vibrancy.
-                    // macOSPrivateApi: true (in tauri.conf.json) enables transparent windows;
-                    // wry already sets drawsBackground=false when transparent:true is set,
-                    // so no extra objc2 calls needed.
-                    use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
-                    // radius = 26 → perfect pill for 52px tall window (height/2)
-                    apply_vibrancy(&widget, NSVisualEffectMaterial::HudWindow, None, Some(26.0))
-                        .unwrap_or_else(|e| eprintln!("[vibrancy] {e}"));
-
-                    // Raise above the menu bar so the widget can live in the notch.
+                    // No vibrancy: the widget draws its own opaque black notch
+                    // shape that fuses with the physical notch. Raise it above
+                    // the menu bar so it can live in (or simulate) the notch.
                     notch::elevate_widget(&widget);
                 }
             }
