@@ -141,8 +141,8 @@ fn open_main_window<R: Runtime>(app: &AppHandle<R>) {
             tauri::WebviewUrl::App("/".into()),
         )
         .title("Voz Local")
-        .inner_size(480.0, 600.0)
-        .resizable(false)
+        .inner_size(880.0, 640.0)
+        .resizable(true)
         .center()
         .build();
     }

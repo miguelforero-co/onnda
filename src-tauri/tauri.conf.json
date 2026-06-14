@@ -14,9 +14,9 @@
     "windows": [
       {
         "title": "Voz Local",
-        "width": 480,
-        "height": 600,
-        "resizable": false,
+        "width": 880,
+        "height": 640,
+        "resizable": true,
         "visible": true,
         "decorations": true,
         "center": true,
