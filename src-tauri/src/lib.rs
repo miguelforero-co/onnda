@@ -7,6 +7,7 @@ use tauri::{
 mod audio;
 mod backend;
 mod commands;
+mod escape;
 mod history;
 mod mic_permission;
 #[cfg(target_os = "macos")]
@@ -63,6 +64,7 @@ pub fn run() {
             history::init(app.handle());
             setup_tray(app.handle())?;
             shortcut::register(app.handle())?;
+            escape::install(app.handle()); // Escape cancels an in-progress recording
 
             mic_permission::request_if_needed();
 

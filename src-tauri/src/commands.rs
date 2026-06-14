@@ -381,6 +381,31 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     });
 }
 
+/// Cancel an in-progress recording: discard the captured audio, stop the
+/// streaming loop, and tell the widget to close — no transcription, no paste.
+pub async fn cancel_recording_internal<R: Runtime>(app: AppHandle<R>) {
+    if !IS_RECORDING.load(Ordering::SeqCst) {
+        return;
+    }
+    let capture = CAPTURE.lock().unwrap().take();
+    IS_RECORDING.store(false, Ordering::SeqCst);
+    app.emit("recording-state", false).ok();
+
+    // Abort the streaming loop (don't wait — we're throwing the audio away).
+    if let Some(handle) = STREAM_HANDLE.lock().unwrap().take() {
+        handle.abort();
+    }
+    // Drop the captured audio.
+    if let Some(cap) = capture {
+        let _ = cap.stop();
+    }
+    COMMITTED_TEXT.lock().unwrap().clear();
+    COMMITTED_SAMPLES.store(0, Ordering::SeqCst);
+
+    // Tell the widget to fade out & collapse without pasting anything.
+    app.emit("recording-cancelled", ()).ok();
+}
+
 /// Returns "ok" if paste should work, or an error description if not
 #[tauri::command]
 pub fn test_paste() -> String {

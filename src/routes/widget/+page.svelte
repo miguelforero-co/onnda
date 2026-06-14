@@ -254,6 +254,7 @@
       await listen<boolean>("transcribing", (e) => { if (e.payload) phase = "transcribing"; }),
       await listen<string>("transcription-done", () => { phase = "done"; scheduleClose(450); }),
       await listen<string>("transcribe-error", () => { phase = "error"; scheduleClose(1200); }),
+      await listen("recording-cancelled", () => { phase = "done"; scheduleClose(80); }),
       await listen<boolean>("screen-notch", (e) => { hasNotch = e.payload; }),
     );
 
