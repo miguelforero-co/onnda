@@ -21,6 +21,11 @@ pub struct AppSettings {
     /// 0.85 catches obvious typos without false positives.
     #[serde(default = "default_word_correction_threshold")]
     pub word_correction_threshold: f32,
+    /// Single on/off toggle for all feedback cues (start/stop/cancel).
+    /// Replaces the legacy per-event flags below, which are kept only for
+    /// settings.json back-compat and are no longer read.
+    #[serde(default = "default_true")]
+    pub sounds_enabled: bool,
     #[serde(default)]
     pub sound_on_listen: bool,
     #[serde(default)]
@@ -37,6 +42,7 @@ pub struct AppSettings {
 }
 
 fn default_word_correction_threshold() -> f32 { 0.85 }
+fn default_true() -> bool { true }
 
 impl Default for AppSettings {
     fn default() -> Self {
@@ -50,6 +56,7 @@ impl Default for AppSettings {
             widget_position: "center".to_string(),
             custom_words: String::new(),
             word_correction_threshold: default_word_correction_threshold(),
+            sounds_enabled: true,
             sound_on_listen: false,
             sound_on_stop: false,
             sound_on_cancel: false,
