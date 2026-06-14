@@ -15,14 +15,22 @@
   import Diccionario from "$lib/sections/Diccionario.svelte";
   import Ajustes from "$lib/sections/Ajustes.svelte";
 
-  // Window drag for the hidden title bar. data-tauri-drag-region alone proved
-  // unreliable here, so call startDragging() explicitly on mousedown (the method
-  // Tauri documents for custom title bars). Double-click toggles maximize (macOS).
-  function startWindowDrag(e: MouseEvent) {
-    if (e.button !== 0) return;
-    getCurrentWindow().startDragging().catch((err) => console.error("startDragging", err));
+  // Window drag from the content's top header band (the title bar is hidden, so
+  // the top ~56px acts as the drag handle — like Wispr Flow). Uses the same
+  // explicit startDragging() that already works on the sidebar; skips real
+  // controls so clicks/selection still work. Double-click maximizes (macOS).
+  const TITLEBAR_BAND = 56;
+  function inTopBand(e: MouseEvent) {
+    const el = e.currentTarget as HTMLElement;
+    return e.clientY - el.getBoundingClientRect().top <= TITLEBAR_BAND;
   }
-  function titlebarDblClick() {
+  function contentDrag(e: MouseEvent) {
+    if (e.button !== 0 || !inTopBand(e)) return;
+    if ((e.target as HTMLElement).closest("button,a,input,textarea,select,kbd,[contenteditable]")) return;
+    getCurrentWindow().startDragging().catch(() => {});
+  }
+  function contentDblClick(e: MouseEvent) {
+    if (!inTopBand(e)) return;
     getCurrentWindow().toggleMaximize().catch(() => {});
   }
 
@@ -211,18 +219,12 @@
     {/if}
   </div>
 {:else}
-  <!-- ── WINDOW ── -->
-  <div class="winroot">
-    <!-- Real top bar (app color) = the window's only chrome besides the native
-         traffic lights, which float over its left. Full-width drag handle (Apple
-         HIG: give a way to move the window when the title bar is hidden). It's an
-         in-flow bar (not an overlay), so it never covers interactive content. -->
+  <!-- ── SHELL (sidebar + content fill to the top; traffic lights float over the
+       top-left, like Wispr Flow). The top header band is a drag handle. ── -->
+  <div class="shell">
+    <Sidebar bind:view />
     <!-- svelte-ignore a11y_no_static_element_interactions -->
-    <div class="titlebar" aria-hidden="true"
-         onmousedown={startWindowDrag} ondblclick={titlebarDblClick}></div>
-    <div class="shell">
-      <Sidebar bind:view />
-      <main class="content">
+    <main class="content" onmousedown={contentDrag} ondblclick={contentDblClick}>
       {#if view === "home"}
         <Home {history} />
       {/if}
@@ -244,22 +246,13 @@
           onCheckPerms={checkPerms}
         />
       {/if}
-      </main>
-    </div>
+    </main>
   </div>
 {/if}
 
 <style>
-  /* ── Window ── */
-  .winroot { display: flex; flex-direction: column; height: 100vh; background: var(--bg); }
-
-  /* Top bar (app color) — the only chrome besides the native traffic lights that
-     float over its left. In-flow (not an overlay) so it never blocks content.
-     The whole bar is the window drag handle (onmousedown → startDragging). */
-  .titlebar { height: 34px; flex-shrink: 0; background: var(--bg); }
-
-  /* ── Shell (sidebar + content row, below the bar) ── */
-  .shell { position: relative; display: flex; flex: 1; min-height: 0; background: var(--bg); }
+  /* ── Shell (sidebar + content fill the window to the very top) ── */
+  .shell { position: relative; display: flex; height: 100vh; background: var(--bg); }
 
   /* Aurora mesh — warm top-left, violet top-right, aqua bottom, all ≤0.20
      alpha so the void stays near-black. Blurred to melt the blob seams, plus

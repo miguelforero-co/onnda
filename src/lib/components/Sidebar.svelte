@@ -79,7 +79,8 @@
     border-right: 1px solid var(--line);
     box-shadow: var(--glass-edge);
     display: flex; flex-direction: column;
-    padding: 16px 12px;
+    /* top padding clears the macOS traffic lights floating over this corner */
+    padding: 30px 12px 16px;
     gap: 18px;
   }
 
