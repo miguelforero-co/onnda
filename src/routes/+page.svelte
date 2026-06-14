@@ -254,8 +254,8 @@
      empty padding so it never blocks interactive content. Traffic lights are
      native chrome rendered above the webview, so they remain clickable. */
   .titlebar {
-    position: absolute; top: 0; left: 0; right: 0; height: 30px;
-    z-index: 100; -webkit-app-region: drag;
+    position: absolute; top: 0; left: 0; right: 0; height: 44px;
+    z-index: 100;
   }
 
   /* Aurora mesh — warm top-left, violet top-right, aqua bottom, all ≤0.20

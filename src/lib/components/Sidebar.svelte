@@ -1,5 +1,16 @@
 <script lang="ts">
   import type { View } from "$lib/types";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
+
+  // The whole rail is a window drag handle (the title bar is hidden). The native
+  // title bar's transparent container eats events in the top ~28px, so a tiny top
+  // strip alone isn't reliably reachable — dragging from the large sidebar body is.
+  // Nav clicks pass through (we skip the drag when the target is a nav item).
+  function railDrag(e: MouseEvent) {
+    if (e.button !== 0) return;
+    if ((e.target as HTMLElement).closest(".nav-item")) return;
+    getCurrentWindow().startDragging().catch(() => {});
+  }
   // Fixed 200px nav rail (--panel surface, 1px var(--line) right border).
   // Top = wordmark; below = nav items. Active = --text on --bg pill
   // (mirror .tab.on), radius 6px. NO coral on inactive nav (UI-SPEC).
@@ -19,9 +30,10 @@
   ];
 </script>
 
-<aside class="sidebar">
-  <!-- Brand doubles as the window drag handle: the title bar is hidden (Overlay
-       style) so the macOS traffic lights float over this top-left area. -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<aside class="sidebar" onmousedown={railDrag}>
+  <!-- Brand area sits below the floating macOS traffic lights (title bar hidden,
+       Overlay style). The whole rail is a window drag handle (see railDrag). -->
   <div class="brand" data-tauri-drag-region>
     <span class="wordmark">Voz Local</span>
   </div>
