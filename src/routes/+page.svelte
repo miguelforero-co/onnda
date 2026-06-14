@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
+  import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, onDestroy } from "svelte";
   import "$lib/styles/tokens.css";
   import type { Settings, HistoryEntry, ModelInfo, DownloadProgress, View } from "$lib/types";
@@ -13,6 +14,17 @@
   import Importar from "$lib/sections/Importar.svelte";
   import Diccionario from "$lib/sections/Diccionario.svelte";
   import Ajustes from "$lib/sections/Ajustes.svelte";
+
+  // Window drag for the hidden title bar. data-tauri-drag-region alone proved
+  // unreliable here, so call startDragging() explicitly on mousedown (the method
+  // Tauri documents for custom title bars). Double-click toggles maximize (macOS).
+  function startWindowDrag(e: MouseEvent) {
+    if (e.button !== 0) return;
+    getCurrentWindow().startDragging().catch((err) => console.error("startDragging", err));
+  }
+  function titlebarDblClick() {
+    getCurrentWindow().toggleMaximize().catch(() => {});
+  }
 
   let settings = $state<Settings>({
     shortcut: "Alt+Space", push_to_talk: true, selected_language: "auto",
@@ -204,7 +216,9 @@
     <!-- Full-width drag handle for the hidden title bar (Apple HIG: provide a way
          to move the window when the title bar is hidden). Sits over the empty top
          strip; native traffic lights render above it and stay clickable. -->
-    <div class="titlebar" data-tauri-drag-region aria-hidden="true"></div>
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <div class="titlebar" data-tauri-drag-region aria-hidden="true"
+         onmousedown={startWindowDrag} ondblclick={titlebarDblClick}></div>
     <Sidebar bind:view />
     <main class="content">
       {#if view === "home"}
