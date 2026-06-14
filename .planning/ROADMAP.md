@@ -27,7 +27,7 @@ Rediseño del panel de configuración de Voz Local hacia un panel lateral tipo "
 **Plans**: 9 plans en 6 waves
 
 Plans:
-- [ ] 01-01-PLAN.md — Foundation de datos: AppSettings (sonidos×3, pause_media, dictionary) + migración + HistoryEntry source
+- [x] 01-01-PLAN.md — Foundation de datos: AppSettings (sonidos×3, pause_media, dictionary) + migración + HistoryEntry source
 - [ ] 01-02-PLAN.md — Build/window: ventana 880×640, deps dialog/fs/updater/symphonia/sha2, capabilities, stubs de módulos
 - [ ] 01-03-PLAN.md — Shell de UI: sidebar 200px + extracción de tokens y componentes (Toggle/Row/PermissionRow/ModelCard/HotkeyRecorder) + stubs de secciones
 - [ ] 01-04-PLAN.md — Hooks nativos: sounds.rs (NSSound) + media_pause.rs (CGEvent) en el state machine + catálogo de modelos ampliado
