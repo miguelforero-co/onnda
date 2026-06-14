@@ -32,6 +32,7 @@ export interface ModelInfo {
   name: string;
   size_mb: number;
   downloaded: boolean;
+  coming_soon: boolean;
 }
 
 export interface DownloadProgress {
