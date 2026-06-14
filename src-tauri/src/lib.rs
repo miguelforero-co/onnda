@@ -19,6 +19,13 @@ mod transcription;
 mod vad;
 mod whisper_backend;
 
+// New module stubs (filled in by downstream Wave 2+ plans).
+mod sounds;
+mod media_pause;
+mod audio_decode;
+mod data_mgmt;
+mod updater_check;
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -31,6 +38,9 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_fs::init())
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .invoke_handler(tauri::generate_handler![
             commands::get_settings,
             commands::save_settings,
