@@ -78,15 +78,28 @@
   .nav { display: flex; flex-direction: column; gap: 2px; }
 
   .nav-item {
+    position: relative;
     display: flex; align-items: center; gap: 10px;
-    height: 34px; padding: 0 10px;
+    height: 34px; padding: 0 10px 0 14px;
     background: none; border: none; border-radius: 6px;
     color: var(--faint); cursor: pointer;
     transition: color .12s, background .12s;
     text-align: left; width: 100%;
   }
   .nav-item:hover { color: var(--muted); }
+  /* Active = the ONLY nav affordance: --text on --bg pill (UI-SPEC) + a thin
+     iridescent left rail (the notch ramp, vertical) as the accent garnish. */
   .nav-item.on { color: var(--text); background: var(--bg); }
+  .nav-item.on::before {
+    content: ""; position: absolute; left: 4px; top: 7px; bottom: 7px;
+    width: 3px; border-radius: 3px;
+    background: linear-gradient(180deg,
+      var(--film-warm), var(--film-3) 50%, var(--film-cool));
+    pointer-events: none;
+  }
+  @media (prefers-contrast: more) {
+    .nav-item.on::before { background: var(--coral); }
+  }
 
   .icon { display: flex; flex-shrink: 0; }
   .icon svg { width: 16px; height: 16px; }
