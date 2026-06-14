@@ -42,6 +42,13 @@ export interface DownloadProgress {
   percent: number;
 }
 
+export interface UpdateStatus {
+  up_to_date: boolean;
+  available_version: string | null;
+  current_version: string;
+  error: string | null;
+}
+
 export type View =
   | "onboarding"
   | "home"
