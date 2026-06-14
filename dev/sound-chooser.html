@@ -85,7 +85,7 @@
   <h2>Terminar · al transcribir</h2>
   <div class="grid" id="grid-stop"></div>
 
-  <h2>Cancelar · al descartar (Escape)</h2>
+  <h2>Cancelar · al descartar (Escape) — ✓ elegido: C1</h2>
   <div class="grid" id="grid-cancel"></div>
 
   <div class="legend">
@@ -146,6 +146,16 @@ const ENTRY = [
   {id:'E8', name:'Sub + click', desc:'Golpe grave con click brillante encima.', play:()=>{tone({type:'sine',f0:120,dur:0.14,attack:0.002,release:0.06,gain:0.6});noiseTick({dur:0.02,cutoff:4000,gain:0.25});}},
   {id:'E9', name:'Arp ascendente', desc:'Mini arpegio 523-659-784, optimista.', play:()=>seq([{type:'triangle',f0:523,dur:0.07,gain:0.3},{type:'triangle',f0:659,dur:0.07,gain:0.3,delay:0.06},{type:'triangle',f0:784,dur:0.10,gain:0.32,delay:0.12}])},
   {id:'E10',name:'Synth swell', desc:'Aparición suave con ataque lento.', play:()=>tone({type:'sine',f0:440,f1:560,dur:0.22,attack:0.05,release:0.10,gain:0.4,harm:[{r:2,g:0.15}],cutoff:1800})},
+  {id:'E11',name:'Water drop', desc:'Gota de agua, plick con caída.', play:()=>tone({type:'sine',f0:760,f1:420,dur:0.12,attack:0.002,release:0.07,gain:0.5,cutoff:1900})},
+  {id:'E12',name:'Power-up sweep', desc:'Barrido sci-fi ascendente.', play:()=>tone({type:'sawtooth',f0:220,f1:920,dur:0.18,attack:0.004,release:0.05,gain:0.16,cutoff:2400})},
+  {id:'E13',name:'Crystal ping', desc:'Ping cristalino con octava.', play:()=>tone({type:'sine',f0:1046,dur:0.17,attack:0.002,release:0.11,gain:0.26,harm:[{r:2,g:0.18}]})},
+  {id:'E14',name:'Kalimba', desc:'Pulsación cálida tipo kalimba.', play:()=>tone({type:'triangle',f0:740,dur:0.20,attack:0.002,release:0.10,gain:0.42,harm:[{r:2,g:0.2},{r:3,g:0.08}],cutoff:3000})},
+  {id:'E15',name:'Fourth up', desc:'Dos notas, cuarta ascendente.', play:()=>seq([{type:'sine',f0:587,dur:0.09,gain:0.32},{type:'sine',f0:784,dur:0.12,gain:0.34,delay:0.07}])},
+  {id:'E16',name:'Bell (inharm.)', desc:'Campanita metálica inarmónica.', play:()=>tone({type:'sine',f0:900,dur:0.26,attack:0.002,release:0.15,gain:0.24,harm:[{r:2.76,g:0.2},{r:5.4,g:0.06}]})},
+  {id:'E17',name:'Wood tick + tono', desc:'Click de madera con tono breve.', play:()=>{noiseTick({dur:0.018,cutoff:3500,gain:0.3});tone({type:'sine',f0:660,dur:0.10,attack:0.003,release:0.05,gain:0.32,delay:0.012});}},
+  {id:'E18',name:'Chord stab', desc:'Acorde mayor corto y brillante.', play:()=>{[523,659,784].forEach((f,i)=>tone({type:'triangle',f0:f,dur:0.13,attack:0.003,release:0.06,gain:0.2,cutoff:2800,delay:i*0.006}));}},
+  {id:'E19',name:'Sine + vibrato', desc:'Sine cálido con leve trémolo.', play:()=>seq([{type:'sine',f0:620,dur:0.05,gain:0.34},{type:'sine',f0:600,dur:0.05,gain:0.34,delay:0.05},{type:'sine',f0:640,dur:0.08,gain:0.34,delay:0.10}])},
+  {id:'E20',name:'Sub thump alto', desc:'Golpe grave con cuerpo, sin click.', play:()=>tone({type:'sine',f0:180,f1:140,dur:0.16,attack:0.003,release:0.07,gain:0.6,cutoff:800})},
 ];
 
 // ── STOP options ──
@@ -154,6 +164,12 @@ const STOP = [
   {id:'S2', name:'Bell ding', desc:'Campana clara con armónicos.', play:()=>tone({type:'sine',f0:1318,dur:0.34,attack:0.002,release:0.18,gain:0.3,harm:[{r:2,g:0.18},{r:3,g:0.08}]})},
   {id:'S3', name:'Warm chord', desc:'Acorde cálido corto (do-mi-sol).', play:()=>{[523,659,784].forEach((f,i)=>tone({type:'triangle',f0:f,dur:0.22,attack:0.004,release:0.12,gain:0.22,cutoff:2600,delay:i*0.012}));}},
   {id:'S4', name:'Soft confirm', desc:'Dos notas suaves, discreto.', play:()=>seq([{type:'sine',f0:740,dur:0.10,gain:0.3},{type:'sine',f0:880,dur:0.14,gain:0.3,delay:0.07}])},
+  {id:'S5', name:'Resolve (V→I)', desc:'Resolución descendente, "cerrado".', play:()=>seq([{type:'sine',f0:784,dur:0.10,gain:0.32},{type:'sine',f0:523,dur:0.16,gain:0.32,delay:0.08}])},
+  {id:'S6', name:'Marimba up', desc:'Dos notas marimba ascendentes.', play:()=>seq([{type:'triangle',f0:659,dur:0.12,gain:0.34,harm:[{r:2,g:0.2}],cutoff:2800},{type:'triangle',f0:880,dur:0.16,gain:0.34,harm:[{r:2,g:0.2}],cutoff:2800,delay:0.09}])},
+  {id:'S7', name:'Bell tail', desc:'Campana clara con cola larga.', play:()=>tone({type:'sine',f0:1318,dur:0.5,attack:0.002,release:0.28,gain:0.28,harm:[{r:2,g:0.16},{r:3,g:0.07}]})},
+  {id:'S8', name:'Arp mayor up', desc:'Arpegio do-mi-sol-do brillante.', play:()=>seq([{type:'triangle',f0:523,dur:0.07,gain:0.28},{type:'triangle',f0:659,dur:0.07,gain:0.28,delay:0.06},{type:'triangle',f0:784,dur:0.07,gain:0.28,delay:0.12},{type:'sine',f0:1046,dur:0.14,gain:0.3,delay:0.18}])},
+  {id:'S9', name:'Double blip', desc:'Dos blips iguales, ágil.', play:()=>seq([{type:'sine',f0:988,dur:0.07,gain:0.32},{type:'sine',f0:988,dur:0.10,gain:0.32,delay:0.09}])},
+  {id:'S10',name:'Glass chime', desc:'Repique cristalino corto.', play:()=>{tone({type:'sine',f0:1175,dur:0.18,attack:0.002,release:0.11,gain:0.22,harm:[{r:2,g:0.14}]});tone({type:'sine',f0:1568,dur:0.22,attack:0.002,release:0.13,gain:0.16,delay:0.05});}},
 ];
 
 // ── CANCEL options ──

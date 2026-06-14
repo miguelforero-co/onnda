@@ -34,18 +34,18 @@
 
 <h1 class="page-title">Inicio</h1>
 
-<!-- ── Hero: dictation affordance (informational — dictation fires via global hotkey) ── -->
+<!-- ── Hero: dictation is hotkey-only — decorative orb + shortcut, no button ── -->
 <section class="hero">
-  <button class="btn-primary dictar" disabled title="Usa el atajo global para dictar">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+  <div class="dictar-orb" aria-hidden="true">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
       <rect x="9" y="2" width="6" height="12" rx="3"/>
       <path d="M5 10a7 7 0 0 0 14 0"/>
       <line x1="12" y1="19" x2="12" y2="22"/>
     </svg>
-    <span class="dictar-label">Dictar</span>
-  </button>
+  </div>
+  <p class="hero-title">Dicta con tu voz</p>
   <p class="hero-hint">
-    Presiona <kbd>{shortcutLabel || "Alt + Space"}</kbd> para dictar en cualquier app.
+    Presiona <kbd>{shortcutLabel || "Alt + Space"}</kbd> en cualquier app para empezar a dictar.
   </p>
 </section>
 
@@ -95,15 +95,15 @@
     align-items: center;
     gap: 12px;
   }
-  /* ── Dictar hero — dark glass core, iridescent edge ring, slow holographic
-     sheen sweep (Vercel beam), warm inner glow. The ONE expressive moment. */
-  .btn-primary.dictar {
+  /* ── Dictar orb — decorative (NOT a button); dictation is hotkey-only.
+     Dark glass core, iridescent edge ring, slow holographic sheen sweep
+     (Vercel beam), warm inner glow. The ONE expressive moment. */
+  .dictar-orb {
     position: relative;
     overflow: hidden;                 /* clips the sheen band */
-    display: inline-flex; align-items: center; gap: 8px;
-    padding: 13px 26px; border-radius: var(--r);
-    font-size: 13.5px; font-weight: 600; letter-spacing: -.01em;
-    color: var(--text); cursor: default;
+    width: 64px; height: 64px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: var(--text);
     /* dark glass core + iridescent ring via padding-box/border-box (respects radius) */
     background:
       linear-gradient(var(--elev-2), var(--elev-2)) padding-box,
@@ -111,26 +111,20 @@
     border: 1.5px solid transparent;
     box-shadow:
       inset 0 1px 0 var(--edge-hi),
-      0 0 22px -6px rgba(180,140,252,0.45),
+      0 0 26px -6px rgba(180,140,252,0.45),
       var(--accent-glow);
-    transition: transform .14s var(--ease-soft), box-shadow .14s;
   }
-  .btn-primary.dictar svg { width: 18px; height: 18px; position: relative; z-index: 2; }
-  .dictar-label { position: relative; z-index: 2; }
-  /* stays premium when informational/disabled — no flat dimming */
-  .btn-primary.dictar:disabled { opacity: 1; }
-  .btn-primary.dictar:hover:not(:disabled) { transform: translateY(-1px); }
-  .btn-primary.dictar:focus-visible { outline: 2px solid var(--iris-4); outline-offset: 3px; }
+  .dictar-orb svg { width: 26px; height: 26px; position: relative; z-index: 2; }
 
   /* Holographic sheen sweep — Vercel's prism beam, skewed, swept across.
      mix-blend screen so it GLOWS on dark instead of glaring. */
-  .btn-primary.dictar::after {
+  .dictar-orb::after {
     content: ""; position: absolute; inset: 0; left: -130%; z-index: 1;
     background: var(--iris-sheen); transform: skewX(-16deg);
     pointer-events: none; mix-blend-mode: screen;
   }
   @media (prefers-reduced-motion: no-preference) {
-    .btn-primary.dictar::after {
+    .dictar-orb::after {
       animation: dictar-sheen var(--sheen-dur) var(--ease-soft) infinite;
     }
     @keyframes dictar-sheen {
@@ -139,10 +133,11 @@
     }
   }
   @media (prefers-contrast: more) {
-    .btn-primary.dictar { background: var(--elev-2); border-color: var(--accent); box-shadow: none; }
-    .btn-primary.dictar::after { display: none; }
+    .dictar-orb { background: var(--elev-2); border-color: var(--accent); box-shadow: none; }
+    .dictar-orb::after { display: none; }
   }
 
+  .hero-title { font-size: 15px; font-weight: 600; color: var(--text); letter-spacing: -.01em; }
   .hero-hint { font-size: 12px; color: var(--muted); line-height: 1.5; text-align: center; }
 
   /* ── Blocks ── */
