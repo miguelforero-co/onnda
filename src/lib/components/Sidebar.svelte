@@ -20,7 +20,9 @@
 </script>
 
 <aside class="sidebar">
-  <div class="brand">
+  <!-- Brand doubles as the window drag handle: the title bar is hidden (Overlay
+       style) so the macOS traffic lights float over this top-left area. -->
+  <div class="brand" data-tauri-drag-region>
     <span class="wordmark">Voz Local</span>
   </div>
 
@@ -65,7 +67,9 @@
     border-right: 1px solid var(--line);
     box-shadow: var(--glass-edge);
     display: flex; flex-direction: column;
-    padding: 16px 12px;
+    /* extra top padding clears the macOS traffic lights that now float over the
+       hidden title bar (Overlay style) in this top-left corner. */
+    padding: 32px 12px 16px;
     gap: 18px;
   }
 
