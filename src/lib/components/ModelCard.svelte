@@ -60,11 +60,29 @@
   .model-card {
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
     background: var(--panel);
-    border: 1px solid transparent;
+    border: 1px solid var(--line);
     border-radius: var(--r);
     padding: 10px 14px; min-height: 42px;
   }
-  .model-card.selected { border-color: var(--coral); }
+  /* Selected: a 1px iridescent ring (padding-box solid over border-box conic),
+     no layout shift since the border stays 1px. Only the selected card earns it. */
+  .model-card.selected {
+    border-color: transparent;
+    background:
+      linear-gradient(var(--panel), var(--panel)) padding-box,
+      var(--iris-ring) border-box;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .model-card.selected { animation: ring-drift var(--drift-slow) linear infinite; }
+    @keyframes ring-drift { to { --iris-angle: 480deg; } }
+  }
+  /* Solid coral ring fallback for engines without @property animation support. */
+  @supports not (background: paint(something)) {
+    .model-card.selected { border: 1px solid var(--coral); background: var(--panel); }
+  }
+  @media (prefers-contrast: more) {
+    .model-card.selected { border: 1px solid var(--coral); background: var(--panel); }
+  }
   .model-card.coming-soon { opacity: .55; cursor: default; }
   .model-card[role="button"] { cursor: pointer; }
 
