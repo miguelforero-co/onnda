@@ -1,10 +1,11 @@
 ---
 phase: 1
 slug: redise-o-del-panel-de-configuracion-estilo-whisprflow
-status: draft
+status: approved
 shadcn_initialized: false
 preset: none
 created: 2026-06-14
+reviewed_at: 2026-06-14
 ---
 
 # Phase 1 — UI Design Contract
@@ -73,17 +74,17 @@ Exceptions (already in the shipping design system — preserve, do NOT "fix" to 
 
 ## Typography
 
-Three roles + one display. Two weights as primary (regular-ish 450 + semibold 600); existing 550/650 are micro-optical variants of the same two-weight system and are preserved verbatim where already shipping.
+Exactly TWO declared weights: **450 (regular / body) and 600 (semibold / emphasis)**. Display, Heading, and section Labels all use 600; Body and meta use 450. There are no intermediate weights — when the executor touches any existing 550/650/700 spot, it normalizes to 450 or 600.
 
 | Role | Size | Weight | Line Height |
 |------|------|--------|-------------|
-| Display (onboarding/empty hero) | 22px | 700 | 1.2 |
+| Display (onboarding/empty hero) | 22px | 600 | 1.2 |
 | Heading (page title per section) | 16px | 600 | 1.3 |
 | Body / row label | 13px | 450 | 1.5 |
-| Label / meta (section labels, meta, hints) | 11px | 600 (section labels, uppercase, `letter-spacing:.06em`) / 450 (meta) | 1.5 |
+| Label / meta (section labels = 600 uppercase; meta = 450) | 11px | 600 / 450 | 1.5 |
 
 Notes:
-- Section labels keep the existing treatment: `10.5px`, `600`, `uppercase`, `letter-spacing:.06em`, color `--faint` (rounded to 11px in this table; 10.5px shipping value is acceptable).
+- Section labels: `11px`, `600`, `uppercase`, `letter-spacing:.06em`, color `--faint` (existing 10.5px shipping value normalizes to 11px).
 - Heading 16px is NEW for this phase — each content section (Home, Transcripciones, Diccionario, Ajustes) gets a page title at 16px/600 to anchor the sidebar navigation.
 - Body line-height 1.5 (matches existing `.hist-text`/`.section-hint`); display line-height 1.2; hero paragraph 1.7 is an accepted exception (existing `.ob-intro p`).
 
