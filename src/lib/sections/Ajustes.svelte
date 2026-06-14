@@ -16,6 +16,7 @@
     micGranted,
     a11yGranted,
     appVersion = "",
+    buildHash = "",
     onSave,
     onDownload,
     onCheckPerms,
@@ -27,6 +28,7 @@
     micGranted: boolean;
     a11yGranted: boolean;
     appVersion?: string;
+    buildHash?: string;
     onSave: (shortcutChanged?: boolean) => void;
     onDownload: (modelId: string) => void;
     onCheckPerms: () => void;
@@ -205,7 +207,12 @@
   <h2 class="section-label">Actualizaciones</h2>
   <div class="rows">
     <div class="row">
-      <span class="row-label">Versión {appVersion}</span>
+      <span class="row-label">Versión</span>
+      <span class="version-value">v{appVersion}{#if buildHash} · {buildHash}{/if}</span>
+    </div>
+    <div class="sep"></div>
+    <div class="row">
+      <span class="row-label">Buscar actualizaciones</span>
       <div class="update-action">
         {#if updateMsg}<span class="update-msg">{updateMsg}</span>{/if}
         <button class="link-btn" onclick={checkUpdates} disabled={checkingUpdates}>
@@ -288,6 +295,10 @@
   /* ── Actualizaciones / Datos ── */
   .update-action { display: flex; align-items: center; gap: 12px; }
   .update-msg { font-size: 12px; color: var(--muted); }
+  .version-value {
+    font-size: 12.5px; color: var(--muted); font-weight: 450;
+    font-variant-numeric: tabular-nums;
+  }
 
   .link-btn {
     background: none; border: none; padding: 4px 0;

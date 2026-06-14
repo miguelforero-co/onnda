@@ -201,7 +201,7 @@
 {:else}
   <!-- ── SHELL ── -->
   <div class="shell">
-    <Sidebar bind:view {appVersion} {buildHash} />
+    <Sidebar bind:view />
     <main class="content">
       {#if view === "home"}
         <Home {settings} {history} />
@@ -218,7 +218,7 @@
       {#if view === "ajustes"}
         <Ajustes
           {settings} {models} {downloadProgress} {downloadErrors}
-          {micGranted} {a11yGranted} {appVersion}
+          {micGranted} {a11yGranted} {appVersion} {buildHash}
           onSave={(sc) => schedSave(sc)}
           onDownload={startDownload}
           onCheckPerms={checkPerms}

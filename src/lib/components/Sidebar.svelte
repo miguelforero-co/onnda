@@ -1,16 +1,13 @@
 <script lang="ts">
   import type { View } from "$lib/types";
   // Fixed 200px nav rail (--panel surface, 1px var(--line) right border).
-  // Top = wordmark + version; below = 4 nav items. Active = --text on --bg pill
+  // Top = wordmark; below = nav items. Active = --text on --bg pill
   // (mirror .tab.on), radius 6px. NO coral on inactive nav (UI-SPEC).
+  // Version + build live in Ajustes → Actualizaciones, not here.
   let {
     view = $bindable<View>("home"),
-    appVersion = "",
-    buildHash = "",
   }: {
     view?: View;
-    appVersion?: string;
-    buildHash?: string;
   } = $props();
 
   const items: { id: View; label: string }[] = [
@@ -25,7 +22,6 @@
 <aside class="sidebar">
   <div class="brand">
     <span class="wordmark">Voz Local</span>
-    {#if appVersion}<span class="version">v{appVersion}{#if buildHash} · {buildHash}{/if}</span>{/if}
   </div>
 
   <nav class="nav">
@@ -86,7 +82,6 @@
   @media (prefers-contrast: more) {
     .wordmark { background: none; -webkit-text-fill-color: var(--text); color: var(--text); }
   }
-  .version { font-size: 10.5px; font-weight: 450; color: var(--faint); }
 
   .nav { display: flex; flex-direction: column; gap: 2px; }
 
