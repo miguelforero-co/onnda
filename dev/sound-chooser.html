@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Voz Local · Selector de sonidos</title>
+<style>
+  :root{
+    --bg:#0a0a0f; --bg2:#0e0e16; --panel:rgba(255,255,255,.04);
+    --panel-br:rgba(255,255,255,.08); --text:#f2f0ee; --muted:#9a96a6; --faint:#6b6776;
+    --iris-a:#ff6aa8; --iris-b:#9b8cff; --iris-c:#5fd0ff; --iris-d:#7CF5C8;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font:14px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
+    color:var(--text); min-height:100vh;
+    background:
+      radial-gradient(1200px 600px at 12% -10%, rgba(155,140,255,.20), transparent 60%),
+      radial-gradient(1000px 500px at 100% 0%, rgba(95,208,255,.16), transparent 55%),
+      radial-gradient(900px 700px at 50% 120%, rgba(255,106,168,.16), transparent 60%),
+      var(--bg);
+    background-attachment:fixed;
+    padding:40px 28px 80px;
+  }
+  .wrap{max-width:920px;margin:0 auto}
+  header{margin-bottom:8px}
+  h1{
+    font-size:26px;font-weight:700;letter-spacing:-.02em;
+    background:linear-gradient(100deg,var(--iris-a),var(--iris-b) 40%,var(--iris-c) 75%,var(--iris-d));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
+  }
+  .sub{color:var(--muted);font-size:13px;margin-bottom:28px;max-width:640px}
+  .sub b{color:var(--text);font-weight:600}
+  h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);margin:30px 0 12px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
+  .card{
+    background:var(--panel);border:1px solid var(--panel-br);border-radius:14px;
+    padding:14px 14px 12px; backdrop-filter:blur(14px) saturate(140%);
+    -webkit-backdrop-filter:blur(14px) saturate(140%);
+    display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;
+    transition:border-color .2s, transform .08s;
+  }
+  .card::before{content:"";position:absolute;inset:0;border-radius:14px;padding:1px;
+    background:linear-gradient(140deg,transparent,rgba(255,255,255,.10),transparent);
+    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;opacity:.6}
+  .card:hover{border-color:rgba(255,255,255,.18)}
+  .card .id{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .card .name{font-size:14px;font-weight:600}
+  .card .desc{font-size:12px;color:var(--muted);line-height:1.45;min-height:34px}
+  .play{
+    margin-top:2px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    border:none;cursor:pointer;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:600;
+    color:#0a0a0f;
+    background:linear-gradient(110deg,var(--iris-a),var(--iris-b) 45%,var(--iris-c));
+    box-shadow:0 4px 18px rgba(155,140,255,.25);
+    transition:transform .08s, box-shadow .2s, filter .2s;
+  }
+  .play:hover{filter:brightness(1.08)}
+  .play:active{transform:scale(.97)}
+  .play svg{width:13px;height:13px}
+  .pickhint{font-size:12px;color:var(--muted);margin-top:6px;padding:0 2px}
+  .legend{
+    margin-top:36px;padding:16px 18px;border-radius:12px;
+    background:var(--panel);border:1px solid var(--panel-br);
+    color:var(--muted);font-size:12.5px;line-height:1.6;
+  }
+  .legend b{color:var(--text)}
+  kbd{background:rgba(255,255,255,.08);border-radius:5px;padding:1px 6px;font:inherit;color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Selector de sonidos · Voz Local</h1>
+  </header>
+  <p class="sub">
+    Dale play y escucha. Cuando encuentres el de <b>entrada</b> (y opcionalmente el de terminar/cancelar) que te guste,
+    dime el <b>número</b> (ej. <kbd>E5</kbd>) y lo dejo metido en la app. El foco es el de <b>entrada</b>, que es el que no te gustó.
+  </p>
+
+  <h2>Entrada · al empezar a escuchar</h2>
+  <div class="grid" id="grid-entry"></div>
+
+  <h2>Terminar · al transcribir</h2>
+  <div class="grid" id="grid-stop"></div>
+
+  <h2>Cancelar · al descartar (Escape)</h2>
+  <div class="grid" id="grid-cancel"></div>
+
+  <div class="legend">
+    <b>Cómo elegir:</b> escucha varias veces (sube un poco el volumen, son sutiles). Todos son sintetizados y los puedo
+    reproducir idénticos como WAV nativo en la app. Dime algo como <kbd>“me gusta E7 para entrada y S2 para terminar”</kbd>.
+  </div>
+</div>
+
+<script>
+const AC = new (window.AudioContext || window.webkitAudioContext)();
+function now(){ return AC.currentTime; }
+
+// Generic voice: oscillators with optional pitch glide, ADSR-ish env, harmonics, lowpass.
+function tone({type='sine', f0, f1=null, dur=0.16, attack=0.006, release=0.06, gain=0.5, harm=[], cutoff=null, detune=0, delay=0}){
+  const t = now() + delay;
+  const out = AC.createGain();
+  out.gain.value = 0;
+  let node = out;
+  if(cutoff){
+    const lp = AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=cutoff; lp.Q.value=0.7;
+    out.connect(lp); lp.connect(AC.destination);
+  } else { out.connect(AC.destination); }
+  const mk = (freq, mul=1, det=0) => {
+    const o = AC.createOscillator(); o.type=type; o.detune.value=det;
+    o.frequency.setValueAtTime(freq, t);
+    if(f1) o.frequency.exponentialRampToValueAtTime(Math.max(1,freq*(f1/f0)), t+dur*0.9);
+    const g = AC.createGain(); g.gain.value = mul;
+    o.connect(g); g.connect(out); o.start(t); o.stop(t+dur+0.05);
+  };
+  mk(f0,1,detune);
+  harm.forEach(h => mk(f0*h.r, h.g||0.3, h.det||0));
+  // envelope
+  const peak = gain;
+  out.gain.setValueAtTime(0, t);
+  out.gain.linearRampToValueAtTime(peak, t+attack);
+  out.gain.exponentialRampToValueAtTime(0.0008, t+dur);
+  out.gain.linearRampToValueAtTime(0, t+dur+release);
+}
+function seq(parts){ parts.forEach(p => tone(p)); }
+function noiseTick({dur=0.03, cutoff=3000, gain=0.4, delay=0}){
+  const t=now()+delay; const n=AC.createBufferSource();
+  const buf=AC.createBuffer(1, AC.sampleRate*dur, AC.sampleRate);
+  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
+  n.buffer=buf; const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=cutoff;
+  const g=AC.createGain(); g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
+  n.connect(lp); lp.connect(g); g.connect(AC.destination); n.start(t); n.stop(t+dur+0.02);
+}
+
+// ── ENTRY options ──
+const ENTRY = [
+  {id:'E1', name:'Glass tap', desc:'Toque cristalino corto y agudo.', play:()=>tone({type:'sine',f0:1180,dur:0.10,attack:0.003,release:0.05,gain:0.32,harm:[{r:2,g:0.12}]})},
+  {id:'E2', name:'Soft pop', desc:'Burbuja grave con caída de tono.', play:()=>tone({type:'sine',f0:380,f1:300,dur:0.10,attack:0.004,release:0.05,gain:0.5,cutoff:1400})},
+  {id:'E3', name:'Rising blip (actual)', desc:'Glide ascendente 520→780. El de ahora.', play:()=>tone({type:'sine',f0:520,f1:780,dur:0.12,attack:0.005,release:0.06,gain:0.42,harm:[{r:2,g:0.12}]})},
+  {id:'E4', name:'Two-tone up', desc:'Dos notas ascendentes (quinta).', play:()=>seq([{type:'sine',f0:660,dur:0.09,gain:0.34},{type:'sine',f0:990,dur:0.12,gain:0.34,delay:0.07}])},
+  {id:'E5', name:'Marimba pluck', desc:'Pulsación tipo marimba, percusiva y cálida.', play:()=>tone({type:'triangle',f0:600,dur:0.18,attack:0.002,release:0.08,gain:0.5,harm:[{r:2,g:0.25},{r:3,g:0.10}],cutoff:2600})},
+  {id:'E6', name:'Bubble bend', desc:'Bend rápido hacia arriba, juguetón.', play:()=>tone({type:'sine',f0:400,f1:920,dur:0.085,attack:0.003,release:0.05,gain:0.5,cutoff:2200})},
+  {id:'E7', name:'Holo shimmer', desc:'Dos sines desafinados, brillo iridescente.', play:()=>{tone({type:'sine',f0:880,dur:0.16,attack:0.004,release:0.09,gain:0.26,detune:-7,harm:[{r:1,g:0.9,det:9},{r:2.01,g:0.10}]});}},
+  {id:'E8', name:'Sub + click', desc:'Golpe grave con click brillante encima.', play:()=>{tone({type:'sine',f0:120,dur:0.14,attack:0.002,release:0.06,gain:0.6});noiseTick({dur:0.02,cutoff:4000,gain:0.25});}},
+  {id:'E9', name:'Arp ascendente', desc:'Mini arpegio 523-659-784, optimista.', play:()=>seq([{type:'triangle',f0:523,dur:0.07,gain:0.3},{type:'triangle',f0:659,dur:0.07,gain:0.3,delay:0.06},{type:'triangle',f0:784,dur:0.10,gain:0.32,delay:0.12}])},
+  {id:'E10',name:'Synth swell', desc:'Aparición suave con ataque lento.', play:()=>tone({type:'sine',f0:440,f1:560,dur:0.22,attack:0.05,release:0.10,gain:0.4,harm:[{r:2,g:0.15}],cutoff:1800})},
+];
+
+// ── STOP options ──
+const STOP = [
+  {id:'S1', name:'Two-note up (actual)', desc:'660→990, confirmación ascendente.', play:()=>seq([{type:'sine',f0:660,dur:0.10,gain:0.34},{type:'sine',f0:990,dur:0.16,gain:0.34,delay:0.08}])},
+  {id:'S2', name:'Bell ding', desc:'Campana clara con armónicos.', play:()=>tone({type:'sine',f0:1318,dur:0.34,attack:0.002,release:0.18,gain:0.3,harm:[{r:2,g:0.18},{r:3,g:0.08}]})},
+  {id:'S3', name:'Warm chord', desc:'Acorde cálido corto (do-mi-sol).', play:()=>{[523,659,784].forEach((f,i)=>tone({type:'triangle',f0:f,dur:0.22,attack:0.004,release:0.12,gain:0.22,cutoff:2600,delay:i*0.012}));}},
+  {id:'S4', name:'Soft confirm', desc:'Dos notas suaves, discreto.', play:()=>seq([{type:'sine',f0:740,dur:0.10,gain:0.3},{type:'sine',f0:880,dur:0.14,gain:0.3,delay:0.07}])},
+];
+
+// ── CANCEL options ──
+const CANCEL = [
+  {id:'C1', name:'Descending (actual)', desc:'480→300, baja suave.', play:()=>tone({type:'sine',f0:480,f1:300,dur:0.14,attack:0.004,release:0.07,gain:0.36,cutoff:1600})},
+  {id:'C2', name:'Low thunk', desc:'Golpe grave seco.', play:()=>tone({type:'sine',f0:200,f1:130,dur:0.12,attack:0.002,release:0.05,gain:0.55,cutoff:900})},
+  {id:'C3', name:'Two-note down', desc:'600→400, descendente claro.', play:()=>seq([{type:'sine',f0:600,dur:0.09,gain:0.32},{type:'sine',f0:400,dur:0.13,gain:0.32,delay:0.07}])},
+  {id:'C4', name:'Damped buzz', desc:'Tono apagado tipo "nope".', play:()=>tone({type:'sawtooth',f0:300,f1:230,dur:0.13,attack:0.003,release:0.05,gain:0.22,cutoff:1100})},
+];
+
+function render(list, elId){
+  const el = document.getElementById(elId);
+  el.innerHTML = list.map(o=>`
+    <div class="card">
+      <span class="id">${o.id}</span>
+      <span class="name">${o.name}</span>
+      <span class="desc">${o.desc}</span>
+      <button class="play" data-id="${o.id}">
+        <svg viewBox="0 0 10 10" fill="currentColor"><path d="M1 0.5l8 4.5-8 4.5z"/></svg> Reproducir
+      </button>
+    </div>`).join('');
+}
+render(ENTRY,'grid-entry'); render(STOP,'grid-stop'); render(CANCEL,'grid-cancel');
+const ALL = [...ENTRY,...STOP,...CANCEL];
+document.addEventListener('click', e=>{
+  const b = e.target.closest('.play'); if(!b) return;
+  if(AC.state==='suspended') AC.resume();
+  const o = ALL.find(x=>x.id===b.dataset.id); if(o) o.play();
+});
+</script>
+</body>
+</html>
