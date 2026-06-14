@@ -31,7 +31,7 @@ Plans:
 - [x] 01-02-PLAN.md — Build/window: ventana 880×640, deps dialog/fs/updater/symphonia/sha2, capabilities, stubs de módulos
 - [x] 01-03-PLAN.md — Shell de UI: sidebar 200px + extracción de tokens y componentes (Toggle/Row/PermissionRow/ModelCard/HotkeyRecorder) + stubs de secciones
 - [x] 01-04-PLAN.md — Hooks nativos: sounds.rs (NSSound) + media_pause.rs (CGEvent) en el state machine + catálogo de modelos ampliado
-- [ ] 01-05-PLAN.md — Transcripción por archivos: audio_decode.rs (symphonia) + comando transcribe_file → history source="file"
+- [x] 01-05-PLAN.md — Transcripción por archivos: audio_decode.rs (symphonia) + comando transcribe_file → history source="file"
 - [ ] 01-06-PLAN.md — Gestión de datos (reveal/clear) + check-for-updates (con fallback check-only)
 - [ ] 01-07-PLAN.md — Sección Ajustes: hotkey, sonidos, pause-media, lenguaje, launch-at-login, permisos, modelos+Parakeet, updates, datos
 - [ ] 01-08-PLAN.md — Secciones Home + Transcripciones (filtro+upload) + Diccionario (items)

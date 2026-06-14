@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-04-PLAN.md
-last_updated: "2026-06-14T17:56:13.592Z"
+stopped_at: Completed 01-05-PLAN.md
+last_updated: "2026-06-14T18:02:56.476Z"
 last_activity: 2026-06-14
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 9
-  completed_plans: 4
-  percent: 44
+  completed_plans: 5
+  percent: 56
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 ## Current Position
 
 Phase: 01 (Rediseño del panel (sidebar Home+Settings, estilo WhisprFlow)) — EXECUTING
-Plan: 5 of 9
+Plan: 6 of 9
 Status: Ready to execute
 Last activity: 2026-06-14
 
@@ -45,6 +45,7 @@ Decisions logged in PROJECT.md Key Decisions table.
 - [Phase 01]: Shell extracted: tokens.css + 7 reusable components + 4 section stubs with prop contracts; +page.svelte is now a router orchestrator (palette LOCKED, D-04)
 - [Phase 01]: Sounds via NSSound system cues (Tink/Pop/Funk), reliable while window hidden
 - [Phase 01]: Pause-media is a symmetric Play/Pause CGEvent toggle (no public play-state API); I_PAUSED keeps pause↔resume balanced
+- [Phase 01]: File transcription: symphonia 0.6 decode→mono f32→resample 16k→Whisper→correct→save(source=file); decode+inference on spawn_blocking; emits file-transcribe-progress/done/error; no paste
 
 ### Pending Todos
 
@@ -56,6 +57,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-14T17:56:06.800Z
-Stopped at: Completed 01-04-PLAN.md
+Last session: 2026-06-14T18:02:46.935Z
+Stopped at: Completed 01-05-PLAN.md
 Resume file: None
