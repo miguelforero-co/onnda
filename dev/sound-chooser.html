@@ -3,201 +3,292 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Voz Local · Selector de sonidos</title>
+<title>Voz Local · Selector de sonidos (layered)</title>
 <style>
   :root{
-    --bg:#0a0a0f; --bg2:#0e0e16; --panel:rgba(255,255,255,.04);
-    --panel-br:rgba(255,255,255,.08); --text:#f2f0ee; --muted:#9a96a6; --faint:#6b6776;
-    --iris-a:#ff6aa8; --iris-b:#9b8cff; --iris-c:#5fd0ff; --iris-d:#7CF5C8;
+    --bg:#07070b; --text:#f2f0f6; --muted:#a6a3b4; --faint:#6b6878;
+    --panel:rgba(255,255,255,.045); --br:rgba(255,255,255,.09);
+    --a:#ff6aa8; --b:#9b8cff; --c:#5fd0ff; --d:#7CF5C8;
   }
   *{box-sizing:border-box;margin:0;padding:0}
   body{
-    font:14px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;
-    color:var(--text); min-height:100vh;
+    font:14px/1.5 -apple-system,"SF Pro Text",system-ui,sans-serif;color:var(--text);min-height:100vh;
     background:
-      radial-gradient(1200px 600px at 12% -10%, rgba(155,140,255,.20), transparent 60%),
-      radial-gradient(1000px 500px at 100% 0%, rgba(95,208,255,.16), transparent 55%),
-      radial-gradient(900px 700px at 50% 120%, rgba(255,106,168,.16), transparent 60%),
+      radial-gradient(1200px 600px at 12% -10%,rgba(155,140,255,.18),transparent 60%),
+      radial-gradient(1000px 520px at 100% 0%,rgba(95,208,255,.14),transparent 55%),
+      radial-gradient(900px 700px at 50% 120%,rgba(255,106,168,.14),transparent 60%),
       var(--bg);
-    background-attachment:fixed;
-    padding:40px 28px 80px;
+    background-attachment:fixed;padding:40px 28px 90px;
   }
-  .wrap{max-width:920px;margin:0 auto}
-  header{margin-bottom:8px}
-  h1{
-    font-size:26px;font-weight:700;letter-spacing:-.02em;
-    background:linear-gradient(100deg,var(--iris-a),var(--iris-b) 40%,var(--iris-c) 75%,var(--iris-d));
-    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  }
-  .sub{color:var(--muted);font-size:13px;margin-bottom:28px;max-width:640px}
+  .wrap{max-width:960px;margin:0 auto}
+  h1{font-size:26px;font-weight:700;letter-spacing:-.02em;
+    background:linear-gradient(100deg,var(--a),var(--b) 40%,var(--c) 75%,var(--d));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .sub{color:var(--muted);font-size:13px;margin:6px 0 26px;max-width:680px}
   .sub b{color:var(--text);font-weight:600}
   h2{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--faint);margin:30px 0 12px}
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px}
-  .card{
-    background:var(--panel);border:1px solid var(--panel-br);border-radius:14px;
-    padding:14px 14px 12px; backdrop-filter:blur(14px) saturate(140%);
-    -webkit-backdrop-filter:blur(14px) saturate(140%);
-    display:flex;flex-direction:column;gap:8px;position:relative;overflow:hidden;
-    transition:border-color .2s, transform .08s;
-  }
-  .card::before{content:"";position:absolute;inset:0;border-radius:14px;padding:1px;
-    background:linear-gradient(140deg,transparent,rgba(255,255,255,.10),transparent);
-    -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
-    -webkit-mask-composite:xor;mask-composite:exclude;pointer-events:none;opacity:.6}
-  .card:hover{border-color:rgba(255,255,255,.18)}
-  .card .id{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
-  .card .name{font-size:14px;font-weight:600}
-  .card .desc{font-size:12px;color:var(--muted);line-height:1.45;min-height:34px}
-  .play{
-    margin-top:2px;display:inline-flex;align-items:center;justify-content:center;gap:8px;
-    border:none;cursor:pointer;border-radius:10px;padding:9px 12px;font-size:13px;font-weight:600;
-    color:#0a0a0f;
-    background:linear-gradient(110deg,var(--iris-a),var(--iris-b) 45%,var(--iris-c));
-    box-shadow:0 4px 18px rgba(155,140,255,.25);
-    transition:transform .08s, box-shadow .2s, filter .2s;
-  }
-  .play:hover{filter:brightness(1.08)}
-  .play:active{transform:scale(.97)}
-  .play svg{width:13px;height:13px}
-  .pickhint{font-size:12px;color:var(--muted);margin-top:6px;padding:0 2px}
-  .legend{
-    margin-top:36px;padding:16px 18px;border-radius:12px;
-    background:var(--panel);border:1px solid var(--panel-br);
-    color:var(--muted);font-size:12.5px;line-height:1.6;
-  }
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+  .card{background:var(--panel);border:1px solid var(--br);border-radius:14px;padding:14px;
+    backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);
+    display:flex;flex-direction:column;gap:7px;position:relative}
+  .card.pick{border-color:rgba(124,245,200,.5);box-shadow:0 0 0 1px rgba(124,245,200,.25)}
+  .id{font-size:11px;color:var(--faint);font-variant-numeric:tabular-nums}
+  .name{font-size:14px;font-weight:600}
+  .desc{font-size:12px;color:var(--muted);line-height:1.45;min-height:50px}
+  .row{display:flex;gap:8px;margin-top:2px}
+  .play{flex:1;display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;cursor:pointer;
+    border-radius:10px;padding:9px 12px;font-size:13px;font-weight:600;color:#07070b;
+    background:linear-gradient(110deg,var(--a),var(--b) 45%,var(--c));transition:transform .08s,filter .2s}
+  .play:hover{filter:brightness(1.08)} .play:active{transform:scale(.97)} .play svg{width:12px;height:12px}
+  .dl{border:1px solid var(--br);background:transparent;color:var(--muted);border-radius:10px;padding:9px 11px;
+    font-size:12px;cursor:pointer}
+  .dl:hover{color:var(--text);border-color:rgba(255,255,255,.2)}
+  .legend{margin-top:34px;padding:16px 18px;border-radius:12px;background:var(--panel);border:1px solid var(--br);
+    color:var(--muted);font-size:12.5px;line-height:1.6}
   .legend b{color:var(--text)}
   kbd{background:rgba(255,255,255,.08);border-radius:5px;padding:1px 6px;font:inherit;color:var(--text)}
+  .badge{font-size:10.5px;color:var(--d);border:1px solid rgba(124,245,200,.4);border-radius:20px;padding:1px 8px;align-self:flex-start}
 </style>
 </head>
 <body>
 <div class="wrap">
-  <header>
-    <h1>Selector de sonidos · Voz Local</h1>
-  </header>
-  <p class="sub">
-    Dale play y escucha. Cuando encuentres el de <b>entrada</b> (y opcionalmente el de terminar/cancelar) que te guste,
-    dime el <b>número</b> (ej. <kbd>E5</kbd>) y lo dejo metido en la app. El foco es el de <b>entrada</b>, que es el que no te gustó.
-  </p>
+  <h1>Selector de sonidos · layered</h1>
+  <p class="sub">Rediseñados con <b>capas</b> (sub-grave · cuerpo · brillo · aire · reverb), senoidales y suaves — sin lo metálico de antes. Inspirados en Siri / ChatGPT voice. Dale <b>Reproducir</b>; cuando elijas <b>inicio</b> y <b>final</b>, dime los códigos (ej. <kbd>V3 y D1</kbd>) y los dejo en la app idénticos. <b>⬇ WAV</b> exporta el sonido exacto.</p>
 
-  <h2>Entrada · al empezar a escuchar</h2>
-  <div class="grid" id="grid-entry"></div>
+  <h2>Inicio · al empezar a escuchar</h2>
+  <div class="grid" id="g-start"></div>
 
   <h2>Terminar · al transcribir</h2>
-  <div class="grid" id="grid-stop"></div>
+  <div class="grid" id="g-done"></div>
 
-  <h2>Cancelar · al descartar (Escape) — ✓ elegido: C1</h2>
-  <div class="grid" id="grid-cancel"></div>
+  <h2>Cancelar · al descartar (Escape)</h2>
+  <div class="grid" id="g-cancel"></div>
 
-  <div class="legend">
-    <b>Cómo elegir:</b> escucha varias veces (sube un poco el volumen, son sutiles). Todos son sintetizados y los puedo
-    reproducir idénticos como WAV nativo en la app. Dime algo como <kbd>“me gusta E7 para entrada y S2 para terminar”</kbd>.
-  </div>
+  <div class="legend"><b>Tip:</b> sube un poco el volumen y escucha en buenos parlantes/audífonos — la profundidad (sub + reverb) se aprecia mejor. Todos están normalizados a un volumen parejo.</div>
 </div>
 
 <script>
+const SR = 48000;
 const AC = new (window.AudioContext || window.webkitAudioContext)();
-function now(){ return AC.currentTime; }
 
-// Generic voice: oscillators with optional pitch glide, ADSR-ish env, harmonics, lowpass.
-function tone({type='sine', f0, f1=null, dur=0.16, attack=0.006, release=0.06, gain=0.5, harm=[], cutoff=null, detune=0, delay=0}){
-  const t = now() + delay;
-  const out = AC.createGain();
-  out.gain.value = 0;
-  let node = out;
-  if(cutoff){
-    const lp = AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=cutoff; lp.Q.value=0.7;
-    out.connect(lp); lp.connect(AC.destination);
-  } else { out.connect(AC.destination); }
-  const mk = (freq, mul=1, det=0) => {
-    const o = AC.createOscillator(); o.type=type; o.detune.value=det;
-    o.frequency.setValueAtTime(freq, t);
-    if(f1) o.frequency.exponentialRampToValueAtTime(Math.max(1,freq*(f1/f0)), t+dur*0.9);
-    const g = AC.createGain(); g.gain.value = mul;
-    o.connect(g); g.connect(out); o.start(t); o.stop(t+dur+0.05);
-  };
-  mk(f0,1,detune);
-  harm.forEach(h => mk(f0*h.r, h.g||0.3, h.det||0));
-  // envelope
-  const peak = gain;
-  out.gain.setValueAtTime(0, t);
-  out.gain.linearRampToValueAtTime(peak, t+attack);
-  out.gain.exponentialRampToValueAtTime(0.0008, t+dur);
-  out.gain.linearRampToValueAtTime(0, t+dur+release);
+// ── exp helpers ──
+const clampFloor = v => v < 0.0005 ? 0.0005 : v;
+function envAt(t, A, D, S, R, len){ // ms args → t,len in seconds here
+  A/=1000; D/=1000; R/=1000;
+  if(t < A) return clampFloor(0.0005*Math.pow(1/0.0005, t/Math.max(A,1e-5)));
+  if(t < A+D){ const f=(t-A)/Math.max(D,1e-5); return clampFloor(1*Math.pow(clampFloor(S)/1, f)); }
+  if(t < len-R) return clampFloor(S);
+  const f=(t-(len-R))/Math.max(R,1e-5); return clampFloor(clampFloor(S)*Math.pow(0.0005/clampFloor(S), Math.min(1,f)));
 }
-function seq(parts){ parts.forEach(p => tone(p)); }
-function noiseTick({dur=0.03, cutoff=3000, gain=0.4, delay=0}){
-  const t=now()+delay; const n=AC.createBufferSource();
-  const buf=AC.createBuffer(1, AC.sampleRate*dur, AC.sampleRate);
-  const d=buf.getChannelData(0); for(let i=0;i<d.length;i++) d[i]=(Math.random()*2-1);
-  n.buffer=buf; const lp=AC.createBiquadFilter(); lp.type='lowpass'; lp.frequency.value=cutoff;
-  const g=AC.createGain(); g.gain.setValueAtTime(gain,t); g.gain.exponentialRampToValueAtTime(0.001,t+dur);
-  n.connect(lp); lp.connect(g); g.connect(AC.destination); n.start(t); n.stop(t+dur+0.02);
+function layerLen(A,D,S,R){ const hold = S>0 ? 90 : 0; return (A+D+hold+R)/1000; }
+
+// instantaneous exp glide freq (Hz) at time t over glideMs
+function glideFreq(f0,f1,glideMs,t){ const g=glideMs/1000; if(t>=g||f0===f1) return f1; return f0*Math.pow(f1/f0, t/g); }
+
+function addTone(buf, L, t0){
+  const len = layerLen(L.A,L.D,L.S,L.R);
+  const n = Math.floor(len*SR);
+  const start = Math.floor(t0*SR);
+  const detunes = L.detunes || [{c:0,a:1}];
+  for(const det of detunes){
+    const ratio = Math.pow(2, det.c/1200);
+    for(const [mult,pa] of L.partials){
+      let ph=0;
+      for(let i=0;i<n;i++){
+        const t=i/SR;
+        const f = glideFreq(L.start*mult, L.end*mult, L.glide||0, t) * ratio;
+        ph += 2*Math.PI*f/SR;
+        const e = envAt(t, L.A,L.D,L.S,L.R, len);
+        const idx=start+i; if(idx<buf.length) buf[idx]+= Math.sin(ph)*L.amp*pa*det.a*e;
+      }
+    }
+  }
+}
+function addNoise(buf, L, t0){
+  const len = layerLen(L.A,L.D,L.S,L.R);
+  const n=Math.floor(len*SR), start=Math.floor(t0*SR);
+  let y=0;
+  for(let i=0;i<n;i++){
+    const t=i/SR;
+    const fc = L.c1!=null ? (t < (L.sweep/1000) ? L.c0*Math.pow(L.c1/L.c0, t/(L.sweep/1000)) : L.c1) : L.c0;
+    const a = 1 - Math.exp(-2*Math.PI*fc/SR);
+    const x = Math.random()*2-1;
+    y += a*(x - y);
+    const e = envAt(t, L.A,L.D,L.S,L.R, len);
+    const idx=start+i; if(idx<buf.length) buf[idx]+= y*L.amp*e;
+  }
+}
+function addTransient(buf, L, t0){
+  const n=Math.floor((L.durMs/1000)*SR), start=Math.floor(t0*SR);
+  let y=0; const a=1-Math.exp(-2*Math.PI*(L.cut||5000)/SR);
+  for(let i=0;i<n;i++){
+    const x=Math.random()*2-1; y+=a*(x-y);
+    const e=1-(i/n); // quick linear fade
+    const idx=start+i; if(idx<buf.length) buf[idx]+= y*L.amp*e;
+  }
 }
 
-// ── ENTRY options ──
-const ENTRY = [
-  {id:'E1', name:'Glass tap', desc:'Toque cristalino corto y agudo.', play:()=>tone({type:'sine',f0:1180,dur:0.10,attack:0.003,release:0.05,gain:0.32,harm:[{r:2,g:0.12}]})},
-  {id:'E2', name:'Soft pop', desc:'Burbuja grave con caída de tono.', play:()=>tone({type:'sine',f0:380,f1:300,dur:0.10,attack:0.004,release:0.05,gain:0.5,cutoff:1400})},
-  {id:'E3', name:'Rising blip (actual)', desc:'Glide ascendente 520→780. El de ahora.', play:()=>tone({type:'sine',f0:520,f1:780,dur:0.12,attack:0.005,release:0.06,gain:0.42,harm:[{r:2,g:0.12}]})},
-  {id:'E4', name:'Two-tone up', desc:'Dos notas ascendentes (quinta).', play:()=>seq([{type:'sine',f0:660,dur:0.09,gain:0.34},{type:'sine',f0:990,dur:0.12,gain:0.34,delay:0.07}])},
-  {id:'E5', name:'Marimba pluck', desc:'Pulsación tipo marimba, percusiva y cálida.', play:()=>tone({type:'triangle',f0:600,dur:0.18,attack:0.002,release:0.08,gain:0.5,harm:[{r:2,g:0.25},{r:3,g:0.10}],cutoff:2600})},
-  {id:'E6', name:'Bubble bend', desc:'Bend rápido hacia arriba, juguetón.', play:()=>tone({type:'sine',f0:400,f1:920,dur:0.085,attack:0.003,release:0.05,gain:0.5,cutoff:2200})},
-  {id:'E7', name:'Holo shimmer', desc:'Dos sines desafinados, brillo iridescente.', play:()=>{tone({type:'sine',f0:880,dur:0.16,attack:0.004,release:0.09,gain:0.26,detune:-7,harm:[{r:1,g:0.9,det:9},{r:2.01,g:0.10}]});}},
-  {id:'E8', name:'Sub + click', desc:'Golpe grave con click brillante encima.', play:()=>{tone({type:'sine',f0:120,dur:0.14,attack:0.002,release:0.06,gain:0.6});noiseTick({dur:0.02,cutoff:4000,gain:0.25});}},
-  {id:'E9', name:'Arp ascendente', desc:'Mini arpegio 523-659-784, optimista.', play:()=>seq([{type:'triangle',f0:523,dur:0.07,gain:0.3},{type:'triangle',f0:659,dur:0.07,gain:0.3,delay:0.06},{type:'triangle',f0:784,dur:0.10,gain:0.32,delay:0.12}])},
-  {id:'E10',name:'Synth swell', desc:'Aparición suave con ataque lento.', play:()=>tone({type:'sine',f0:440,f1:560,dur:0.22,attack:0.05,release:0.10,gain:0.4,harm:[{r:2,g:0.15}],cutoff:1800})},
-  {id:'E11',name:'Water drop', desc:'Gota de agua, plick con caída.', play:()=>tone({type:'sine',f0:760,f1:420,dur:0.12,attack:0.002,release:0.07,gain:0.5,cutoff:1900})},
-  {id:'E12',name:'Power-up sweep', desc:'Barrido sci-fi ascendente.', play:()=>tone({type:'sawtooth',f0:220,f1:920,dur:0.18,attack:0.004,release:0.05,gain:0.16,cutoff:2400})},
-  {id:'E13',name:'Crystal ping', desc:'Ping cristalino con octava.', play:()=>tone({type:'sine',f0:1046,dur:0.17,attack:0.002,release:0.11,gain:0.26,harm:[{r:2,g:0.18}]})},
-  {id:'E14',name:'Kalimba', desc:'Pulsación cálida tipo kalimba.', play:()=>tone({type:'triangle',f0:740,dur:0.20,attack:0.002,release:0.10,gain:0.42,harm:[{r:2,g:0.2},{r:3,g:0.08}],cutoff:3000})},
-  {id:'E15',name:'Fourth up', desc:'Dos notas, cuarta ascendente.', play:()=>seq([{type:'sine',f0:587,dur:0.09,gain:0.32},{type:'sine',f0:784,dur:0.12,gain:0.34,delay:0.07}])},
-  {id:'E16',name:'Bell (inharm.)', desc:'Campanita metálica inarmónica.', play:()=>tone({type:'sine',f0:900,dur:0.26,attack:0.002,release:0.15,gain:0.24,harm:[{r:2.76,g:0.2},{r:5.4,g:0.06}]})},
-  {id:'E17',name:'Wood tick + tono', desc:'Click de madera con tono breve.', play:()=>{noiseTick({dur:0.018,cutoff:3500,gain:0.3});tone({type:'sine',f0:660,dur:0.10,attack:0.003,release:0.05,gain:0.32,delay:0.012});}},
-  {id:'E18',name:'Chord stab', desc:'Acorde mayor corto y brillante.', play:()=>{[523,659,784].forEach((f,i)=>tone({type:'triangle',f0:f,dur:0.13,attack:0.003,release:0.06,gain:0.2,cutoff:2800,delay:i*0.006}));}},
-  {id:'E19',name:'Sine + vibrato', desc:'Sine cálido con leve trémolo.', play:()=>seq([{type:'sine',f0:620,dur:0.05,gain:0.34},{type:'sine',f0:600,dur:0.05,gain:0.34,delay:0.05},{type:'sine',f0:640,dur:0.08,gain:0.34,delay:0.10}])},
-  {id:'E20',name:'Sub thump alto', desc:'Golpe grave con cuerpo, sin click.', play:()=>tone({type:'sine',f0:180,f1:140,dur:0.16,attack:0.003,release:0.07,gain:0.6,cutoff:800})},
+// ── Schroeder reverb: 4 parallel combs + 2 series allpass ──
+function reverb(dry, {rt60, mix, predelay}){
+  const out=new Float32Array(dry.length);
+  const combs=[1153,1297,1453,1601].map(d=>Math.round(d*SR/48000));
+  const aps=[557,441].map(d=>Math.round(d*SR/48000));
+  const pd=Math.round((predelay||0)*SR);
+  const inp=new Float32Array(dry.length);
+  for(let i=0;i<dry.length;i++) inp[i]= (i-pd>=0)? dry[i-pd] : 0;
+  const wet=new Float32Array(dry.length);
+  for(const D of combs){
+    const g=Math.pow(10, -3*(D/SR)/rt60); const cb=new Float32Array(D); let p=0;
+    for(let i=0;i<inp.length;i++){ const yv=cb[p]; wet[i]+=yv; cb[p]=inp[i]+yv*g; p=(p+1)%D; }
+  }
+  for(let i=0;i<wet.length;i++) wet[i]/=combs.length;
+  for(const D of aps){
+    const g=0.5; const ab=new Float32Array(D); let p=0;
+    for(let i=0;i<wet.length;i++){ const bo=ab[p]; const yv=-g*wet[i]+bo; ab[p]=wet[i]+g*bo; wet[i]=yv; p=(p+1)%D; }
+  }
+  for(let i=0;i<dry.length;i++) out[i]=(1-mix)*dry[i]+mix*wet[i];
+  return out;
+}
+
+function render(spec){
+  const buf=new Float32Array(Math.ceil(spec.dur*SR));
+  for(const L of spec.layers){
+    const t0=(L.t0||0)/1000;
+    if(L.noise) addNoise(buf,L,t0);
+    else if(L.trans) addTransient(buf,L,t0);
+    else addTone(buf,L,t0);
+  }
+  const wet = spec.reverb ? reverb(buf, spec.reverb) : buf;
+  // normalize to 0.5 peak then soft-limit
+  let pk=0; for(const v of wet) pk=Math.max(pk,Math.abs(v));
+  const g = pk>0 ? 0.5/pk : 1;
+  const k=1.3, kk=Math.tanh(k);
+  for(let i=0;i<wet.length;i++) wet[i]=Math.tanh(k*wet[i]*g)/kk*0.4;
+  return wet;
+}
+
+function playBuf(buf){
+  if(AC.state==='suspended') AC.resume();
+  const b=AC.createBuffer(1,buf.length,SR); b.copyToChannel(buf,0);
+  const s=AC.createBufferSource(); s.buffer=b; s.connect(AC.destination); s.start();
+}
+function wavBlob(buf){
+  const n=buf.length, ab=new ArrayBuffer(44+n*2), v=new DataView(ab);
+  const ws=(o,s)=>{for(let i=0;i<s.length;i++)v.setUint8(o+i,s.charCodeAt(i))};
+  ws(0,'RIFF'); v.setUint32(4,36+n*2,true); ws(8,'WAVE'); ws(12,'fmt '); v.setUint32(16,16,true);
+  v.setUint16(20,1,true); v.setUint16(22,1,true); v.setUint32(24,SR,true); v.setUint32(28,SR*2,true);
+  v.setUint16(32,2,true); v.setUint16(34,16,true); ws(36,'data'); v.setUint32(40,n*2,true);
+  for(let i=0;i<n;i++){ let x=Math.max(-1,Math.min(1,buf[i])); v.setInt16(44+i*2, x<0?x*32768:x*32767, true); }
+  return new Blob([ab],{type:'audio/wav'});
+}
+
+// ── PRESETS (from 01-SOUND-DESIGN.md) ──
+const START = [
+  {id:'V1', name:'ChatGPT soft bloom', desc:'Bloom cálido que abre hacia arriba. Cuerpo G4 con glide-in, par desafinado, sub 110, aire que crece. Neutro-premium.', dur:0.72, reverb:{rt60:0.35,mix:0.18,predelay:0.014}, layers:[
+    {start:110,end:110,partials:[[1,1]],amp:.35,A:40,D:120,S:.5,R:260},
+    {start:349,end:392,glide:90,partials:[[1,1],[2,.30],[3,.12]],amp:.9,A:25,D:180,S:.55,R:320,detunes:[{c:0,a:1},{c:7,a:.5}]},
+    {start:1568,end:1568,partials:[[1,1]],amp:.12,A:8,D:140,S:0,R:160},
+    {noise:true,amp:.10,c0:1500,c1:4000,sweep:180,A:120,D:0,S:.8,R:300},
+    {trans:true,amp:.05,durMs:5,cut:6000},
+  ]},
+  {id:'V2', name:'Siri two-pop', desc:'Cortito: dos sines a una octava que "popean" en vez de sonar. Crujiente pero redondo.', dur:0.40, reverb:{rt60:0.25,mix:0.12,predelay:0.008}, layers:[
+    {start:130,end:130,partials:[[1,1]],amp:.3,A:20,D:90,S:0,R:140},
+    {start:494,end:523,glide:25,partials:[[1,1],[2,.4]],amp:1.0,A:6,D:110,S:0,R:150},
+    {noise:true,amp:.06,c0:5000,A:8,D:60,S:0,R:120},
+    {trans:true,amp:.06,durMs:4,cut:6000},
+  ]},
+  {id:'V3', name:'Deep sub + glass', desc:'Con profundidad: sub doble grave + "glass" que es un armónico (brilla sin volverse metálico).', dur:0.78, reverb:{rt60:0.5,mix:0.22,predelay:0.018}, layers:[
+    {start:82,end:82,partials:[[1,1],[2,.4]],amp:.45,A:35,D:200,S:.5,R:360},
+    {start:330,end:330,partials:[[1,1],[2,.3],[3,.12]],amp:.85,A:28,D:200,S:.4,R:300,detunes:[{c:0,a:1},{c:6,a:.5}]},
+    {start:1320,end:1320,partials:[[1,1]],amp:.10,A:10,D:200,S:0,R:220},
+    {noise:true,amp:.10,c0:2000,c1:5000,sweep:200,A:90,D:0,S:.8,R:300},
+  ]},
+  {id:'V4', name:'Warm breath swell', desc:'Liderado por aire, casi una inhalación suave; el tono llega por debajo. Calmado, orgánico, sin click.', dur:0.82, reverb:{rt60:0.45,mix:0.20,predelay:0.020}, layers:[
+    {noise:true,amp:.16,c0:1500,c1:1500,A:180,D:0,S:.9,R:300},
+    {start:262,end:294,glide:160,partials:[[1,1],[2,.25]],amp:.6,A:90,D:200,S:.5,R:320},
+    {start:98,end:98,partials:[[1,1]],amp:.3,A:60,D:160,S:.5,R:280},
+  ]},
+  {id:'V5', name:'Airy rising shimmer', desc:'Brillo ascendente que se aclara al subir — armónico, sin "glass" inarmónico. Optimista.', dur:0.74, reverb:{rt60:0.5,mix:0.22,predelay:0.016}, layers:[
+    {start:392,end:523,glide:180,partials:[[1,1],[2,.25]],amp:.8,A:20,D:180,S:.3,R:280,detunes:[{c:0,a:1},{c:8,a:.5}]},
+    {start:1568,end:2093,glide:180,partials:[[1,1]],amp:.10,A:12,D:200,S:0,R:200},
+    {noise:true,amp:.12,c0:2000,c1:6000,sweep:200,A:100,D:0,S:.7,R:280},
+    {start:110,end:110,partials:[[1,1]],amp:.3,A:30,D:160,S:.4,R:260},
+  ]},
+  {id:'V6', name:'Low warm thud + halo', desc:'Mínimo, táctil, muy suave — para power users. Apenas presente, premium.', dur:0.50, reverb:{rt60:0.35,mix:0.16,predelay:0.012}, layers:[
+    {start:185,end:196,glide:20,partials:[[1,1],[2,.2]],amp:.7,A:15,D:160,S:0,R:220},
+    {noise:true,amp:.08,c0:3000,A:40,D:0,S:.6,R:260},
+    {trans:true,amp:.05,durMs:6,cut:4000},
+  ]},
 ];
 
-// ── STOP options ──
-const STOP = [
-  {id:'S1', name:'Two-note up (actual)', desc:'660→990, confirmación ascendente.', play:()=>seq([{type:'sine',f0:660,dur:0.10,gain:0.34},{type:'sine',f0:990,dur:0.16,gain:0.34,delay:0.08}])},
-  {id:'S2', name:'Bell ding', desc:'Campana clara con armónicos.', play:()=>tone({type:'sine',f0:1318,dur:0.34,attack:0.002,release:0.18,gain:0.3,harm:[{r:2,g:0.18},{r:3,g:0.08}]})},
-  {id:'S3', name:'Warm chord', desc:'Acorde cálido corto (do-mi-sol).', play:()=>{[523,659,784].forEach((f,i)=>tone({type:'triangle',f0:f,dur:0.22,attack:0.004,release:0.12,gain:0.22,cutoff:2600,delay:i*0.012}));}},
-  {id:'S4', name:'Soft confirm', desc:'Dos notas suaves, discreto.', play:()=>seq([{type:'sine',f0:740,dur:0.10,gain:0.3},{type:'sine',f0:880,dur:0.14,gain:0.3,delay:0.07}])},
-  {id:'S5', name:'Resolve (V→I)', desc:'Resolución descendente, "cerrado".', play:()=>seq([{type:'sine',f0:784,dur:0.10,gain:0.32},{type:'sine',f0:523,dur:0.16,gain:0.32,delay:0.08}])},
-  {id:'S6', name:'Marimba up', desc:'Dos notas marimba ascendentes.', play:()=>seq([{type:'triangle',f0:659,dur:0.12,gain:0.34,harm:[{r:2,g:0.2}],cutoff:2800},{type:'triangle',f0:880,dur:0.16,gain:0.34,harm:[{r:2,g:0.2}],cutoff:2800,delay:0.09}])},
-  {id:'S7', name:'Bell tail', desc:'Campana clara con cola larga.', play:()=>tone({type:'sine',f0:1318,dur:0.5,attack:0.002,release:0.28,gain:0.28,harm:[{r:2,g:0.16},{r:3,g:0.07}]})},
-  {id:'S8', name:'Arp mayor up', desc:'Arpegio do-mi-sol-do brillante.', play:()=>seq([{type:'triangle',f0:523,dur:0.07,gain:0.28},{type:'triangle',f0:659,dur:0.07,gain:0.28,delay:0.06},{type:'triangle',f0:784,dur:0.07,gain:0.28,delay:0.12},{type:'sine',f0:1046,dur:0.14,gain:0.3,delay:0.18}])},
-  {id:'S9', name:'Double blip', desc:'Dos blips iguales, ágil.', play:()=>seq([{type:'sine',f0:988,dur:0.07,gain:0.32},{type:'sine',f0:988,dur:0.10,gain:0.32,delay:0.09}])},
-  {id:'S10',name:'Glass chime', desc:'Repique cristalino corto.', play:()=>{tone({type:'sine',f0:1175,dur:0.18,attack:0.002,release:0.11,gain:0.22,harm:[{r:2,g:0.14}]});tone({type:'sine',f0:1568,dur:0.22,attack:0.002,release:0.13,gain:0.16,delay:0.05});}},
+const DONE = [
+  {id:'D1', name:'Two-note resolve', desc:'Do→Sol (quinta), pares desafinados, sub, aire suave. Confirma cálidamente (estilo Siri).', dur:0.72, reverb:{rt60:0.40,mix:0.20,predelay:0.016}, layers:[
+    {start:130.8,end:130.8,partials:[[1,1]],amp:.30,A:30,D:150,S:.4,R:280},
+    {start:523.25,end:523.25,partials:[[1,1],[2,.28],[3,.10]],amp:.85,A:18,D:160,S:0,R:220,detunes:[{c:0,a:1},{c:-6,a:.5}]},
+    {start:783.99,end:783.99,partials:[[1,1],[2,.25],[3,.09]],amp:.85,A:18,D:200,S:0,R:300,t0:90,detunes:[{c:0,a:1},{c:6,a:.5}]},
+    {start:3136,end:3136,partials:[[1,1]],amp:.10,A:8,D:120,S:0,R:140,t0:90},
+    {noise:true,amp:.07,c0:2000,c1:4000,sweep:150,A:60,D:0,S:.7,R:260},
+    {trans:true,amp:.04,durMs:4,cut:6000},
+  ]},
+  {id:'D2', name:'Warm ding-down', desc:'Una nota con resolución descendente suave — "se posa con cuidado".', dur:0.64, reverb:{rt60:0.40,mix:0.18,predelay:0.014}, layers:[
+    {start:587,end:523,glide:120,partials:[[1,1],[2,.25],[3,.1]],amp:.85,A:16,D:220,S:0,R:300,detunes:[{c:0,a:1},{c:6,a:.5}]},
+    {start:131,end:131,partials:[[1,1]],amp:.3,A:20,D:150,S:.4,R:260},
+    {start:2348,end:2348,partials:[[1,1]],amp:.08,A:8,D:140,S:0,R:160},
+    {noise:true,amp:.07,c0:4000,A:50,D:0,S:.6,R:240},
+  ]},
+  {id:'D3', name:'Major third bloom', desc:'Dos notas a una tercera mayor casi juntas — consonante, amigable, rico.', dur:0.72, reverb:{rt60:0.45,mix:0.22,predelay:0.016}, layers:[
+    {start:523,end:523,partials:[[1,1],[2,.25]],amp:.8,A:16,D:200,S:0,R:280,detunes:[{c:0,a:1},{c:-5,a:.5}]},
+    {start:659,end:659,partials:[[1,1],[2,.25]],amp:.8,A:16,D:200,S:0,R:280,t0:60,detunes:[{c:0,a:1},{c:5,a:.5}]},
+    {start:131,end:131,partials:[[1,1]],amp:.28,A:30,D:150,S:.4,R:260},
+    {start:1977,end:1977,partials:[[1,1]],amp:.08,A:8,D:160,S:0,R:160,t0:60},
+    {noise:true,amp:.07,c0:4000,A:60,D:0,S:.7,R:260},
+  ]},
+  {id:'D4', name:'Quick confirm tap', desc:'Corto y discreto, para uso frecuente. Crujiente, ligero, cálido.', dur:0.40, reverb:{rt60:0.28,mix:0.12,predelay:0.008}, layers:[
+    {start:622,end:660,glide:20,partials:[[1,1],[2,.2]],amp:.8,A:8,D:120,S:0,R:140},
+    {start:165,end:165,partials:[[1,1]],amp:.25,A:12,D:100,S:0,R:120},
+    {noise:true,amp:.05,c0:5000,A:8,D:0,S:0,R:120},
+    {trans:true,amp:.05,durMs:4,cut:6000},
+  ]},
 ];
 
-// ── CANCEL options ──
 const CANCEL = [
-  {id:'C1', name:'Descending (actual)', desc:'480→300, baja suave.', play:()=>tone({type:'sine',f0:480,f1:300,dur:0.14,attack:0.004,release:0.07,gain:0.36,cutoff:1600})},
-  {id:'C2', name:'Low thunk', desc:'Golpe grave seco.', play:()=>tone({type:'sine',f0:200,f1:130,dur:0.12,attack:0.002,release:0.05,gain:0.55,cutoff:900})},
-  {id:'C3', name:'Two-note down', desc:'600→400, descendente claro.', play:()=>seq([{type:'sine',f0:600,dur:0.09,gain:0.32},{type:'sine',f0:400,dur:0.13,gain:0.32,delay:0.07}])},
-  {id:'C4', name:'Damped buzz', desc:'Tono apagado tipo "nope".', play:()=>tone({type:'sawtooth',f0:300,f1:230,dur:0.13,attack:0.003,release:0.05,gain:0.22,cutoff:1100})},
+  {id:'C-deep', name:'Soft low settle (nuevo)', desc:'Asentamiento grave y descendente, gentil — versión con profundidad del §5.3. Recomendado si quieres subir el cancelar también.', pick:false, dur:0.62, reverb:{rt60:0.30,mix:0.15,predelay:0.012}, layers:[
+    {start:110,end:98,glide:200,partials:[[1,1]],amp:.40,A:30,D:200,S:.4,R:340},
+    {start:392,end:294,glide:220,partials:[[1,1],[2,.22]],amp:.85,A:22,D:220,S:.3,R:360,detunes:[{c:0,a:1},{c:-8,a:.5}]},
+    {noise:true,amp:.10,c0:3500,c1:1200,sweep:240,A:40,D:0,S:.6,R:320},
+    {trans:true,amp:.04,durMs:6,cut:4000},
+  ]},
+  {id:'C1', name:'Descending (actual) — ✓ elegido', desc:'El que elegiste: glide 480→300 simple. Queda este salvo que prefieras C-deep.', pick:true, dur:0.30, reverb:null, layers:[
+    {start:480,end:300,glide:120,partials:[[1,1]],amp:.7,A:4,D:0,S:1,R:70},
+  ]},
 ];
 
-function render(list, elId){
-  const el = document.getElementById(elId);
+function cards(list, elId){
+  const el=document.getElementById(elId);
   el.innerHTML = list.map(o=>`
-    <div class="card">
+    <div class="card ${o.pick?'pick':''}">
+      ${o.pick?'<span class="badge">✓ elegido</span>':''}
       <span class="id">${o.id}</span>
       <span class="name">${o.name}</span>
       <span class="desc">${o.desc}</span>
-      <button class="play" data-id="${o.id}">
-        <svg viewBox="0 0 10 10" fill="currentColor"><path d="M1 0.5l8 4.5-8 4.5z"/></svg> Reproducir
-      </button>
+      <div class="row">
+        <button class="play" data-id="${o.id}"><svg viewBox="0 0 10 10" fill="currentColor"><path d="M1 .5l8 4.5-8 4.5z"/></svg> Reproducir</button>
+        <button class="dl" data-dl="${o.id}" title="Descargar WAV">⬇ WAV</button>
+      </div>
     </div>`).join('');
 }
-render(ENTRY,'grid-entry'); render(STOP,'grid-stop'); render(CANCEL,'grid-cancel');
-const ALL = [...ENTRY,...STOP,...CANCEL];
+cards(START,'g-start'); cards(DONE,'g-done'); cards(CANCEL,'g-cancel');
+const ALL=[...START,...DONE,...CANCEL];
+const cache={};
+function getBuf(o){ return cache[o.id] || (cache[o.id]=render(o)); }
 document.addEventListener('click', e=>{
-  const b = e.target.closest('.play'); if(!b) return;
-  if(AC.state==='suspended') AC.resume();
-  const o = ALL.find(x=>x.id===b.dataset.id); if(o) o.play();
+  const p=e.target.closest('.play'); const d=e.target.closest('.dl');
+  if(p){ const o=ALL.find(x=>x.id===p.dataset.id); if(o) playBuf(getBuf(o)); }
+  if(d){ const o=ALL.find(x=>x.id===d.dataset.dl); if(!o) return;
+    const url=URL.createObjectURL(wavBlob(getBuf(o)));
+    const a=document.createElement('a'); a.href=url; a.download=`vozlocal-${o.id}.wav`; a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),2000);
+  }
 });
 </script>
 </body>
