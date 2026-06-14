@@ -12,10 +12,15 @@ fn register_shortcut<R: Runtime>(app: &AppHandle<R>, shortcut_str: &str) -> taur
             match event.state {
                 ShortcutState::Pressed => {
                     if settings.push_to_talk {
-                        // Push-to-talk: start recording on press
-                        show_widget(&app_press);
-                        if let Err(e) = crate::commands::start_recording_internal(&app_press) {
-                            eprintln!("[shortcut] start_recording error: {e}");
+                        // Push-to-talk: start recording on press. macOS delivers
+                        // repeated `Pressed` events while the key is HELD (auto-
+                        // repeat); guard against re-entering start mid-recording,
+                        // which glitches the session. Idempotent under key-repeat.
+                        if !crate::commands::is_recording() {
+                            show_widget(&app_press);
+                            if let Err(e) = crate::commands::start_recording_internal(&app_press) {
+                                eprintln!("[shortcut] start_recording error: {e}");
+                            }
                         }
                     } else {
                         // Toggle mode
