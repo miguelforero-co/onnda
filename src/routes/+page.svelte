@@ -201,6 +201,10 @@
 {:else}
   <!-- ── SHELL ── -->
   <div class="shell">
+    <!-- Full-width drag handle for the hidden title bar (Apple HIG: provide a way
+         to move the window when the title bar is hidden). Sits over the empty top
+         strip; native traffic lights render above it and stay clickable. -->
+    <div class="titlebar" data-tauri-drag-region aria-hidden="true"></div>
     <Sidebar bind:view />
     <main class="content">
       {#if view === "home"}
@@ -231,6 +235,14 @@
 <style>
   /* ── Shell ── */
   .shell { position: relative; display: flex; height: 100vh; background: var(--bg); }
+
+  /* Window drag handle (hidden title bar). Spans the top; the area beneath is
+     empty padding so it never blocks interactive content. Traffic lights are
+     native chrome rendered above the webview, so they remain clickable. */
+  .titlebar {
+    position: absolute; top: 0; left: 0; right: 0; height: 30px;
+    z-index: 100; -webkit-app-region: drag;
+  }
 
   /* Aurora mesh — warm top-left, violet top-right, aqua bottom, all ≤0.20
      alpha so the void stays near-black. Blurred to melt the blob seams, plus
