@@ -57,13 +57,14 @@
     }
 
     unlisten.push(
+      // Always re-pull history so the shared store is current regardless of
+      // which section is open (real-time refresh, no view-conditional delay).
       await listen("transcription-done", async () => {
-        if (view === "transcripciones") history = await invoke("get_history");
+        history = await invoke("get_history");
       }),
       // A file transcription can finish while any section is active (the
-      // upload lives in Transcripciones but the user may navigate away).
-      // Re-pull history here so the new file entry is always present in the
-      // shared store, mirroring the dictation listener above.
+      // upload lives in Importar but the user may navigate away). Re-pull
+      // history so the new file entry is always present in the shared store.
       await listen("file-transcribe-done", async () => {
         history = await invoke("get_history");
       }),
