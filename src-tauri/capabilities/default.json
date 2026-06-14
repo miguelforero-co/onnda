@@ -20,7 +20,6 @@
     "dialog:allow-open",
     "fs:allow-read-file",
     "fs:allow-write-file",
-    "fs:default",
-    "updater:default"
+    "fs:default"
   ]
 }
