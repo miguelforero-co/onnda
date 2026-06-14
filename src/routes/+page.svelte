@@ -204,7 +204,7 @@
     <Sidebar bind:view {appVersion} {buildHash} />
     <main class="content">
       {#if view === "home"}
-        <Home {settings} {history} onNavigate={(v) => (view = v)} />
+        <Home {settings} {history} />
       {/if}
       {#if view === "transcripciones"}
         <Transcripciones {history} onRefresh={goHistory} />

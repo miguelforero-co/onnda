@@ -1,16 +1,15 @@
 <script lang="ts">
-  import type { Settings, HistoryEntry, View } from "$lib/types";
+  import type { Settings, HistoryEntry } from "$lib/types";
 
   // Dictation hub dashboard. Does NOT reproduce the full transcription list
-  // (that's Transcripciones); shows hero + stats + quick links instead.
+  // (that's Transcripciones); shows hero + stats + recent peek. Navigation
+  // lives in the sidebar tabs.
   let {
     settings,
     history,
-    onNavigate,
   }: {
     settings: Settings;
     history: HistoryEntry[];
-    onNavigate: (v: View) => void;
   } = $props();
 
   // Lightweight stats for the dashboard.
@@ -68,15 +67,6 @@
       <span class="peek-text">{latest.text}</span>
     </div>
   {/if}
-</section>
-
-<!-- ── Acciones rápidas ── -->
-<section class="block">
-  <h2 class="section-label">Acciones</h2>
-  <div class="quick">
-    <button class="quick-card" onclick={() => onNavigate("transcripciones")}>Ver transcripciones</button>
-    <button class="quick-card" onclick={() => onNavigate("importar")}>Subir audio</button>
-  </div>
 </section>
 
 <style>
@@ -170,25 +160,6 @@
   .peek-text {
     font-size: 12px; color: var(--muted); line-height: 1.4;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-  }
-
-  /* ── Quick actions — dark glass cards ── */
-  .quick { display: flex; gap: 10px; }
-  .quick-card {
-    flex: 1; position: relative;
-    background: var(--glass-fill);
-    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--line); border-radius: var(--r);
-    box-shadow: var(--glass-edge), var(--sh-2);
-    padding: 14px 16px; font-size: 13px; font-weight: 450; color: var(--text);
-    text-align: left; cursor: pointer;
-    transition: transform .16s var(--ease-soft), background .16s, border-color .16s, box-shadow .16s;
-  }
-  .quick-card:hover {
-    transform: translateY(-1px);
-    background: var(--glass-fill-hi);
-    border-color: var(--line-strong);
-    box-shadow: var(--glass-edge), var(--sh-3);
   }
 
   kbd {
