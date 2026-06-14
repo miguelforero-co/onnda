@@ -42,7 +42,7 @@
   let canvas: HTMLCanvasElement;
   let raf = 0;
   const W = 340, H = 120;
-  const CENTER_FRAC = 0.52; // shared vertical position (same for both modes)
+  const CENTER_FRAC = 0.47; // shared vertical position (lowered a few px)
 
   let voiceLevel = 0;
   let amp = 0;
@@ -240,8 +240,8 @@
   }
 
   onMount(async () => {
-    initGL();
-    raf = requestAnimationFrame(render);
+    // Register listeners FIRST so the notch always reacts to recording-state
+    // (expands & shows) even if WebGL init fails for any reason.
     unlisten.push(
       await listen<number>("audio-level", (e) => {
         const v = Math.min(1, e.payload * 8);
@@ -256,6 +256,14 @@
       await listen<string>("transcribe-error", () => { phase = "error"; scheduleClose(1200); }),
       await listen<boolean>("screen-notch", (e) => { hasNotch = e.payload; }),
     );
+
+    // WebGL is best-effort: a failure must never stop the notch from appearing.
+    try {
+      initGL();
+      raf = requestAnimationFrame(render);
+    } catch (e) {
+      console.error("[widget] initGL failed", e);
+    }
   });
 
   onDestroy(() => {
@@ -312,11 +320,14 @@
   /* Super-subtle label centred under the wave, with breathing room. */
   .label{
     position: absolute;
-    left: 0; right: 0; bottom: 13px;
-    text-align: center;
-    font-family: "Helvetica Neue", -apple-system, system-ui, sans-serif;
-    font-size: 10px; font-weight: 400; letter-spacing: 0.16em;
-    color: rgba(255, 255, 255, 0.5);
+    left: 24px; bottom: 16px;
+    text-align: left;
+    /* Native macOS system font (San Francisco) + Apple HIG small-text rules:
+       subheadline-ish 11px, Regular, system optical tracking, secondary label. */
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    font-size: 11px; font-weight: 400; letter-spacing: normal;
+    color: rgba(255, 255, 255, 0.55);
+    -webkit-font-smoothing: antialiased;
     pointer-events: none;
     opacity: 0;
     transition: opacity 0.3s ease;
