@@ -96,34 +96,34 @@
   .hk { display: flex; justify-content: flex-end; }
 
   .field {
-    background: var(--bg); border: 1px solid var(--line);
-    border-radius: 6px; padding: 4px 9px; min-width: 140px;
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: var(--r-sm); padding: 4px 9px; min-width: 140px;
     text-align: right; cursor: pointer; outline: none;
-    transition: border-color .15s;
+    transition: border-color .15s, box-shadow .15s, background .15s;
     font-family: inherit; font-size: 12.5px; color: var(--text);
   }
-  .field:hover { border-color: rgba(232,85,53,.4); }
+  .field:hover { border-color: var(--line-strong); }
 
   .field.capturing {
-    border-color: var(--coral);
-    color: var(--coral);
+    border-color: var(--accent);
+    color: var(--accent);
     text-align: center;
     animation: pulse 1.2s ease-in-out infinite;
   }
 
   kbd {
-    display: inline-block; background: rgba(0,0,0,.06);
-    border-radius: 4px; padding: 1px 5px;
+    display: inline-block; background: rgba(255,255,255,0.08);
+    border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px;
     font-size: 11px; font-family: inherit; color: var(--muted);
   }
 
   .hk-hint {
-    font-size: 11px; color: var(--coral);
+    font-size: 11px; color: var(--accent);
     text-align: right; padding: 4px 3px 0; line-height: 1.5;
   }
 
   @keyframes pulse {
-    0%, 100% { border-color: rgba(232,85,53,.4); }
-    50%      { border-color: rgba(232,85,53,1); }
+    0%, 100% { border-color: rgba(255,106,61,.45); }
+    50%      { border-color: rgba(255,106,61,1); }
   }
 </style>

@@ -13,8 +13,10 @@
 
 <style>
   .rows {
-    background: var(--panel);
-    border-radius: var(--r);
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line); border-radius: var(--r);
+    box-shadow: var(--glass-edge), var(--sh-2);
     overflow: hidden;
   }
   .rows :global(.sep) { height: 1px; background: var(--line); margin: 0 12px; }

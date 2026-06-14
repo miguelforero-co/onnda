@@ -37,16 +37,16 @@
 
   .perm-dot {
     width: 7px; height: 7px; border-radius: 50%;
-    background: rgba(0,0,0,.15); flex-shrink: 0;
-    transition: background .3s;
+    background: rgba(255,255,255,.18); flex-shrink: 0;
+    transition: background .3s, box-shadow .3s;
   }
-  .perm-dot.granted { background: var(--blue); }
+  .perm-dot.granted { background: var(--blue); box-shadow: 0 0 8px -1px rgba(127,200,255,.7); }
 
   .perm-info { flex: 1; display: flex; flex-direction: column; gap: 1px; }
   .perm-info strong { font-size: 13px; font-weight: 600; color: var(--text); }
-  .perm-info span { font-size: 11px; color: var(--faint); }
+  .perm-info span { font-size: 11px; color: var(--muted); }
 
-  .perm-status { font-size: 11px; font-weight: 450; color: var(--faint); }
+  .perm-status { font-size: 11px; font-weight: 450; color: var(--muted); }
   .perm-status.ok { color: var(--blue); }
 
   .link-btn {

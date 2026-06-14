@@ -58,47 +58,59 @@
 
 <style>
   .model-card {
+    position: relative;
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    background: var(--panel);
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
     border: 1px solid var(--line);
     border-radius: var(--r);
+    box-shadow: var(--glass-edge), var(--sh-2);
     padding: 10px 14px; min-height: 42px;
+    transition: transform .16s var(--ease-soft), background .16s, border-color .16s, box-shadow .16s;
+  }
+  .model-card[role="button"]:hover {
+    transform: translateY(-1px);
+    background: var(--glass-fill-hi);
+    border-color: var(--line-strong);
+    box-shadow: var(--glass-edge), var(--sh-3);
   }
   /* Selected: a 1px iridescent ring (padding-box solid over border-box conic),
      no layout shift since the border stays 1px. Only the selected card earns it. */
   .model-card.selected {
     border-color: transparent;
     background:
-      linear-gradient(var(--panel), var(--panel)) padding-box,
+      linear-gradient(var(--elev-2), var(--elev-2)) padding-box,
       var(--iris-ring) border-box;
+    box-shadow: var(--glass-edge), 0 0 24px -8px rgba(180,140,252,0.4), var(--sh-2);
   }
+  .model-card.selected:hover { transform: translateY(-1px); }
   @media (prefers-reduced-motion: no-preference) {
-    .model-card.selected { animation: ring-drift var(--drift-slow) linear infinite; }
+    .model-card.selected { animation: ring-drift var(--ring-dur) linear infinite; }
     @keyframes ring-drift { to { --iris-angle: 480deg; } }
   }
   /* Solid coral ring fallback for engines without @property animation support. */
   @supports not (background: paint(something)) {
-    .model-card.selected { border: 1px solid var(--coral); background: var(--panel); }
+    .model-card.selected { border: 1.5px solid var(--accent); background: var(--elev-2); box-shadow: var(--glass-edge), var(--sh-2); }
   }
   @media (prefers-contrast: more) {
-    .model-card.selected { border: 1px solid var(--coral); background: var(--panel); }
+    .model-card.selected { border: 1.5px solid var(--accent); background: var(--elev-2); box-shadow: none; }
   }
   .model-card.coming-soon { opacity: .55; cursor: default; }
   .model-card[role="button"] { cursor: pointer; }
 
   .model-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
   .model-info strong { font-size: 13px; font-weight: 450; color: var(--text); }
-  .model-info span { font-size: 11px; color: var(--faint); }
-  .model-info .sub { font-size: 11px; color: var(--faint); }
+  .model-info span { font-size: 11px; color: var(--muted); }
+  .model-info .sub { font-size: 11px; color: var(--muted); }
 
   .model-action { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
   .badge {
     font-size: 11px; font-weight: 450; border-radius: 20px;
-    padding: 2px 9px; color: var(--faint); background: rgba(0,0,0,.05);
+    padding: 2px 9px; color: var(--muted); background: rgba(255,255,255,.07);
   }
-  .badge.installed { color: var(--blue); background: rgba(123,155,210,.12); }
-  .badge.soon { color: var(--faint); background: rgba(0,0,0,.05); }
+  .badge.installed { color: var(--blue); background: rgba(127,200,255,.14); }
+  .badge.soon { color: var(--faint); background: rgba(255,255,255,.05); }
 
   .link-btn {
     background: none; border: none; padding: 4px 0;
@@ -108,11 +120,11 @@
   .link-btn:hover { opacity: .75; }
 
   .dl-bar-wrap {
-    width: 80px; height: 4px; background: rgba(0,0,0,.08);
+    width: 80px; height: 4px; background: rgba(255,255,255,.10);
     border-radius: 2px; overflow: hidden;
   }
   .dl-bar {
-    height: 100%; background: var(--coral);
+    height: 100%; background: var(--iris-ramp); background-size: 200% 100%;
     border-radius: 2px; transition: width .3s linear;
   }
   .dl-pct { font-size: 11px; color: var(--faint); width: 30px; text-align: right; }
