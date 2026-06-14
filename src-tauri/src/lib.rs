@@ -59,6 +59,7 @@ pub fn run() {
             commands::hide_widget,
             commands::test_paste,
             commands::get_build_hash,
+            commands::get_app_version,
             data_mgmt::reveal_data_dir,
             data_mgmt::clear_history,
             data_mgmt::clear_models,
