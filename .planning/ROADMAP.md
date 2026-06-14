@@ -24,10 +24,18 @@ Rediseño del panel de configuración de Voz Local hacia un panel lateral tipo "
   5. El usuario puede subir un archivo de audio y obtener su transcripción, que queda registrada junto al resto de transcripciones.
   6. La vista de Transcripciones lista todas (dictado + archivo), con reproducción/borrado.
   7. El diccionario permite agregar/editar/borrar palabras como items (no textarea plano), preservando compatibilidad con el initial_prompt de Whisper.
-**Plans**: TBD (se define en planeación)
+**Plans**: 9 plans en 6 waves
 
 Plans:
-- [ ] 01-01: TBD
+- [ ] 01-01-PLAN.md — Foundation de datos: AppSettings (sonidos×3, pause_media, dictionary) + migración + HistoryEntry source
+- [ ] 01-02-PLAN.md — Build/window: ventana 880×640, deps dialog/fs/updater/symphonia/sha2, capabilities, stubs de módulos
+- [ ] 01-03-PLAN.md — Shell de UI: sidebar 200px + extracción de tokens y componentes (Toggle/Row/PermissionRow/ModelCard/HotkeyRecorder) + stubs de secciones
+- [ ] 01-04-PLAN.md — Hooks nativos: sounds.rs (NSSound) + media_pause.rs (CGEvent) en el state machine + catálogo de modelos ampliado
+- [ ] 01-05-PLAN.md — Transcripción por archivos: audio_decode.rs (symphonia) + comando transcribe_file → history source="file"
+- [ ] 01-06-PLAN.md — Gestión de datos (reveal/clear) + check-for-updates (con fallback check-only)
+- [ ] 01-07-PLAN.md — Sección Ajustes: hotkey, sonidos, pause-media, lenguaje, launch-at-login, permisos, modelos+Parakeet, updates, datos
+- [ ] 01-08-PLAN.md — Secciones Home + Transcripciones (filtro+upload) + Diccionario (items)
+- [ ] 01-09-PLAN.md — Integración final + checklist de verificación manual (7 criterios)
 
 ### Phase 2: Parakeet como motor seleccionable
 **Goal**: Parakeet (vía FluidAudio/ANE) queda disponible como motor ASR seleccionable en el selector de modelos, implementando el trait `TranscriptionBackend`, sin romper el pipeline existente de Whisper.
@@ -59,6 +67,6 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Rediseño del panel | 0/TBD | Not started | - |
+| 1. Rediseño del panel | 0/9 | Not started | - |
 | 2. Parakeet motor seleccionable | 0/TBD | Not started | - |
 | 3. Auto-learn from corrections | 0/TBD | Not started | - |
