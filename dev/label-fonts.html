@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Voz Local — Label font options</title>
+<style>
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  body{ font-family:-apple-system,system-ui,sans-serif; background:#000; color:#fff; padding:28px; }
+  h1{ font-size:14px; font-weight:600; color:#cfcfd4; margin-bottom:4px; }
+  .sub{ font-size:12px; color:#7a7a82; margin-bottom:24px; }
+  .opt{ display:flex; align-items:center; gap:22px; padding:16px 18px; border:1px solid #1c1c22; border-radius:10px; margin-bottom:10px; background:#070708; }
+  .opt:hover{ border-color:#33333c; }
+  .num{ font-family:ui-monospace,monospace; font-size:12px; color:#6ad0ff; width:24px; flex-shrink:0; }
+  .words{ display:flex; gap:34px; align-items:baseline; flex:1; }
+  .word{ color:rgba(255,255,255,0.6); }      /* mimics widget opacity */
+  .word.big{ color:rgba(255,255,255,0.78); font-size:17px !important; letter-spacing:.12em !important; }
+  .css{ font-family:ui-monospace,monospace; font-size:10.5px; color:#6b6b73; width:300px; flex-shrink:0; line-height:1.5; }
+</style>
+</head>
+<body>
+  <h1>Opciones de tipografía para el texto del notch</h1>
+  <p class="sub">Cada fila muestra "Listening" y "Transcribing" al tamaño real (~10px) y una versión grande. Todas son sans-serif minimalistas instaladas en macOS. Dime el número que te guste (o mezcla: "el 4 pero más fino").</p>
+  <div id="list"></div>
+
+<script>
+  const OPTS = [
+    { name:'"Helvetica Neue", sans-serif', weight:400, size:10, ls:'0.16em', tt:'none' },
+    { name:'"Helvetica Neue", sans-serif', weight:500, size:9, ls:'0.28em', tt:'uppercase' },
+    { name:'-apple-system, "SF Pro Text", sans-serif', weight:400, size:10, ls:'0.04em', tt:'none' },
+    { name:'-apple-system, "SF Pro Text", sans-serif', weight:600, size:9, ls:'0.26em', tt:'uppercase' },
+    { name:'"Avenir Next", sans-serif', weight:500, size:10, ls:'0.14em', tt:'none' },
+    { name:'"Futura", sans-serif', weight:500, size:9.5, ls:'0.22em', tt:'uppercase' },
+    { name:'"Gill Sans", sans-serif', weight:400, size:10.5, ls:'0.14em', tt:'none' },
+    { name:'"Geneva", "Helvetica Neue", sans-serif', weight:400, size:10, ls:'0.10em', tt:'none' },
+    { name:'-apple-system, sans-serif', weight:300, size:11, ls:'0.20em', tt:'none' },
+    { name:'"Helvetica Neue", sans-serif', weight:200, size:11, ls:'0.30em', tt:'uppercase' },
+  ];
+  const list = document.getElementById('list');
+  OPTS.forEach((o,i)=>{
+    const base = `font-family:${o.name}; font-weight:${o.weight}; letter-spacing:${o.ls}; text-transform:${o.tt};`;
+    const el = document.createElement('div'); el.className='opt';
+    el.innerHTML = `<div class="num">${i+1}</div>
+      <div class="words">
+        <span class="word" style="${base} font-size:${o.size}px;">Listening</span>
+        <span class="word" style="${base} font-size:${o.size}px;">Transcribing</span>
+        <span class="word big" style="${base}">Listening</span>
+        <span class="word big" style="${base}">Transcribing</span>
+      </div>
+      <div class="css">${o.name.split(',')[0].replace(/"/g,'')} · ${o.weight} · ${o.ls} · ${o.tt}</div>`;
+    list.appendChild(el);
+  });
+</script>
+</body>
+</html>
