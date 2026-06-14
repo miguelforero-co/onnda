@@ -64,15 +64,28 @@
 <style>
   .sidebar {
     width: 200px; flex-shrink: 0;
-    background: var(--panel);
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
     border-right: 1px solid var(--line);
+    box-shadow: var(--glass-edge);
     display: flex; flex-direction: column;
     padding: 16px 12px;
     gap: 18px;
   }
 
   .brand { display: flex; flex-direction: column; gap: 2px; padding: 4px 8px; }
-  .wordmark { font-size: 13.5px; font-weight: 600; color: var(--text); letter-spacing: -.02em; }
+  /* Wordmark = brushed chrome (Igloo cue) at display size, solid off-white fallback. */
+  .wordmark {
+    font-size: 14px; font-weight: 700; letter-spacing: -.02em;
+    background: var(--chrome);
+    -webkit-background-clip: text; background-clip: text;
+    color: var(--text);
+    -webkit-text-fill-color: transparent;
+  }
+  .wordmark::selection { -webkit-text-fill-color: var(--text); color: var(--text); }
+  @media (prefers-contrast: more) {
+    .wordmark { background: none; -webkit-text-fill-color: var(--text); color: var(--text); }
+  }
   .version { font-size: 10.5px; font-weight: 450; color: var(--faint); }
 
   .nav { display: flex; flex-direction: column; gap: 2px; }
@@ -81,24 +94,23 @@
     position: relative;
     display: flex; align-items: center; gap: 10px;
     height: 34px; padding: 0 10px 0 14px;
-    background: none; border: none; border-radius: 6px;
+    background: none; border: none; border-radius: var(--r-sm);
     color: var(--faint); cursor: pointer;
-    transition: color .12s, background .12s;
+    transition: color .14s, background .14s;
     text-align: left; width: 100%;
   }
-  .nav-item:hover { color: var(--muted); }
-  /* Active = the ONLY nav affordance: --text on --bg pill (UI-SPEC) + a thin
-     iridescent left rail (the notch ramp, vertical) as the accent garnish. */
-  .nav-item.on { color: var(--text); background: var(--bg); }
+  .nav-item:hover { color: var(--muted); background: rgba(255,255,255,0.04); }
+  /* Active = off-white text on a faint glass pill + an iridescent left rail
+     (the notch ramp gone vertical) with a soft glow — the one accent in the rail. */
+  .nav-item.on { color: var(--text); background: rgba(255,255,255,0.06); }
   .nav-item.on::before {
     content: ""; position: absolute; left: 4px; top: 7px; bottom: 7px;
-    width: 3px; border-radius: 3px;
-    background: linear-gradient(180deg,
-      var(--film-warm), var(--film-3) 50%, var(--film-cool));
-    pointer-events: none;
+    width: 3px; border-radius: 3px; pointer-events: none;
+    background: linear-gradient(180deg, var(--iris-1), var(--iris-3) 50%, var(--iris-5));
+    box-shadow: 0 0 10px -1px rgba(180,140,252,0.6);
   }
   @media (prefers-contrast: more) {
-    .nav-item.on::before { background: var(--coral); }
+    .nav-item.on::before { background: var(--accent); box-shadow: none; }
   }
 
   .icon { display: flex; flex-shrink: 0; }
