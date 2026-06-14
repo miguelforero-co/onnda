@@ -54,5 +54,6 @@ export type View =
   | "onboarding"
   | "home"
   | "transcripciones"
+  | "importar"
   | "diccionario"
   | "ajustes";

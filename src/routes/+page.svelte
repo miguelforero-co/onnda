@@ -10,6 +10,7 @@
   import ModelCard from "$lib/components/ModelCard.svelte";
   import Home from "$lib/sections/Home.svelte";
   import Transcripciones from "$lib/sections/Transcripciones.svelte";
+  import Importar from "$lib/sections/Importar.svelte";
   import Diccionario from "$lib/sections/Diccionario.svelte";
   import Ajustes from "$lib/sections/Ajustes.svelte";
 
@@ -207,6 +208,9 @@
       {/if}
       {#if view === "transcripciones"}
         <Transcripciones {history} onRefresh={goHistory} />
+      {/if}
+      {#if view === "importar"}
+        <Importar {history} onRefresh={goHistory} />
       {/if}
       {#if view === "diccionario"}
         <Diccionario {settings} onSave={() => schedSave()} />

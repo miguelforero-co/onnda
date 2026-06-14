@@ -16,6 +16,7 @@
   const items: { id: View; label: string }[] = [
     { id: "home",           label: "Home" },
     { id: "transcripciones", label: "Transcripciones" },
+    { id: "importar",       label: "Importar" },
     { id: "diccionario",    label: "Diccionario" },
     { id: "ajustes",        label: "Ajustes" },
   ];
@@ -39,6 +40,10 @@
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
               <line x1="5" y1="4.5" x2="13" y2="4.5" /><line x1="5" y1="8" x2="13" y2="8" /><line x1="5" y1="11.5" x2="10" y2="11.5" />
               <circle cx="2.6" cy="4.5" r=".6" fill="currentColor" stroke="none" /><circle cx="2.6" cy="8" r=".6" fill="currentColor" stroke="none" /><circle cx="2.6" cy="11.5" r=".6" fill="currentColor" stroke="none" />
+            </svg>
+          {:else if it.id === "importar"}
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M8 2v7" /><path d="M5 5l3-3 3 3" /><path d="M2.5 9.5v2.5a1.5 1.5 0 0 0 1.5 1.5h8a1.5 1.5 0 0 0 1.5-1.5V9.5" />
             </svg>
           {:else if it.id === "diccionario"}
             <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
