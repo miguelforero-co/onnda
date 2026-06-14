@@ -1,7 +1,8 @@
 <script lang="ts">
   import type { Settings, HistoryEntry, View } from "$lib/types";
 
-  // Prop contract from 01-03 (Home stub). D-03: dictation hub dashboard.
+  // Dictation hub dashboard. Does NOT reproduce the full transcription list
+  // (that's Transcripciones); shows hero + stats + quick links instead.
   let {
     settings,
     history,
@@ -12,8 +13,11 @@
     onNavigate: (v: View) => void;
   } = $props();
 
-  // The five most recent entries for the "Recientes" block.
-  const recent = $derived(history.slice(0, 5));
+  // Lightweight stats for the dashboard.
+  const totalCount = $derived(history.length);
+  const fileCount = $derived(history.filter((h) => h.source === "file").length);
+  // A single most-recent entry for the one-line peek (not a list).
+  const latest = $derived(history[0] ?? null);
 
   // Pretty-print the shortcut combo for the kbd badge ("Alt+Space" → "Alt + Space").
   const shortcutLabel = $derived(
@@ -45,38 +49,33 @@
   </p>
 </section>
 
-<!-- ── Recientes ── -->
+<!-- ── Stats ── -->
 <section class="block">
-  <div class="block-head">
-    <h2 class="section-label">Recientes</h2>
-    <button class="link-btn" onclick={() => onNavigate("transcripciones")}>Ver todas</button>
-  </div>
-
-  {#if recent.length === 0}
-    <div class="empty">
-      <p>Sin transcripciones aún</p>
-      <span>Presiona <kbd>{shortcutLabel || "Alt + Space"}</kbd> para dictar, o sube un archivo de audio.</span>
+  <h2 class="section-label">Resumen</h2>
+  <div class="stats">
+    <div class="stat-card">
+      <span class="stat-num">{totalCount}</span>
+      <span class="stat-label">Transcripciones</span>
     </div>
-  {:else}
-    <div class="hist-list">
-      {#each recent as e (e.id)}
-        <div class="hist-item">
-          <div class="hist-meta">
-            <span class="hist-time">{fmtTime(e.timestamp_ms)}</span>
-            {#if e.source === "file"}<span class="hist-dur">Archivo</span>{/if}
-          </div>
-          <p class="hist-text">{e.text}</p>
-        </div>
-      {/each}
+    <div class="stat-card">
+      <span class="stat-num">{fileCount}</span>
+      <span class="stat-label">Archivos</span>
+    </div>
+  </div>
+  {#if latest}
+    <div class="peek">
+      <span class="peek-time">{fmtTime(latest.timestamp_ms)}</span>
+      <span class="peek-text">{latest.text}</span>
     </div>
   {/if}
 </section>
 
-<!-- ── Acción rápida ── -->
+<!-- ── Acciones rápidas ── -->
 <section class="block">
   <h2 class="section-label">Acciones</h2>
   <div class="quick">
-    <button class="link-btn" onclick={() => onNavigate("transcripciones")}>Subir audio</button>
+    <button class="quick-card" onclick={() => onNavigate("transcripciones")}>Ver transcripciones</button>
+    <button class="quick-card" onclick={() => onNavigate("importar")}>Subir audio</button>
   </div>
 </section>
 
@@ -105,49 +104,41 @@
   .hero-hint { font-size: 12px; color: var(--muted); line-height: 1.5; text-align: center; }
 
   /* ── Blocks ── */
-  .block-head { display: flex; align-items: center; justify-content: space-between; }
-
   .section-label {
     font-size: 11px; font-weight: 600; text-transform: uppercase;
     letter-spacing: .06em; color: var(--faint); padding: 0 3px;
   }
 
-  .link-btn {
-    background: none; border: none; padding: 4px 0;
-    font-size: 12px; font-weight: 450; color: var(--coral);
-    cursor: pointer; text-decoration: none;
+  /* ── Stats ── */
+  .stats { display: flex; gap: 10px; }
+  .stat-card {
+    flex: 1; background: var(--panel); border-radius: var(--r);
+    padding: 16px; display: flex; flex-direction: column; gap: 4px;
   }
-  .link-btn:hover { opacity: .75; }
+  .stat-num { font-size: 24px; font-weight: 600; color: var(--text); letter-spacing: -.02em; }
+  .stat-label {
+    font-size: 11px; font-weight: 450; color: var(--faint);
+    text-transform: uppercase; letter-spacing: .04em;
+  }
 
-  .quick { padding: 0 3px; }
+  .peek {
+    display: flex; align-items: baseline; gap: 8px; padding: 0 3px;
+    overflow: hidden;
+  }
+  .peek-time { font-size: 11px; color: var(--faint); flex-shrink: 0; }
+  .peek-text {
+    font-size: 12px; color: var(--muted); line-height: 1.4;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
 
-  /* ── History list (reused from pre-refactor +page.svelte) ── */
-  .empty {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 48px 20px; gap: 6px; text-align: center;
+  /* ── Quick actions ── */
+  .quick { display: flex; gap: 10px; }
+  .quick-card {
+    flex: 1; background: var(--panel); border: none; border-radius: var(--r);
+    padding: 14px 16px; font-size: 13px; font-weight: 450; color: var(--text);
+    text-align: left; cursor: pointer; transition: background .12s, opacity .12s;
   }
-  .empty p { font-size: 14px; font-weight: 450; color: var(--muted); }
-  .empty span { font-size: 12px; color: var(--faint); line-height: 1.5; }
-
-  .hist-list { display: flex; flex-direction: column; }
-  .hist-item {
-    padding: 12px 0;
-    border-bottom: 1px solid var(--line);
-    display: flex; flex-direction: column; gap: 5px;
-  }
-  .hist-item:first-child { border-top: 1px solid var(--line); }
-  .hist-meta { display: flex; align-items: center; gap: 6px; }
-  .hist-time { font-size: 11px; color: var(--faint); }
-  .hist-dur {
-    font-size: 10.5px; color: var(--faint);
-    background: rgba(0,0,0,.05); border-radius: 10px; padding: 1px 6px;
-  }
-  .hist-text {
-    font-size: 13px; color: var(--muted); line-height: 1.55;
-    word-break: break-word; white-space: pre-wrap;
-    display: -webkit-box; -webkit-line-clamp: 2; line-clamp: 2;
-    -webkit-box-orient: vertical; overflow: hidden;
-  }
+  .quick-card:hover { opacity: .8; }
 
   kbd {
     display: inline-block; background: rgba(0,0,0,.06);
