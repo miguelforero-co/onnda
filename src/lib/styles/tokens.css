@@ -1,0 +1,25 @@
+/* ── Design tokens (single source — palette LOCKED per CONTEXT D-04) ── */
+:root {
+  --bg:     #F4F0EB;
+  --panel:  #FDFCFA;
+  --text:   #1C1917;
+  --muted:  #78716C;
+  --faint:  #A8A29E;
+  --line:   rgba(0,0,0,0.07);
+  --coral:  #E85535;
+  --amber:  #F4AA6A;
+  --blue:   #7B9BD2;
+  --r:      9px;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: -apple-system, "SF Pro Text", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  height: 100vh;
+}
