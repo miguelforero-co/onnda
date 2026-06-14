@@ -119,6 +119,16 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
     IS_RECORDING.store(true, Ordering::SeqCst);
     app.emit("recording-state", true).ok();
 
+    // Native feedback at the start of a recording, each gated on its opt-in flag.
+    // Fires regardless of window visibility (D-07). pause-media toggles play/pause.
+    let s = crate::settings::load(app);
+    if s.sound_on_listen {
+        crate::sounds::play_listen();
+    }
+    if s.pause_media {
+        crate::media_pause::pause_if_playing();
+    }
+
     // Background streaming loop: warm the model, then commit completed speech
     // segments (audio up to a real pause) while the user is still talking, so at
     // stop only the short tail remains. Model-agnostic — uses whatever model the
@@ -229,6 +239,16 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     let capture = CAPTURE.lock().unwrap().take();
     IS_RECORDING.store(false, Ordering::SeqCst);
     app.emit("recording-state", false).ok();
+
+    // Native feedback on stop, gated on flags. resume_if_paused only toggles if
+    // WE paused on start (symmetric, see media_pause.rs).
+    let s = crate::settings::load(&app);
+    if s.sound_on_stop {
+        crate::sounds::play_stop();
+    }
+    if s.pause_media {
+        crate::media_pause::resume_if_paused();
+    }
 
     // Let the streaming loop finish its in-flight segment (short) so its text is
     // committed before we read it. The loop exits on the next IS_RECORDING check.
@@ -392,6 +412,15 @@ pub async fn cancel_recording_internal<R: Runtime>(app: AppHandle<R>) {
     IS_RECORDING.store(false, Ordering::SeqCst);
     app.emit("recording-state", false).ok();
 
+    // Native feedback on cancel, gated on flags.
+    let s = crate::settings::load(&app);
+    if s.sound_on_cancel {
+        crate::sounds::play_cancel();
+    }
+    if s.pause_media {
+        crate::media_pause::resume_if_paused();
+    }
+
     // Abort the streaming loop (don't wait — we're throwing the audio away).
     if let Some(handle) = STREAM_HANDLE.lock().unwrap().take() {
         handle.abort();
@@ -505,16 +534,39 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
 
     vec![
         ModelInfo {
-            id: "large-v3-turbo".to_string(),
-            name: "Whisper Large v3 Turbo".to_string(),
-            size_mb: 874,
-            downloaded: model_exists("large-v3-turbo"),
-        },
-        ModelInfo {
             id: "base".to_string(),
             name: "Whisper Base".to_string(),
             size_mb: 141,
             downloaded: model_exists("base"),
+            coming_soon: false,
+        },
+        ModelInfo {
+            id: "small".to_string(),
+            name: "Whisper Small".to_string(),
+            size_mb: 466,
+            downloaded: model_exists("small"),
+            coming_soon: false,
+        },
+        ModelInfo {
+            id: "medium".to_string(),
+            name: "Whisper Medium".to_string(),
+            size_mb: 1536,
+            downloaded: model_exists("medium"),
+            coming_soon: false,
+        },
+        ModelInfo {
+            id: "large-v3-turbo".to_string(),
+            name: "Whisper Large v3 Turbo".to_string(),
+            size_mb: 874,
+            downloaded: model_exists("large-v3-turbo"),
+            coming_soon: false,
+        },
+        ModelInfo {
+            id: "parakeet".to_string(),
+            name: "Parakeet (ANE)".to_string(),
+            size_mb: 0,
+            downloaded: false,
+            coming_soon: true,
         },
     ]
 }
@@ -524,6 +576,8 @@ pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> 
     let url = match model_id.as_str() {
         "large-v3-turbo" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q8_0.bin",
         "base"           => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
+        "small"          => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
+        "medium"         => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin",
         other            => return Err(format!("Modelo desconocido: {}", other)),
     };
 
@@ -638,4 +692,8 @@ pub struct ModelInfo {
     pub name: String,
     pub size_mb: u32,
     pub downloaded: bool,
+    /// True for catalog entries that are listed but not yet functional (e.g.
+    /// Parakeet ANE). The frontend renders these as a "Próximamente" card
+    /// without a download action (D-13).
+    pub coming_soon: bool,
 }
