@@ -122,11 +122,11 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
     // Native feedback at the start of a recording, each gated on its opt-in flag.
     // Fires regardless of window visibility (D-07). pause-media toggles play/pause.
     let s = crate::settings::load(app);
-    if s.sound_on_listen {
+    if s.sounds_enabled {
         crate::sounds::play_listen();
     }
     if s.pause_media {
-        crate::media_pause::pause_if_playing();
+        crate::media_pause::mute_outputs();
     }
 
     // Background streaming loop: warm the model, then commit completed speech
@@ -240,14 +240,15 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     IS_RECORDING.store(false, Ordering::SeqCst);
     app.emit("recording-state", false).ok();
 
-    // Native feedback on stop, gated on flags. resume_if_paused only toggles if
-    // WE paused on start (symmetric, see media_pause.rs).
+    // Native feedback on stop. Unmute FIRST (restore_outputs only unmutes if WE
+    // muted on start, symmetric — see media_pause.rs), THEN play the cue so it's
+    // audible above any restored output.
     let s = crate::settings::load(&app);
-    if s.sound_on_stop {
-        crate::sounds::play_stop();
-    }
     if s.pause_media {
-        crate::media_pause::resume_if_paused();
+        crate::media_pause::restore_outputs();
+    }
+    if s.sounds_enabled {
+        crate::sounds::play_stop();
     }
 
     // Let the streaming loop finish its in-flight segment (short) so its text is
@@ -412,13 +413,14 @@ pub async fn cancel_recording_internal<R: Runtime>(app: AppHandle<R>) {
     IS_RECORDING.store(false, Ordering::SeqCst);
     app.emit("recording-state", false).ok();
 
-    // Native feedback on cancel, gated on flags.
+    // Native feedback on cancel. Unmute FIRST (restore_outputs only unmutes if WE
+    // muted on start), THEN play the cue so it's audible above restored output.
     let s = crate::settings::load(&app);
-    if s.sound_on_cancel {
-        crate::sounds::play_cancel();
-    }
     if s.pause_media {
-        crate::media_pause::resume_if_paused();
+        crate::media_pause::restore_outputs();
+    }
+    if s.sounds_enabled {
+        crate::sounds::play_cancel();
     }
 
     // Abort the streaming loop (don't wait — we're throwing the audio away).
@@ -471,6 +473,14 @@ pub fn is_recording() -> bool {
 #[tauri::command]
 pub fn get_build_hash() -> String {
     env!("GIT_HASH").to_string()
+}
+
+/// Authoritative app version straight from Cargo at compile time. The frontend
+/// `getVersion()` (Tauri JS) can mismatch the Rust crate version, so the UI
+/// should read this instead.
+#[tauri::command]
+pub fn get_app_version() -> String {
+    env!("CARGO_PKG_VERSION").to_string()
 }
 
 // ── Tauri commands (still expose for any direct frontend use) ─────────────
