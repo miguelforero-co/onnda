@@ -21,19 +21,24 @@
 //! USB/DAC, etc.):
 //!
 //!   - On recording start (`mute_outputs`): find the default output device, then
-//!     mute it. Primary path is the device's `mute` property
-//!     (`kAudioDevicePropertyMute`); if that device has no settable mute (some
-//!     devices don't), fall back to setting the virtual main volume
-//!     (`kAudioHardwareServiceDeviceProperty_VirtualMainVolume`) to 0.0 and
-//!     remembering the prior level. Only act if it wasn't already silent, and
-//!     record (via `WE_MUTED`) that WE silenced it.
-//!   - On stop/cancel (`restore_outputs`): only if WE muted, reverse the EXACT
-//!     method used (unmute, or restore the saved prior volume) and clear the
-//!     flag. We never unmute/raise something the user had already silenced.
+//!     silence it with a BELT-AND-SUSPENDERS approach — apply BOTH the device's
+//!     `mute` property (`kAudioDevicePropertyMute`) AND drop the virtual main
+//!     volume (`kAudioHardwareServiceDeviceProperty_VirtualMainVolume`) to 0.0,
+//!     whichever are settable. Some Bluetooth devices (e.g. Sony WH-1000XM4)
+//!     accept the `mute` write but don't actually gate the A2DP stream from it,
+//!     so we also force volume to 0 for reliability. For each path applied we
+//!     only act when it wasn't already silent (mute==0 / volume>0), remember the
+//!     prior volume level, and record (via the `MUTE_METHOD` bitmask) which paths
+//!     WE changed. `WE_MUTED` is set if AT LEAST ONE path was applied.
+//!   - On stop/cancel (`restore_outputs`): only if WE muted, reverse EXACTLY the
+//!     paths recorded in the bitmask — unmute (mute=0) if we muted, and restore
+//!     the saved prior volume if we lowered it. We never unmute/raise something
+//!     the user had already silenced.
 //!
 //! The `WE_MUTED` AtomicBool keeps mute/unmute symmetric (threat T-01-08), and
-//! `MUTE_METHOD` records which path was used so restore reverses the right one.
-//! The whole feature is gated behind the opt-in `pause_media` setting.
+//! `MUTE_METHOD` is a bitmask recording which path(s) were applied so restore
+//! reverses exactly what was changed. The whole feature is gated behind the
+//! opt-in `pause_media` setting.
 //!
 //! CoreAudio calls are synchronous and complete in microseconds, so unlike the
 //! AppleScript version we do NOT defer the work to a delayed background thread.
@@ -51,14 +56,15 @@ mod imp {
     /// True only while WE are the ones holding the output silenced, so restore is
     /// symmetric and we never touch a mute/volume the user set themselves.
     static WE_MUTED: AtomicBool = AtomicBool::new(false);
-    /// Which path silenced the device: 0 = none, 1 = mute property, 2 = volume.
+    /// Bitmask of which path(s) WE applied: bit0 = mute property, bit1 = volume.
+    /// Restore reverses exactly the bits that were set.
     static MUTE_METHOD: AtomicU8 = AtomicU8::new(0);
-    /// Prior virtual main volume (f32 bits), saved only for the volume fallback.
+    /// Prior virtual main volume (f32 bits), saved only when we lowered volume.
     static PRIOR_VOLUME: AtomicU32 = AtomicU32::new(0);
 
     const METHOD_NONE: u8 = 0;
-    const METHOD_MUTE: u8 = 1;
-    const METHOD_VOLUME: u8 = 2;
+    const METHOD_MUTE: u8 = 1 << 0;
+    const METHOD_VOLUME: u8 = 1 << 1;
 
     // --- CoreAudio HAL FFI (public API; no private symbols) ----------------
 
@@ -242,36 +248,44 @@ mod imp {
             return;
         };
 
-        // Primary path: the device's hardware/software mute property.
+        // Belt-and-suspenders: apply BOTH the mute property AND drop the volume,
+        // whichever are settable. Some Bluetooth devices (Sony WH-1000XM4) accept
+        // the `mute` write but don't gate the A2DP stream from it, so forcing the
+        // volume to 0 as well guarantees actual silence. Track in `applied` which
+        // paths WE changed so restore reverses exactly those.
+        let mut applied: u8 = METHOD_NONE;
+
+        // Path 1: the device's hardware/software mute property.
         let mute_addr = addr(SEL_MUTE, SCOPE_OUTPUT);
         if has_settable(dev, &mute_addr) {
             if let Some(current) = get_u32(dev, &mute_addr) {
-                if current == 0 {
-                    if set_u32(dev, &mute_addr, 1) {
-                        MUTE_METHOD.store(METHOD_MUTE, Ordering::SeqCst);
-                        WE_MUTED.store(true, Ordering::SeqCst);
-                    }
+                // Only act if not already muted by the user; if it was, leave it
+                // alone (we won't unmute what we didn't mute).
+                if current == 0 && set_u32(dev, &mute_addr, 1) {
+                    applied |= METHOD_MUTE;
                 }
-                // Already muted by the user → leave it; nothing to restore.
-                return;
             }
         }
 
-        // Fallback path: drop the virtual main volume to 0 and remember it.
+        // Path 2: drop the virtual main volume to 0 and remember the prior level.
         let vol_addr = addr(SEL_VIRTUAL_MAIN_VOLUME, SCOPE_OUTPUT);
         if has_settable(dev, &vol_addr) {
             if let Some(prior) = get_f32(dev, &vol_addr) {
-                if prior > 0.0 {
-                    if set_f32(dev, &vol_addr, 0.0) {
-                        PRIOR_VOLUME.store(prior.to_bits(), Ordering::SeqCst);
-                        MUTE_METHOD.store(METHOD_VOLUME, Ordering::SeqCst);
-                        WE_MUTED.store(true, Ordering::SeqCst);
-                    }
+                // Only act if not already silent; we never raise volume the user
+                // had already set to 0.
+                if prior > 0.0 && set_f32(dev, &vol_addr, 0.0) {
+                    PRIOR_VOLUME.store(prior.to_bits(), Ordering::SeqCst);
+                    applied |= METHOD_VOLUME;
                 }
-                // Already silent → leave it; nothing to restore.
             }
         }
-        // Neither property settable → no-op.
+
+        // Only claim ownership if at least one path was actually applied.
+        if applied != METHOD_NONE {
+            MUTE_METHOD.store(applied, Ordering::SeqCst);
+            WE_MUTED.store(true, Ordering::SeqCst);
+        }
+        // Neither property settable / already silent → no-op.
     }
 
     pub fn restore_outputs() {
@@ -282,17 +296,17 @@ mod imp {
         let Some(dev) = default_output_device() else {
             return;
         };
-        match method {
-            METHOD_MUTE => {
-                let mute_addr = addr(SEL_MUTE, SCOPE_OUTPUT);
-                set_u32(dev, &mute_addr, 0);
-            }
-            METHOD_VOLUME => {
-                let prior = f32::from_bits(PRIOR_VOLUME.load(Ordering::SeqCst));
-                let vol_addr = addr(SEL_VIRTUAL_MAIN_VOLUME, SCOPE_OUTPUT);
-                set_f32(dev, &vol_addr, prior);
-            }
-            _ => {}
+        // Reverse exactly the path(s) we applied. The bitmask may have both bits
+        // set (belt-and-suspenders), so handle each independently. Restore volume
+        // first, then unmute, so the brief moment between writes is never loud.
+        if method & METHOD_VOLUME != 0 {
+            let prior = f32::from_bits(PRIOR_VOLUME.load(Ordering::SeqCst));
+            let vol_addr = addr(SEL_VIRTUAL_MAIN_VOLUME, SCOPE_OUTPUT);
+            set_f32(dev, &vol_addr, prior);
+        }
+        if method & METHOD_MUTE != 0 {
+            let mute_addr = addr(SEL_MUTE, SCOPE_OUTPUT);
+            set_u32(dev, &mute_addr, 0);
         }
     }
 }
