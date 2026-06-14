@@ -126,7 +126,15 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
         crate::sounds::play_listen();
     }
     if s.pause_media {
-        crate::media_pause::mute_outputs();
+        // Delay the mute briefly so the "listening" start cue is audible before
+        // output is silenced; guard with is_recording() so a very short recording
+        // (released before the delay fires) never leaves the system stuck muted.
+        std::thread::spawn(|| {
+            std::thread::sleep(std::time::Duration::from_millis(140));
+            if is_recording() {
+                crate::media_pause::mute_outputs();
+            }
+        });
     }
 
     // Background streaming loop: warm the model, then commit completed speech

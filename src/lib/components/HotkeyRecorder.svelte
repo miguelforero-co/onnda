@@ -17,6 +17,26 @@
   let capturing = $state(false);
   let hint = $state("");
 
+  // Map a PHYSICAL key (e.code) → Tauri accelerator token. We use e.code, NOT
+  // e.key, because on macOS Option+<key> rewrites e.key to the composed glyph
+  // (Option+Space → U+00A0 non-breaking space, Option+L → "¬", etc.), which broke
+  // capturing Space and letters. e.code is layout/modifier-independent.
+  function codeToToken(code: string): string | null {
+    if (code === "Space") return "Space";
+    const letter = /^Key([A-Z])$/.exec(code); if (letter) return letter[1];
+    const digit = /^Digit([0-9])$/.exec(code); if (digit) return digit[1];
+    const numpad = /^Numpad([0-9])$/.exec(code); if (numpad) return numpad[1];
+    const fkey = /^(F[0-9]{1,2})$/.exec(code); if (fkey) return fkey[1];
+    const map: Record<string, string> = {
+      Enter: "Enter", NumpadEnter: "Enter", Tab: "Tab", Backspace: "Backspace",
+      Delete: "Delete", Home: "Home", End: "End", PageUp: "PageUp", PageDown: "PageDown",
+      ArrowUp: "Up", ArrowDown: "Down", ArrowLeft: "Left", ArrowRight: "Right",
+      Minus: "-", Equal: "=", BracketLeft: "[", BracketRight: "]", Semicolon: ";",
+      Quote: "'", Comma: ",", Period: ".", Slash: "/", Backslash: "\\", Backquote: "`",
+    };
+    return map[code] ?? null;
+  }
+
   // Map a keydown event → Tauri global-shortcut accelerator string, or null if invalid.
   function captureCombo(e: KeyboardEvent): { combo: string | null; lone: boolean } {
     const mods: string[] = [];
@@ -25,17 +45,13 @@
     if (e.altKey) mods.push("Alt");
     if (e.shiftKey) mods.push("Shift");
 
-    const key = e.key;
-    // Ignore lone modifier presses — wait for a real key.
-    if (key === "Meta" || key === "Control" || key === "Alt" || key === "Shift") {
+    // Ignore lone modifier presses (by physical code) — wait for a real key.
+    if (/^(Meta|Control|Alt|Shift)(Left|Right)$/.test(e.code)) {
       return { combo: null, lone: true };
     }
 
-    // Normalize the non-modifier key to an accelerator token.
-    let token: string;
-    if (key === " ") token = "Space";
-    else if (key.length === 1) token = key.toUpperCase();
-    else token = key; // e.g. "Enter", "ArrowUp", "F5", "Tab"
+    const token = codeToToken(e.code);
+    if (!token) return { combo: null, lone: true }; // unknown key → keep waiting
 
     if (mods.length === 0) {
       return { combo: null, lone: false }; // needs a modifier
