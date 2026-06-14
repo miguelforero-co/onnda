@@ -21,6 +21,19 @@ pub struct AppSettings {
     /// 0.85 catches obvious typos without false positives.
     #[serde(default = "default_word_correction_threshold")]
     pub word_correction_threshold: f32,
+    #[serde(default)]
+    pub sound_on_listen: bool,
+    #[serde(default)]
+    pub sound_on_stop: bool,
+    #[serde(default)]
+    pub sound_on_cancel: bool,
+    #[serde(default)]
+    pub pause_media: bool,
+    /// Custom vocabulary as discrete items (D-19/D-20). Derived once from
+    /// `custom_words` (legacy CSV) on first load. The backend still receives
+    /// the joined string (`dictionary.join(", ")`) as Whisper initial_prompt.
+    #[serde(default)]
+    pub dictionary: Vec<String>,
 }
 
 fn default_word_correction_threshold() -> f32 { 0.85 }
@@ -37,8 +50,22 @@ impl Default for AppSettings {
             widget_position: "center".to_string(),
             custom_words: String::new(),
             word_correction_threshold: default_word_correction_threshold(),
+            sound_on_listen: false,
+            sound_on_stop: false,
+            sound_on_cancel: false,
+            pause_media: false,
+            dictionary: Vec::new(),
         }
     }
+}
+
+/// Idempotent migration: derive `dictionary` items from the legacy
+/// comma/newline-separated `custom_words` ONLY when `dictionary` is still empty.
+/// Never clobbers user edits once items exist.
+pub fn migrate_dictionary(dictionary: &[String], custom_words: &str) -> Vec<String> {
+    // STUB (RED): intentionally wrong — returns empty so tests fail.
+    let _ = (dictionary, custom_words);
+    Vec::new()
 }
 
 // In-process cache so shortcut handlers don't hit disk on every key event.
@@ -82,4 +109,39 @@ pub fn save<R: Runtime>(app: &AppHandle<R>, settings: &AppSettings) -> tauri::Re
     fs::write(path, json).map_err(|e| tauri::Error::Anyhow(e.into()))?;
     *CACHE.lock().unwrap() = Some(settings.clone());
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn settings_new_fields_default_false() {
+        let old = r#"{"shortcut":"Alt+Space","push_to_talk":true,"selected_language":"auto","selected_model":"base","autostart":false,"onboarding_done":true,"widget_position":"center"}"#;
+        let s: AppSettings = serde_json::from_str(old).expect("old settings.json must deserialize");
+        assert!(!s.sound_on_listen);
+        assert!(!s.sound_on_stop);
+        assert!(!s.sound_on_cancel);
+        assert!(!s.pause_media);
+        assert!(s.dictionary.is_empty());
+    }
+
+    #[test]
+    fn dictionary_migration_from_csv() {
+        let derived = migrate_dictionary(&[], "GitHub, Claude Code\nNode.js");
+        assert_eq!(derived, vec!["GitHub", "Claude Code", "Node.js"]);
+    }
+
+    #[test]
+    fn dictionary_migration_idempotent() {
+        let existing = vec!["x".to_string()];
+        let result = migrate_dictionary(&existing, "GitHub, Claude Code");
+        assert_eq!(result, vec!["x"]);
+    }
+
+    #[test]
+    fn dictionary_join_for_prompt() {
+        let dict = vec!["GitHub".to_string(), "Claude Code".to_string()];
+        assert_eq!(dict.join(", "), "GitHub, Claude Code");
+    }
 }
