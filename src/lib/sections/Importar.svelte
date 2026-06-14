@@ -18,9 +18,34 @@
   // Only the file-sourced transcriptions belong here.
   const files = $derived(history.filter((e) => e.source === "file"));
 
-  // ── Upload state ── "" | "Decodificando…" | "Transcribiendo…" | error text
-  let uploadState = $state("");
-  const busy = $derived(uploadState === "Decodificando…" || uploadState === "Transcribiendo…");
+  // ── Processing state ──
+  // phase: "idle" while nothing runs; "decoding"/"transcribing" while busy;
+  // "done" for the brief "Listo ✓" flash; "error" with a message.
+  type Phase = "idle" | "decoding" | "transcribing" | "done" | "error";
+  let phase = $state<Phase>("idle");
+  let errorMsg = $state("");
+  const busy = $derived(phase === "decoding" || phase === "transcribing");
+  const stageLabel = $derived(
+    phase === "decoding" ? "Decodificando audio…"
+      : phase === "transcribing" ? "Transcribiendo…"
+      : ""
+  );
+
+  // ── Elapsed timer (ticks while processing) ──
+  let elapsed = $state(0);
+  let timer: ReturnType<typeof setInterval> | null = null;
+  function startTimer() {
+    stopTimer();
+    elapsed = 0;
+    const t0 = Date.now();
+    timer = setInterval(() => { elapsed = Math.floor((Date.now() - t0) / 1000); }, 1000);
+  }
+  function stopTimer() {
+    if (timer) { clearInterval(timer); timer = null; }
+  }
+
+  // Auto-clear the "Listo ✓" flash after a moment.
+  let doneTimeout: ReturnType<typeof setTimeout> | null = null;
 
   async function uploadAudio() {
     const path = await open({
@@ -28,12 +53,17 @@
       filters: [{ name: "Audio", extensions: ["wav", "mp3", "m4a"] }],
     });
     if (!path || Array.isArray(path)) return;
-    uploadState = "Decodificando…";
+    if (doneTimeout) { clearTimeout(doneTimeout); doneTimeout = null; }
+    errorMsg = "";
+    phase = "decoding";
+    startTimer();
     try {
       await invoke("transcribe_file", { path });
     } catch (e) {
       console.error(e);
-      uploadState = "No se pudo transcribir el archivo. Formatos admitidos: WAV, MP3, M4A.";
+      stopTimer();
+      phase = "error";
+      errorMsg = "No se pudo transcribir el archivo. Formatos admitidos: WAV, MP3, M4A.";
     }
   }
 
@@ -42,14 +72,19 @@
   onMount(async () => {
     unlisten.push(
       await listen<string>("file-transcribe-progress", ({ payload }) => {
-        uploadState = payload === "decoding" ? "Decodificando…" : "Transcribiendo…";
+        phase = payload === "decoding" ? "decoding" : "transcribing";
       }),
       await listen("file-transcribe-done", () => {
-        uploadState = "";
+        stopTimer();
+        phase = "done";
         onRefresh(); // re-pull history so the new file entry shows
+        if (doneTimeout) clearTimeout(doneTimeout);
+        doneTimeout = setTimeout(() => { if (phase === "done") phase = "idle"; }, 1800);
       }),
       await listen("file-transcribe-error", () => {
-        uploadState = "No se pudo transcribir el archivo. Formatos admitidos: WAV, MP3, M4A.";
+        stopTimer();
+        phase = "error";
+        errorMsg = "No se pudo transcribir el archivo. Formatos admitidos: WAV, MP3, M4A.";
       }),
     );
   });
@@ -84,7 +119,12 @@
       : d.toLocaleDateString("es", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
   }
 
-  onDestroy(() => { unlisten.forEach((fn) => fn()); audioEl?.pause(); });
+  onDestroy(() => {
+    unlisten.forEach((fn) => fn());
+    audioEl?.pause();
+    stopTimer();
+    if (doneTimeout) clearTimeout(doneTimeout);
+  });
 </script>
 
 <div class="head">
@@ -94,9 +134,22 @@
   </button>
 </div>
 
-{#if uploadState}
+{#if busy}
+  <div class="processing" role="status" aria-live="polite">
+    <div class="loader" aria-hidden="true"><span></span></div>
+    <div class="processing-text">
+      <span class="stage">{stageLabel}</span>
+      <span class="hint">El tiempo depende del tamaño del archivo y del modelo.</span>
+    </div>
+    <span class="elapsed">{elapsed} s</span>
+  </div>
+{:else if phase === "done"}
   <div class="toolbar">
-    <span class="upload-status">{uploadState}</span>
+    <span class="done-status">Listo ✓</span>
+  </div>
+{:else if phase === "error"}
+  <div class="toolbar">
+    <span class="error-status">{errorMsg}</span>
   </div>
 {/if}
 
@@ -155,7 +208,49 @@
   }
 
   .toolbar { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
-  .upload-status { font-size: 12px; color: var(--muted); }
+  .done-status { font-size: 12px; color: var(--blue); animation: fade-out 1.8s var(--ease-soft) forwards; }
+  @keyframes fade-out { 0%, 55% { opacity: 1; } 100% { opacity: 0; } }
+  .error-status { font-size: 12px; color: var(--coral); line-height: 1.5; }
+
+  /* ── Processing indicator — dark glass panel with iridescent loader ── */
+  .processing {
+    display: flex; align-items: center; gap: 14px; margin-top: 18px;
+    padding: 14px 16px;
+    background: var(--glass-fill);
+    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--line); border-radius: var(--r);
+    box-shadow: var(--glass-edge), var(--sh-2);
+  }
+  .processing-text { display: flex; flex-direction: column; gap: 3px; flex: 1; min-width: 0; }
+  .processing-text .stage { font-size: 13px; font-weight: 450; color: var(--text); }
+  .processing-text .hint { font-size: 11px; color: var(--faint); line-height: 1.4; }
+  .elapsed {
+    font-size: 11.5px; color: var(--muted); flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Indeterminate sweeping bar — iridescent, GPU-cheap (transform only).
+     Static fallback: a faint full-width iridescent track when motion is off. */
+  .loader {
+    position: relative; flex-shrink: 0;
+    width: 56px; height: 4px; border-radius: 2px; overflow: hidden;
+    background: rgba(255,255,255,0.08);
+  }
+  .loader span {
+    position: absolute; inset: 0;
+    background: var(--iris-ramp);
+    border-radius: 2px;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    .loader span {
+      width: 45%;
+      animation: loader-sweep 1.15s var(--ease-soft) infinite;
+    }
+    @keyframes loader-sweep {
+      0%   { transform: translateX(-120%); }
+      100% { transform: translateX(245%); }
+    }
+  }
 
   /* ── History list (reused from Transcripciones) ── */
   .empty {
