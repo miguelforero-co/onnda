@@ -146,23 +146,9 @@
   <h2 class="section-label">Sonidos</h2>
   <div class="rows">
     <Toggle
-      id="snd-listen"
-      label="Sonido al escuchar"
-      bind:checked={settings.sound_on_listen}
-      onchange={() => onSave()}
-    />
-    <div class="sep"></div>
-    <Toggle
-      id="snd-stop"
-      label="Sonido al transcribir"
-      bind:checked={settings.sound_on_stop}
-      onchange={() => onSave()}
-    />
-    <div class="sep"></div>
-    <Toggle
-      id="snd-cancel"
-      label="Sonido al cancelar"
-      bind:checked={settings.sound_on_cancel}
+      id="sounds-enabled"
+      label="Sonidos"
+      bind:checked={settings.sounds_enabled}
       onchange={() => onSave()}
     />
     <div class="sep"></div>
@@ -173,6 +159,7 @@
       onchange={() => onSave()}
     />
   </div>
+  <p class="section-hint">Reproduce un sonido al iniciar, terminar y cancelar el dictado.</p>
 </section>
 
 <!-- ── Sistema (D-10 launch-at-login) ── -->

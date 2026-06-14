@@ -10,6 +10,7 @@ export interface Settings {
   widget_position: string;
   custom_words: string;
   word_correction_threshold: number;
+  sounds_enabled: boolean;
   sound_on_listen: boolean;
   sound_on_stop: boolean;
   sound_on_cancel: boolean;

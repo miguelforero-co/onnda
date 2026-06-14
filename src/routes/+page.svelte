@@ -19,6 +19,7 @@
     selected_model: "large-v3-turbo", autostart: false,
     onboarding_done: false, widget_position: "center", custom_words: "",
     word_correction_threshold: 0.85,
+    sounds_enabled: true,
     sound_on_listen: true, sound_on_stop: true, sound_on_cancel: true,
     pause_media: false, dictionary: [],
   });
