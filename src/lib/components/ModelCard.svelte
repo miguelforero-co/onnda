@@ -43,6 +43,8 @@
   <div class="model-action">
     {#if comingSoon}
       <span class="badge soon">Próximamente</span>
+    {:else if model.downloaded && selected}
+      <span class="badge active">Activo</span>
     {:else if model.downloaded}
       <span class="badge installed">Instalado</span>
     {:else if progress}
@@ -110,6 +112,7 @@
     padding: 2px 9px; color: var(--muted); background: rgba(255,255,255,.07);
   }
   .badge.installed { color: var(--blue); background: rgba(127,200,255,.14); }
+  .badge.active { color: var(--accent); background: rgba(255,106,61,.16); font-weight: 600; }
   .badge.soon { color: var(--faint); background: rgba(255,255,255,.05); }
 
   .link-btn {

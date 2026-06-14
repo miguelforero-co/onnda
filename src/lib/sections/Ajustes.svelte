@@ -49,9 +49,6 @@
   let modelList = $state<ModelInfo[]>(models);
   $effect(() => { modelList = models; });
 
-  // Models that can be the active dictation model (downloaded, not coming-soon).
-  const downloadedModels = $derived(modelList.filter((m) => m.downloaded && !m.coming_soon));
-
   // Refresh permissions the moment the section mounts (parent keeps polling every 3s).
   onMount(() => onCheckPerms());
 
@@ -118,7 +115,7 @@
   </p>
 </section>
 
-<!-- ── Reconocimiento (idioma + modelo activo) ── -->
+<!-- ── Reconocimiento (idioma) ── -->
 <section>
   <h2 class="section-label">Reconocimiento</h2>
   <div class="rows">
@@ -128,17 +125,8 @@
         {#each LANGUAGES as l}<option value={l.value}>{l.label}</option>{/each}
       </select>
     </div>
-    <div class="sep"></div>
-    <div class="row">
-      <span class="row-label">Modelo activo</span>
-      <select class="sel" bind:value={settings.selected_model} onchange={() => onSave()}>
-        {#each downloadedModels as m}
-          <option value={m.id}>{m.name} · {m.size_mb} MB</option>
-        {/each}
-      </select>
-    </div>
   </div>
-  <p class="section-hint">Elige entre los modelos descargados. Gestiona descargas en "Modelos".</p>
+  <p class="section-hint">Elige el modelo activo en "Modelos".</p>
 </section>
 
 <!-- ── Sonidos (D-07) + Pausar multimedia (D-08) ── -->
