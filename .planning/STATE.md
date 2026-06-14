@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-02-PLAN.md
-last_updated: "2026-06-14T17:45:32.355Z"
+stopped_at: Completed 01-03-PLAN.md
+last_updated: "2026-06-14T17:51:58.970Z"
 last_activity: 2026-06-14
 progress:
   total_phases: 3
   completed_phases: 0
   total_plans: 9
-  completed_plans: 2
-  percent: 22
+  completed_plans: 3
+  percent: 33
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-14)
 ## Current Position
 
 Phase: 01 (Rediseño del panel (sidebar Home+Settings, estilo WhisprFlow)) — EXECUTING
-Plan: 3 of 9
+Plan: 4 of 9
 Status: Ready to execute
 Last activity: 2026-06-14
 
@@ -42,6 +42,7 @@ Decisions logged in PROJECT.md Key Decisions table.
 - UI inspirada en WhisprFlow.
 - [Phase 01]: Dictionary derived from custom_words (kept as live source for correct_words); migration runs on disk-read path only
 - [Phase 01]: Tauri plugins dialog/fs/updater + symphonia/sha2 installed; main window 880x640 resizable; new-plugin/window changes require app relaunch not HMR
+- [Phase 01]: Shell extracted: tokens.css + 7 reusable components + 4 section stubs with prop contracts; +page.svelte is now a router orchestrator (palette LOCKED, D-04)
 
 ### Pending Todos
 
@@ -53,6 +54,6 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-06-14T17:45:24.976Z
-Stopped at: Completed 01-02-PLAN.md
+Last session: 2026-06-14T17:51:51.366Z
+Stopped at: Completed 01-03-PLAN.md
 Resume file: None
