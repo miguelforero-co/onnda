@@ -30,7 +30,7 @@
   ];
 </script>
 
-<!-- svelte-ignore a11y_no_static_element_interactions -->
+<!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
 <aside class="sidebar" onmousedown={railDrag}>
   <!-- Brand area sits below the floating macOS traffic lights (title bar hidden,
        Overlay style). The whole rail is a window drag handle (see railDrag). -->
