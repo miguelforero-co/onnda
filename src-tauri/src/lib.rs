@@ -60,6 +60,10 @@ pub fn run() {
             commands::hide_widget,
             commands::test_paste,
             commands::get_build_hash,
+            data_mgmt::reveal_data_dir,
+            data_mgmt::clear_history,
+            data_mgmt::clear_models,
+            updater_check::check_for_updates,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
