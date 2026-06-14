@@ -19,8 +19,30 @@
     filter === "all" ? history : history.filter((e) => e.source === filter)
   );
 
-  // Re-pull history on mount so the list is current when navigated to.
-  onMount(() => onRefresh());
+  // ── Storage usage (bytes from disk: history.json + recordings) ──
+  let storageBytes = $state(0);
+  async function refreshStorage() {
+    storageBytes = await invoke<number>("get_storage_usage").catch(() => 0);
+  }
+  // Format: < 1 MB → "734 KB en uso", else "1,2 MB en uso" (one decimal, es locale).
+  function formatBytes(b: number): string {
+    if (b < 1024 * 1024) {
+      const kb = Math.round(b / 1024);
+      return `${kb.toLocaleString("es")} KB en uso`;
+    }
+    const mb = (b / (1024 * 1024)).toLocaleString("es", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    return `${mb} MB en uso`;
+  }
+
+  // Re-pull history + storage on mount so both are current when navigated to.
+  onMount(() => { onRefresh(); refreshStorage(); });
+
+  async function clearAll() {
+    if (!window.confirm("¿Borrar todas las transcripciones y sus audios? Se eliminan del computador y no se puede deshacer.")) return;
+    await invoke("clear_history");
+    onRefresh();
+    refreshStorage();
+  }
 
   // ── Playback (lifted from pre-refactor +page.svelte) ──
   let playingId = $state<string | null>(null);
@@ -43,6 +65,7 @@
   async function deleteEntry(id: string) {
     await invoke("delete_history_entry", { id });
     onRefresh();
+    refreshStorage();
   }
 
   async function copyEntry(text: string) {
@@ -69,6 +92,12 @@
     <button class="seg-btn" class:on={filter === "all"} onclick={() => (filter = "all")}>Todas</button>
     <button class="seg-btn" class:on={filter === "dictation"} onclick={() => (filter = "dictation")}>Dictado</button>
     <button class="seg-btn" class:on={filter === "file"} onclick={() => (filter = "file")}>Archivo</button>
+  </div>
+  <div class="storage-row">
+    <span class="storage-metric">{formatBytes(storageBytes)}</span>
+    {#if history.length > 0}
+      <button class="link-btn danger" onclick={clearAll}>Borrar todo</button>
+    {/if}
   </div>
 </div>
 
@@ -120,6 +149,17 @@
 
   /* ── Toolbar / filter ── */
   .toolbar { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+
+  /* Storage metric (muted) + destructive "Borrar todo", pushed right. */
+  .storage-row { display: flex; align-items: center; gap: 14px; margin-left: auto; }
+  .storage-metric { font-size: 11.5px; color: var(--faint); }
+  .link-btn {
+    background: none; border: none; padding: 4px 0;
+    font-size: 12px; font-weight: 450; color: var(--coral);
+    cursor: pointer; text-decoration: none;
+  }
+  .link-btn:hover { opacity: .75; }
+  .link-btn.danger { color: var(--coral); }
   .seg {
     display: inline-flex; padding: 2px; border-radius: var(--r-sm);
     background: var(--glass-fill);
