@@ -20,6 +20,9 @@ tauri-plugin-global-shortcut = "2"
 tauri-plugin-notification = "2"
 tauri-plugin-process = "2"
 tauri-plugin-shell = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
+tauri-plugin-updater = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tokio = { version = "1", features = ["full"] }
@@ -41,6 +44,11 @@ whisper-rs = "0.14"
 
 # String similarity (word correction, same crate Aztec Voice uses)
 strsim = "0.11"
+
+# File transcription: decode arbitrary audio containers (wav/mp3/m4a) to PCM.
+symphonia = { version = "0.6", features = ["mp3", "isomp4", "aac", "alac", "wav", "pcm"] }
+# Model download integrity (sha256 verify).
+sha2 = "0.11"
 
 [target.'cfg(target_arch = "aarch64")'.dependencies]
 whisper-rs = { version = "0.14", features = ["metal"] }
