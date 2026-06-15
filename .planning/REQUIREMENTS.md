@@ -6,8 +6,8 @@ Derivados del diagnóstico en `research/LAUNCH-DIAGNOSIS.md`. Cada requirement e
 
 ### HARDEN — Blindaje de producción
 
-- [ ] **HARDEN-01**: La app no crashea si el micrófono se desconecta, está bloqueado por otra app o es denegado durante la grabación (`audio.rs:73,75` `.expect()` → `Result`)
-- [ ] **HARDEN-02**: Un panic durante una transcripción no inutiliza el resto de la sesión (`MODEL_CACHE` no envenenable — `parking_lot` o recuperación de lock)
+- [x] **HARDEN-01**: La app no crashea si el micrófono se desconecta, está bloqueado por otra app o es denegado durante la grabación (`audio.rs:73,75` `.expect()` → `Result`)
+- [x] **HARDEN-02**: Un panic durante una transcripción no inutiliza el resto de la sesión (`MODEL_CACHE` no envenenable — `parking_lot` o recuperación de lock)
 - [ ] **HARDEN-03**: El modelo descargado se verifica por integridad (SHA256 contra hash fijado) y la URL de descarga está pinneada a un commit estable
 - [ ] **HARDEN-04**: En el primer arranque sin conexión (modelo no descargado) el usuario ve un estado claro y accionable, no un fallo críptico
 - [ ] **HARDEN-05**: Los fallos de transcripción (segmento de streaming o tail) se muestran al usuario en vez de descartarse en silencio
