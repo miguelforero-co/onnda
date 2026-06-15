@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 02-compatibilidad-honesta-intel-apple-silicon-02-PLAN.md
-last_updated: "2026-06-15T20:13:39.003Z"
+status: verifying
+stopped_at: "Checkpoint: verificar UI del catálogo y ausencia de flash de notch (02-03, task 3)"
+last_updated: "2026-06-15T20:18:12.203Z"
 last_activity: 2026-06-15
 progress:
   total_phases: 5
-  completed_phases: 1
+  completed_phases: 2
   total_plans: 7
-  completed_plans: 6
-  percent: 86
+  completed_plans: 7
+  percent: 100
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-06-15)
 
 Phase: 02 (compatibilidad-honesta-intel-apple-silicon) — EXECUTING
 Plan: 3 of 3
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-06-15
 
 Progress: [██        ] 1 of 5 complete
@@ -55,6 +55,8 @@ Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
 - [Phase 02-compatibilidad-honesta-intel-apple-silicon]: CI usa macos-15 (Xcode 26.x, SDK macOS 26) requerido por Package.swift .macOS(26.0)
 - [Phase 02-compatibilidad-honesta-intel-apple-silicon]: disabled_reason: Option<String> added to ModelInfo (not reusing coming_soon) to distinguish hardware-unavailable from not-yet-built
 - [Phase 02-compatibilidad-honesta-intel-apple-silicon]: Default for AppSettings unchanged (selected_model stays large-v3-turbo) to preserve existing settings.json deserialization; first-run override only in init() not-exists branch
+- [Phase 02-compatibilidad-honesta-intel-apple-silicon]: Reused .coming-soon CSS for hardwareDisabled; disabled_reason rendered as inline subtitle + badge inside ModelCard (no new call-site props)
+- [Phase 02-compatibilidad-honesta-intel-apple-silicon]: hasNotch init changed from true to false; existing CSS transition handles pill→notch on real notch screens with no layout-shift
 
 ### Pending Todos
 
@@ -69,6 +71,6 @@ Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
 
 ## Session Continuity
 
-Last session: 2026-06-15T20:13:38.997Z
-Stopped at: Completed 02-compatibilidad-honesta-intel-apple-silicon-02-PLAN.md
+Last session: 2026-06-15T20:18:12.200Z
+Stopped at: Checkpoint: verificar UI del catálogo y ausencia de flash de notch (02-03, task 3)
 Resume file: None

@@ -48,7 +48,7 @@ Plans:
 Plans:
 - [x] 02-01-PLAN.md — COMPAT-01: build x86_64 del sidecar (cross-compile) + CI macos-15 + dual-triple
 - [x] 02-02-PLAN.md — COMPAT-02/03/04 backend: gate motor Apple, default por hardware, threads clamp
-- [ ] 02-03-PLAN.md — COMPAT-02 UI (disabled_reason) + COMPAT-05 fix flash notch (checkpoint)
+- [x] 02-03-PLAN.md — COMPAT-02 UI (disabled_reason) + COMPAT-05 fix flash notch (checkpoint)
 
 ### Phase 3: Firma, notarización y repo público
 **Goal**: Un usuario puede descargar, instalar y actualizar la app sin advertencias de Gatekeeper ni comandos de terminal, y el repositorio está listo para abrirse como open source.
