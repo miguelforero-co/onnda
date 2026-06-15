@@ -16,32 +16,32 @@ fn register_shortcut<R: Runtime>(app: &AppHandle<R>, shortcut_str: &str) -> taur
                         // repeated `Pressed` events while the key is HELD (auto-
                         // repeat); guard against re-entering start mid-recording,
                         // which glitches the session. Idempotent under key-repeat.
-                        if !crate::commands::is_recording() {
+                        if !crate::recording::is_recording() {
                             show_widget(&app_press);
-                            if let Err(e) = crate::commands::start_recording_internal(&app_press) {
+                            if let Err(e) = crate::recording::start_recording_internal(&app_press) {
                                 log::error!("[shortcut] start_recording error: {e}");
                             }
                         }
                     } else {
                         // Toggle mode
-                        if crate::commands::is_recording() {
+                        if crate::recording::is_recording() {
                             let app = app_press.clone();
                             tauri::async_runtime::spawn(async move {
-                                crate::commands::stop_and_transcribe_internal(app).await;
+                                crate::recording::stop_and_transcribe_internal(app).await;
                             });
                         } else {
                             show_widget(&app_press);
-                            if let Err(e) = crate::commands::start_recording_internal(&app_press) {
+                            if let Err(e) = crate::recording::start_recording_internal(&app_press) {
                                 log::error!("[shortcut] start_recording error: {e}");
                             }
                         }
                     }
                 }
                 ShortcutState::Released => {
-                    if settings.push_to_talk && crate::commands::is_recording() {
+                    if settings.push_to_talk && crate::recording::is_recording() {
                         let app = app_release.clone();
                         tauri::async_runtime::spawn(async move {
-                            crate::commands::stop_and_transcribe_internal(app).await;
+                            crate::recording::stop_and_transcribe_internal(app).await;
                         });
                     }
                 }

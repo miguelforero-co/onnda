@@ -26,10 +26,10 @@ pub fn install<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     let handler = RcBlock::new(move |event: NonNull<NSEvent>| {
         const ESCAPE: u16 = 53; // kVK_Escape
         let key_code = unsafe { event.as_ref().keyCode() };
-        if key_code == ESCAPE && crate::commands::is_recording() {
+        if key_code == ESCAPE && crate::recording::is_recording() {
             let app = app.clone();
             tauri::async_runtime::spawn(async move {
-                crate::commands::cancel_recording_internal(app).await;
+                crate::recording::cancel_recording_internal(app).await;
             });
         }
     });

@@ -16,6 +16,7 @@ mod models;
 #[cfg(target_os = "macos")]
 mod notch;
 mod paste;
+mod recording;
 mod settings;
 mod shortcut;
 mod streaming;
@@ -62,7 +63,7 @@ pub fn run() {
             commands::save_settings,
             commands::start_recording,
             commands::stop_and_transcribe,
-            commands::transcribe_file,
+            recording::transcribe_file,
             commands::is_recording_cmd,
             models::get_models,
             models::download_model,
