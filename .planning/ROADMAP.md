@@ -26,10 +26,13 @@ Llevar Voz Local de "app personal madura" a "producto público": descarga direct
   3. El modelo se descarga verificando integridad (SHA256) desde una URL pinneada; un primer arranque sin conexión muestra un estado accionable.
   4. Un fallo de transcripción (segmento o tail) se le comunica al usuario en vez de descartarse callado.
   5. La app deja un log en disco que permite diagnosticar un fallo reportado por un usuario.
-**Plans**: TBD
+**Plans**: 4 plans (3 waves)
 
 Plans:
-- [ ] 01-01: TBD
+- [ ] 01-01-PLAN.md — Fundación: deps (parking_lot, tauri-plugin-log, log) + registro del logger a disco (HARDEN-06)
+- [ ] 01-02-PLAN.md — Hardening backend: mic no crashea (HARDEN-01) + MODEL_CACHE parking_lot (HARDEN-02) + eprintln→log (HARDEN-06)
+- [ ] 01-03-PLAN.md — commands.rs: integridad SHA256+pin (HARDEN-03) + check_model_status (HARDEN-04) + transcribe-warning (HARDEN-05) + eprintln→log (HARDEN-06)
+- [ ] 01-04-PLAN.md — Frontend: banner de modelo ausente (HARDEN-04) + aviso no bloqueante de fallo parcial (HARDEN-05) + checkpoint humano
 
 ### Phase 2: Compatibilidad honesta (Intel + Apple Silicon)
 **Goal**: La app se instala y funciona bien tanto en Intel como en Apple Silicon, sin ofrecer features que no existen en cada hardware y eligiendo un modelo razonable por máquina.
