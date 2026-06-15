@@ -59,6 +59,9 @@
   let downloadErrors = $state<Record<string, string>>({});
   let appVersion = $state("");
   let buildHash = $state("");
+  let modelReady = $state(true); // assume ready until checked; avoids flash
+  let warnMsg = $state(""); // HARDEN-05: transcribe-warning toast (auto-clears)
+  let warnTimer: ReturnType<typeof setTimeout> | null = null;
 
   const unlisten: (() => void)[] = [];
 
@@ -76,6 +79,12 @@
       history = await invoke("get_history");
       // Keep checking permissions so the warning banner updates live
       pollInterval = setInterval(checkPerms, 3000);
+      // HARDEN-04: check if the default model is available; show banner if not.
+      // Only when onboarding is done (during onboarding the user downloads one).
+      try {
+        const st = await invoke<{ ready: boolean; model_id: string }>("check_model_status");
+        modelReady = st.ready;
+      } catch { modelReady = true; } // on invoke error, don't bother the user
     }
 
     unlisten.push(
@@ -93,6 +102,12 @@
       await listen<DownloadProgress>("download-progress", ({ payload }) => {
         downloadProgress = { ...downloadProgress, [payload.model_id]: payload };
       }),
+      // HARDEN-05: show a non-blocking toast when a transcription segment fails
+      await listen<string>("transcribe-warning", ({ payload }) => {
+        if (warnTimer) clearTimeout(warnTimer);
+        warnMsg = payload;
+        warnTimer = setTimeout(() => { warnMsg = ""; warnTimer = null; }, 4000);
+      }),
       await listen<string>("download-complete", async ({ payload: modelId }) => {
         delete downloadProgress[modelId];
         downloadProgress = { ...downloadProgress };
@@ -104,6 +119,8 @@
           settings.selected_model = modelId;
           schedSave();
         }
+        // HARDEN-04: hide the "no model" banner once a download finishes
+        modelReady = true;
       }),
     );
 
@@ -114,6 +131,7 @@
     unlisten.forEach(fn => fn());
     if (pollInterval) clearInterval(pollInterval);
     if (saveTimer) clearTimeout(saveTimer);
+    if (warnTimer) clearTimeout(warnTimer);
   });
 
   function schedSave(scChanged = false) {
@@ -234,6 +252,13 @@
     <Sidebar bind:view />
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <main class="content" onmousedown={contentDrag} ondblclick={contentDblClick}>
+      {#if !modelReady}
+        <!-- HARDEN-04: actionable banner when no model is downloaded -->
+        <div class="model-banner">
+          <span>No hay un modelo de voz descargado. Descarga uno para empezar a dictar.</span>
+          <button onclick={() => { view = "ajustes"; }}>Descargar modelo</button>
+        </div>
+      {/if}
       {#if view === "home"}
         <Home {history} />
       {/if}
@@ -257,6 +282,11 @@
       {/if}
     </main>
   </div>
+{/if}
+
+{#if warnMsg}
+  <!-- HARDEN-05: transcribe-warning toast (auto-disappears after 4 s) -->
+  <div class="warn-toast">{warnMsg}</div>
 {/if}
 
 <style>
@@ -334,4 +364,42 @@
     transition: background .2s;
   }
   .ob-step-dot.active { background: var(--accent); box-shadow: 0 0 8px -1px rgba(255,106,61,.7); }
+
+  /* HARDEN-04: no-model banner */
+  .model-banner {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    border-radius: var(--r);
+    background: rgba(255, 106, 61, 0.12);
+    border: 1px solid rgba(255, 106, 61, 0.30);
+  }
+  .model-banner span {
+    flex: 1; font-size: 12.5px; color: var(--text); line-height: 1.5;
+  }
+  .model-banner button {
+    flex-shrink: 0;
+    background: var(--accent); color: #fff; border: none;
+    border-radius: var(--r); padding: 6px 12px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: opacity .15s;
+  }
+  .model-banner button:hover { opacity: .88; }
+
+  /* HARDEN-05: transcribe-warning toast */
+  .warn-toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    padding: 8px 16px;
+    border-radius: var(--r);
+    background: rgba(30, 30, 30, 0.92);
+    border: 1px solid var(--line);
+    font-size: 12.5px; color: var(--text);
+    pointer-events: none;
+    z-index: 999;
+    animation: toast-in .2s ease;
+  }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translateX(-50%) translateY(6px); }
+    to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
 </style>
