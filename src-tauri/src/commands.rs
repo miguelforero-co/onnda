@@ -147,7 +147,7 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
         let language = settings.selected_language.clone();
         let custom_words = settings.custom_words.clone();
         let model_name = if settings.selected_model.is_empty() {
-            "large-v3-turbo".to_string()
+            crate::compat::hardware_default_model().to_string()
         } else {
             settings.selected_model.clone()
         };
@@ -322,7 +322,7 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     let custom_words = settings.custom_words.clone();
     let word_correction_threshold = settings.word_correction_threshold;
     let model_name = if settings.selected_model.is_empty() {
-        "large-v3-turbo".to_string()
+        crate::compat::hardware_default_model().to_string()
     } else {
         settings.selected_model.clone()
     };
@@ -584,7 +584,7 @@ pub async fn transcribe_file<R: Runtime>(app: AppHandle<R>, path: String) -> Res
     let custom_words = settings.custom_words.clone();
     let word_correction_threshold = settings.word_correction_threshold;
     let model_name = if settings.selected_model.is_empty() {
-        "large-v3-turbo".to_string()
+        crate::compat::hardware_default_model().to_string()
     } else {
         settings.selected_model.clone()
     };
@@ -923,7 +923,7 @@ pub struct ModelStatus {
 pub fn check_model_status<R: Runtime>(app: AppHandle<R>) -> ModelStatus {
     let settings = settings::load(&app);
     let model_name = if settings.selected_model.is_empty() {
-        "large-v3-turbo".to_string()
+        crate::compat::hardware_default_model().to_string()
     } else {
         settings.selected_model.clone()
     };

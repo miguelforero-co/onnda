@@ -52,7 +52,11 @@ impl TranscriptionBackend for WhisperBackend {
         let mut state = ctx.create_state()?;
 
         let mut params = FullParams::new(SamplingStrategy::Greedy { best_of: 1 });
-        params.set_n_threads(6);
+        let n_threads = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(4)
+            .min(6) as i32;
+        params.set_n_threads(n_threads);
         params.set_n_max_text_ctx(224);
         params.set_print_progress(false);
         params.set_print_realtime(false);
@@ -97,5 +101,19 @@ impl TranscriptionBackend for WhisperBackend {
             .to_string();
 
         Ok(correct_words(&text, &opts.initial_prompt, opts.word_correction_threshold))
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn threads_clamp() {
+        // Verify the clamped thread count is within [1, 6] regardless of machine.
+        let n = std::thread::available_parallelism()
+            .map(|n| n.get())
+            .unwrap_or(4)
+            .min(6);
+        assert!(n >= 1, "n_threads must be at least 1, got {}", n);
+        assert!(n <= 6, "n_threads must not exceed 6, got {}", n);
     }
 }

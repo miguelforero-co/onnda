@@ -135,7 +135,13 @@ pub fn init<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         fs::create_dir_all(parent).ok();
     }
     if !path.exists() {
-        let json = serde_json::to_string_pretty(&AppSettings::default()).unwrap();
+        // First run: choose model based on hardware (arch + RAM).
+        // Default::default() keeps selected_model = "large-v3-turbo" for
+        // deserialisation of existing settings.json — do NOT change that field.
+        // Only override it here, in the first-run branch.
+        let mut s = AppSettings::default();
+        s.selected_model = crate::compat::hardware_default_model().to_string();
+        let json = serde_json::to_string_pretty(&s).unwrap();
         fs::write(&path, json).ok();
     }
     Ok(())
