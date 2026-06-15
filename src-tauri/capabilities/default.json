@@ -25,6 +25,7 @@
     "dialog:allow-open",
     "fs:allow-read-file",
     "fs:allow-write-file",
-    "fs:default"
+    "fs:default",
+    "log:default"
   ]
 }
