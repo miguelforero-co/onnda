@@ -1,4 +1,4 @@
-use std::sync::Mutex;
+use parking_lot::Mutex;
 use anyhow::Result;
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
 
@@ -22,7 +22,7 @@ impl WhisperBackend {
     /// path. Called at recording start to warm the model so the final pass is
     /// pure inference (no cold load) — this is what the old chunking did for free.
     pub fn ensure_loaded(&self) -> Result<()> {
-        let mut cache = MODEL_CACHE.lock().unwrap();
+        let mut cache = MODEL_CACHE.lock();
 
         let needs_load = cache
             .as_ref()
@@ -30,7 +30,7 @@ impl WhisperBackend {
             .unwrap_or(true);
 
         if needs_load {
-            eprintln!("[voz-local] loading model: {}", self.model_path);
+            log::info!("[voz-local] loading model: {}", self.model_path);
             let mut ctx_params = WhisperContextParameters::default();
             #[cfg(target_arch = "aarch64")]
             {
@@ -47,7 +47,7 @@ impl WhisperBackend {
 impl TranscriptionBackend for WhisperBackend {
     fn transcribe(&self, samples: &[f32], opts: &TranscribeOpts) -> Result<String> {
         self.ensure_loaded()?;
-        let cache = MODEL_CACHE.lock().unwrap();
+        let cache = MODEL_CACHE.lock();
         let ctx = &cache.as_ref().unwrap().1;
         let mut state = ctx.create_state()?;
 
@@ -82,7 +82,7 @@ impl TranscriptionBackend for WhisperBackend {
 
         let t_inf = std::time::Instant::now();
         state.full(params, &trimmed)?;
-        eprintln!(
+        log::info!(
             "[voz-local][timing] resample={:?} vad={:?} infer={:?} | in_samples={} trimmed_16k={} ({:.1}s audio)",
             t_resample, t_vad, t_inf.elapsed(),
             samples.len(), trimmed.len(), trimmed.len() as f32 / 16000.0
