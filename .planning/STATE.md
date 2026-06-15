@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-blindaje-de-producci-n-02-PLAN.md
-last_updated: "2026-06-15T18:49:22.195Z"
+stopped_at: Completed 01-blindaje-de-producci-n-01-03-PLAN.md
+last_updated: "2026-06-15T18:56:06.693Z"
 last_activity: 2026-06-15
 progress:
   total_phases: 5
   completed_phases: 0
   total_plans: 4
-  completed_plans: 2
-  percent: 50
+  completed_plans: 3
+  percent: 75
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-15)
 ## Current Position
 
 Phase: 01 (blindaje-de-producci-n) — EXECUTING
-Plan: 3 of 4
+Plan: 4 of 4
 Status: Ready to execute
 Last activity: 2026-06-15
 
@@ -47,6 +47,9 @@ Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
 - [Phase 01-blindaje-de-producci-n]: Log plugin registrado primero en el builder para capturar logs de init de todos los demas plugins
 - [Phase 01-blindaje-de-producci-n]: mpsc::channel para propagar Result del stream cpal desde thread spawneado (Option A del RESEARCH, más limpio que Arc<Mutex<Option<Error>>>)
 - [Phase 01-blindaje-de-producci-n]: parking_lot::Mutex reemplaza solo MODEL_CACHE en Phase 1; CAPTURE/COMMITTED_TEXT/STREAM_HANDLE se difieren a Phase 5
+- [Phase 01-blindaje-de-producci-n]: URLs de descarga de modelos pinneadas a commit SHA inmutable de HF; hash SHA256 verificado en streaming antes de rename
+- [Phase 01-blindaje-de-producci-n]: transcribe-warning no aborta el loop de streaming para preservar segmentos exitosos acumulados
+- [Phase 01-blindaje-de-producci-n]: check_model_status reutiliza lógica primary/fallback existente; Apple model siempre ready: true
 
 ### Pending Todos
 
@@ -60,6 +63,6 @@ Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
 
 ## Session Continuity
 
-Last session: 2026-06-15T18:49:22.191Z
-Stopped at: Completed 01-blindaje-de-producci-n-02-PLAN.md
+Last session: 2026-06-15T18:56:06.690Z
+Stopped at: Completed 01-blindaje-de-producci-n-01-03-PLAN.md
 Resume file: None
