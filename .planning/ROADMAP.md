@@ -1,74 +1,98 @@
-# Roadmap: Voz Local
+# Roadmap: Voz Local — Milestone v2.0 Camino al lanzamiento público
 
 ## Overview
 
-Rediseño del panel de configuración de Voz Local hacia un panel lateral tipo "home + settings" inspirado en la UI de WhisprFlow. El trabajo se divide en 3 fases: (1) el rediseño completo del shell de UI + todos los settings/secciones que son UI o pegamento de macOS (la mayor parte, shippable por sí sola), (2) integrar Parakeet como motor ASR seleccionable (vía FluidAudio/ANE — motor nuevo, research pesado), y (3) auto-learn from corrections (feature ML completa). La UI de la Fase 1 ya deja lugar para Parakeet y auto-learn.
+Llevar Voz Local de "app personal madura" a "producto público": descarga directa firmada+notarizada + open source, funcionando bien en Intel y Apple Silicon, gratis. El trabajo se ordena por riesgo de lanzamiento: primero que **no crashee en público** (F1), luego que **funcione honestamente en toda la flota Mac** (F2), luego **firma/notarización/repo público** que destraban la distribución (F3), luego **medir sin traicionar la privacidad** (F4), y por último **pulido de calidad** (F5). Diagnóstico completo en `research/LAUNCH-DIAGNOSIS.md`.
+
+> Milestone previo (v1.0: rediseño + motor Apple + auto-learn) archivado en `.planning/archive/v1.0/`. Numeración de fases reiniciada a 1 para este milestone.
 
 ## Phases
 
-- [x] **Phase 1: Rediseño del panel (sidebar Home+Settings, estilo WhisprFlow)** - Shell de UI + todos los settings + archivos + diccionario como items
-- [x] **Phase 2: Motor ASR seleccionable** - Implementada con **Apple SpeechAnalyzer** (macOS 26, ANE) vía sidecar Swift, en vez de Parakeet (ver nota). Integrado al selector.
-- [x] **Phase 3: Auto-learn from corrections** - Aprender de las correcciones del usuario para mejorar transcripciones
+- [ ] **Phase 1: Blindaje de producción** — cero crashes en ruta crítica, integridad+offline del modelo, fallos visibles, logging a disco
+- [ ] **Phase 2: Compatibilidad honesta (Intel + Apple Silicon)** — build x86_64, motor Apple gateado a Silicon, modelo por defecto según hardware
+- [ ] **Phase 3: Firma, notarización y repo público** — Developer ID + notarytool en CI, updater real, LICENSE MIT, higiene OSS
+- [ ] **Phase 4: Métricas y crash reporting opt-in** — Aptabase + Sentry/GlitchTip, solo conteos, consentimiento honesto
+- [ ] **Phase 5: Pulido** — CI en PRs, tests de rutas críticas, partir god-file commands.rs
 
 ## Phase Details
 
-### Phase 1: Rediseño del panel (sidebar Home+Settings, estilo WhisprFlow)
-**Goal**: La app pasa de header+tabs a un panel lateral navegable (Home + Settings + secciones) inspirado en WhisprFlow, con todos los settings nuevos funcionando (sonidos, pause-media, lenguaje, launch-at-login, permisos, hotkey-recorder, modo del atajo, selector de modelos Whisper ampliado, check-for-updates, gestión de datos), transcripción por archivos con históricos, y el diccionario como lista de items editable.
+### Phase 1: Blindaje de producción
+**Goal**: La app no crashea ni pierde dictado en silencio en las rutas que un usuario público va a estrenar; los fallos son visibles y diagnosticables.
 **Depends on**: Nothing (first phase)
-**Requirements**: Shell sidebar + Sonidos + Pause-media + Lenguaje + Launch-at-login + Panel de permisos + Hotkey recorder + Modo atajo + Modelos Whisper ampliados + Check-for-updates + Gestión de datos + Transcripción por archivos + Vista de todas las transcripciones + Diccionario como items
+**Requirements**: HARDEN-01, HARDEN-02, HARDEN-03, HARDEN-04, HARDEN-05, HARDEN-06
 **Success Criteria** (what must be TRUE):
-  1. La app abre un panel lateral con navegación entre Home, Transcripciones, Diccionario y Ajustes (look & feel inspirado en WhisprFlow, paleta actual conservada).
-  2. El usuario puede activar/desactivar sonidos (escucha/para/cancela) y oírlos al ocurrir cada evento.
-  3. El usuario puede activar pause-media y la música se pausa al empezar a escuchar (y reanuda al terminar).
-  4. Desde Ajustes: elegir lenguaje (auto/manual), modo del atajo (push-to-talk/mantener), grabar el hotkey con un capturador de teclas, elegir entre ~3+ modelos Whisper con versión, ver/activar launch-at-login, ver estado de permisos (mic+a11y) y abrirlos, check-for-updates, y gestión de datos (abrir carpeta de cache / borrar).
-  5. El usuario puede subir un archivo de audio y obtener su transcripción, que queda registrada junto al resto de transcripciones.
-  6. La vista de Transcripciones lista todas (dictado + archivo), con reproducción/borrado.
-  7. El diccionario permite agregar/editar/borrar palabras como items (no textarea plano), preservando compatibilidad con el initial_prompt de Whisper.
-**Plans**: 9 plans en 6 waves
+  1. Desconectar el micrófono (o que otra app lo bloquee) durante la grabación muestra un error claro, no crashea la app.
+  2. Un fallo de transcripción no deja muerta la transcripción del resto de la sesión.
+  3. El modelo se descarga verificando integridad (SHA256) desde una URL pinneada; un primer arranque sin conexión muestra un estado accionable.
+  4. Un fallo de transcripción (segmento o tail) se le comunica al usuario en vez de descartarse callado.
+  5. La app deja un log en disco que permite diagnosticar un fallo reportado por un usuario.
+**Plans**: TBD
 
 Plans:
-- [x] 01-01-PLAN.md — Foundation de datos: AppSettings (sonidos×3, pause_media, dictionary) + migración + HistoryEntry source
-- [x] 01-02-PLAN.md — Build/window: ventana 880×640, deps dialog/fs/updater/symphonia/sha2, capabilities, stubs de módulos
-- [x] 01-03-PLAN.md — Shell de UI: sidebar 200px + extracción de tokens y componentes (Toggle/Row/PermissionRow/ModelCard/HotkeyRecorder) + stubs de secciones
-- [x] 01-04-PLAN.md — Hooks nativos: sounds.rs (NSSound) + media_pause.rs (CGEvent) en el state machine + catálogo de modelos ampliado
-- [x] 01-05-PLAN.md — Transcripción por archivos: audio_decode.rs (symphonia) + comando transcribe_file → history source="file"
-- [x] 01-06-PLAN.md — Gestión de datos (reveal/clear) + check-for-updates (con fallback check-only)
-- [x] 01-07-PLAN.md — Sección Ajustes: hotkey, sonidos, pause-media, lenguaje, launch-at-login, permisos, modelos+Parakeet, updates, datos
-- [x] 01-08-PLAN.md — Secciones Home + Transcripciones (filtro+upload) + Diccionario (items)
-- [x] 01-09-PLAN.md — Integración final + checklist de verificación manual (7 criterios)
+- [ ] 01-01: TBD
 
-### Phase 2: Parakeet como motor seleccionable
-**Goal**: Parakeet (vía FluidAudio/ANE) queda disponible como motor ASR seleccionable en el selector de modelos, implementando el trait `TranscriptionBackend`, sin romper el pipeline existente de Whisper.
+### Phase 2: Compatibilidad honesta (Intel + Apple Silicon)
+**Goal**: La app se instala y funciona bien tanto en Intel como en Apple Silicon, sin ofrecer features que no existen en cada hardware y eligiendo un modelo razonable por máquina.
 **Depends on**: Phase 1
-**Requirements**: Backend Parakeet + integración al selector de modelos de la Fase 1 + descarga/gestión del modelo
+**Requirements**: COMPAT-01, COMPAT-02, COMPAT-03, COMPAT-04, COMPAT-05
 **Success Criteria** (what must be TRUE):
-  1. El usuario puede seleccionar Parakeet en el selector de modelos y dictar con él.
-  2. El cambio de motor no rompe Whisper ni el pipeline de streaming.
+  1. El DMG de Intel (x86_64) se construye en CI y arranca en un Mac Intel.
+  2. El motor Apple solo se ofrece donde funciona (Apple Silicon + macOS 26); en Intel no aparece o aparece deshabilitado con explicación.
+  3. Al primer arranque, el modelo por defecto se ajusta al hardware (Intel/poca RAM → liviano; Silicon → turbo o Apple) y los threads no exceden los cores reales.
+  4. El widget no muestra el flash de forma-notch en pantallas sin notch.
 **Plans**: TBD
 
 Plans:
 - [ ] 02-01: TBD
 
-### Phase 3: Auto-learn from corrections
-**Goal**: La app aprende de las correcciones del usuario (ediciones a transcripciones) para mejorar el reconocimiento futuro, alimentando el diccionario/sesgo de reconocimiento.
+### Phase 3: Firma, notarización y repo público
+**Goal**: Un usuario puede descargar, instalar y actualizar la app sin advertencias de Gatekeeper ni comandos de terminal, y el repositorio está listo para abrirse como open source.
 **Depends on**: Phase 1
-**Requirements**: Captura de correcciones + mecanismo de aprendizaje + integración con diccionario
+**Requirements**: DIST-01, DIST-02, DIST-03, DIST-04, DIST-05
 **Success Criteria** (what must be TRUE):
-  1. Cuando el usuario corrige una transcripción, la app captura la corrección.
-  2. Las correcciones mejoran transcripciones futuras (vía diccionario/initial_prompt o reemplazos).
+  1. El DMG está firmado con Developer ID y notarizado/stapleado: se instala sin `xattr` ni right-click-open.
+  2. El updater instala de verdad una versión nueva, o el flujo de updates es honesto (check-only sin dep falsa).
+  3. El repo público no expone `.planning/`/`dev/`, tiene LICENSE MIT y un README de cara al público.
+  4. La versión de la app es consistente en todos los manifiestos.
 **Plans**: TBD
 
 Plans:
 - [ ] 03-01: TBD
 
+### Phase 4: Métricas y crash reporting opt-in
+**Goal**: El desarrollador puede entender uso y fallos en producción sin recoger jamás contenido transcrito, con consentimiento explícito del usuario.
+**Depends on**: Phase 1
+**Requirements**: METRICS-01, METRICS-02, METRICS-03
+**Success Criteria** (what must be TRUE):
+  1. Con telemetría activada (opt-in), llegan eventos de conteo (activaciones, modelo, errores) pero nunca texto/audio ni PII.
+  2. Un crash en producción genera un reporte (opt-in) con PII desactivada y contenido scrubeado.
+  3. El onboarding explica honestamente qué se recoge y qué nunca, y la telemetría está apagada por defecto.
+**Plans**: TBD
+
+Plans:
+- [ ] 04-01: TBD
+
+### Phase 5: Pulido
+**Goal**: La calidad del código y del pipeline de CI está a la altura de un proyecto open source que recibirá contribuciones y escrutinio.
+**Depends on**: Phase 1
+**Requirements**: POLISH-01, POLISH-02, POLISH-03
+**Success Criteria** (what must be TRUE):
+  1. Cada PR corre build + tests + svelte-check automáticamente.
+  2. Las rutas críticas hoy sin probar (recording/transcription, whisper_backend, vad) tienen tests.
+  3. `commands.rs` está partido en módulos enfocados (paste, models, recording).
+**Plans**: TBD
+
+Plans:
+- [ ] 05-01: TBD
+
 ## Progress
 
-**Execution Order:** 1 → 2 → 3
+**Execution Order:** 1 → 2 → 3 → 4 → 5 (F2–F5 dependen solo de F1; F2/F3 son los que más mueven la aguja del lanzamiento)
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Rediseño del panel | 9/9 | ✅ Done | 2026-06-14 |
-| 2. Motor ASR seleccionable (Apple SpeechAnalyzer) | done | ✅ Done | 2026-06-14 |
-| 3. Auto-learn from corrections | done | ✅ Done | 2026-06-14 |
-
-> **Nota Phase 2:** se implementó con **Apple SpeechAnalyzer** (nativo macOS 26, ANE) en vez de Parakeet/FluidAudio. Un spike con audio español real mostró ~10-15× más rápido que Whisper (0.11-0.23s vs ~1.7s) + puntuación automática, sin descargar modelos ni bridge FFI. Parakeet queda diferido (SpeechAnalyzer cumple el objetivo de latencia). Whisper sigue como default; Apple es seleccionable en Ajustes → Modelos. UAT de dictado por voz pendiente del usuario.
+| 1. Blindaje de producción | 0/? | ⬜ Not started | — |
+| 2. Compatibilidad honesta | 0/? | ⬜ Not started | — |
+| 3. Firma, notarización y repo público | 0/? | ⬜ Not started | — |
+| 4. Métricas y crash reporting opt-in | 0/? | ⬜ Not started | — |
+| 5. Pulido | 0/? | ⬜ Not started | — |
