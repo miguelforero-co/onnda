@@ -40,3 +40,61 @@ pub fn vad_trim(samples: &[f32]) -> (usize, usize) {
     let end = ((last + 1) * FRAME + MARGIN).min(samples.len());
     (start, end)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Fallback branch: clip shorter than one 20ms frame (< 320 samples) → (0, len).
+    #[test]
+    fn short_clip_below_one_frame_returns_full_range() {
+        let samples = vec![0.0_f32; 100]; // 100 < FRAME=320 → n_frames==0
+        assert_eq!(vad_trim(&samples), (0, 100));
+    }
+
+    // Edge case: empty slice → (0, 0) via the same fallback branch.
+    #[test]
+    fn empty_clip_returns_zero_zero() {
+        assert_eq!(vad_trim(&[]), (0, 0));
+    }
+
+    // Silence (all zeros, 1 second) → no voice detected; the margin saturates/clamps
+    // so start==0 and end<=len.  Must not panic.
+    #[test]
+    fn pure_silence_no_panic_and_valid_range() {
+        let n = 16_000_usize;
+        let samples = vec![0.0_f32; n];
+        let (start, end) = vad_trim(&samples);
+        assert_eq!(start, 0, "start should be 0 for silence");
+        assert!(end <= n, "end must not exceed input length (got {end})");
+    }
+
+    // Exactly one frame (320 samples) of silence → no panic, start==0, end<=320.
+    #[test]
+    fn exactly_one_frame_of_silence_no_panic() {
+        let samples = vec![0.0_f32; 320]; // n_frames==1
+        let (start, end) = vad_trim(&samples);
+        assert_eq!(start, 0);
+        assert!(end <= 320, "end must not exceed 320 (got {end})");
+    }
+
+    // Range invariant: for any non-trivial deterministic input the result must satisfy
+    // start <= end and end <= len.  Use a sine wave (non-silent) to exercise the
+    // voiced-path as well as the margin clamping.
+    #[test]
+    fn range_invariant_sine_wave() {
+        let n = 16_000_usize;
+        let samples: Vec<f32> = (0..n)
+            .map(|i| (2.0 * std::f32::consts::PI * 440.0 * i as f32 / 16_000.0).sin())
+            .collect();
+        let (start, end) = vad_trim(&samples);
+        assert!(
+            start <= end,
+            "start ({start}) must be <= end ({end})"
+        );
+        assert!(
+            end <= n,
+            "end ({end}) must not exceed input length ({n})"
+        );
+    }
+}
