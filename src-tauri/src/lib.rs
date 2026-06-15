@@ -63,6 +63,7 @@ pub fn run() {
             commands::is_recording_cmd,
             commands::get_models,
             commands::download_model,
+            commands::check_model_status,
             commands::check_mic_permission,
             commands::check_accessibility_permission,
             commands::open_accessibility_settings,

@@ -872,6 +872,36 @@ pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> 
     Ok(())
 }
 
+#[derive(serde::Serialize)]
+pub struct ModelStatus {
+    pub ready: bool,
+    pub model_id: String,
+}
+
+/// Proactively check whether the currently selected (or default) model is
+/// available on disk so the frontend can show a banner at startup instead of
+/// discovering the absence only when the user tries to dictate.
+#[tauri::command]
+pub fn check_model_status<R: Runtime>(app: AppHandle<R>) -> ModelStatus {
+    let settings = settings::load(&app);
+    let model_name = if settings.selected_model.is_empty() {
+        "large-v3-turbo".to_string()
+    } else {
+        settings.selected_model.clone()
+    };
+    // Apple SpeechAnalyzer uses the on-device Neural Engine — no .bin to download.
+    if model_name == crate::speech_backend::APPLE_MODEL_ID {
+        return ModelStatus { ready: true, model_id: model_name };
+    }
+    let Some(dir) = models_dir(&app) else {
+        return ModelStatus { ready: false, model_id: model_name };
+    };
+    let primary  = dir.join(format!("ggml-{}.bin", model_name));
+    let fallback = dir.join("ggml-base.bin");
+    let ready = primary.exists() || fallback.exists();
+    ModelStatus { ready, model_id: model_name }
+}
+
 // ── Internals ──────────────────────────────────────────────────────────────
 
 fn paste_text(text: &str) {
