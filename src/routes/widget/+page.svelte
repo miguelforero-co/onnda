@@ -11,7 +11,7 @@
 
   let phase = $state<Phase>("recording");
   let open = $state(false);
-  let hasNotch = $state(true);
+  let hasNotch = $state(false);
   let warned = $state(false); // HARDEN-05: set when transcribe-warning received
 
   const mode = (): Mode => (phase === "recording" ? "speaking" : "processing");
