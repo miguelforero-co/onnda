@@ -7,9 +7,10 @@ on:
 
 jobs:
   build-macos:
-    # macos-14 = Apple Silicon (M1). We cross-compile for x86_64 from here
-    # because GitHub no longer offers free Intel (macos-13) runners.
-    runs-on: macos-14
+    # macos-15 tiene Xcode 26.x como default (SDK macOS 26), requerido por el
+    # Package.swift del sidecar Swift (.macOS("26.0")). Cross-compilamos x86_64
+    # desde aquí porque GitHub ya no ofrece runners Intel gratuitos.
+    runs-on: macos-15
     permissions:
       contents: write
 
@@ -35,6 +36,28 @@ jobs:
 
       - name: Install Node dependencies
         run: npm ci
+
+      - name: Select Xcode 26.x
+        run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+
+      # ── Sidecar ASR (ambos triples, ANTES del primer tauri build) ───────────
+      # Tauri verifica todos los externalBin al inicio del bundle; ambos triples
+      # deben existir antes de cualquier llamada a `tauri build`.
+
+      - name: Build ASR sidecar (arm64)
+        run: |
+          cd src-tauri/sidecar-asr
+          swift build -c release
+          mkdir -p ../binaries
+          cp .build/arm64-apple-macosx/release/asr ../binaries/asr-aarch64-apple-darwin
+          chmod +x ../binaries/asr-aarch64-apple-darwin
+
+      - name: Build ASR sidecar (x86_64 cross-compiled)
+        run: |
+          cd src-tauri/sidecar-asr
+          swift build -c release --triple x86_64-apple-macosx11.0
+          cp .build/x86_64-apple-macosx/release/asr ../binaries/asr-x86_64-apple-darwin
+          chmod +x ../binaries/asr-x86_64-apple-darwin
 
       # ── arm64 (native) ─────────────────────────────────────────────────────
 
