@@ -12,12 +12,17 @@
   let phase = $state<Phase>("recording");
   let open = $state(false);
   let hasNotch = $state(true);
+  let warned = $state(false); // HARDEN-05: set when transcribe-warning received
 
   const mode = (): Mode => (phase === "recording" ? "speaking" : "processing");
 
   // Subtle label under the wave (no ellipsis); empty once done/error → hides.
+  // HARDEN-05: if transcribe-warning was received and we're done, show "Parcial".
   const labelText = $derived(
-    phase === "recording" ? "Listening" : phase === "transcribing" ? "Transcribing" : "",
+    phase === "recording" ? "Listening"
+    : phase === "transcribing" ? "Transcribing"
+    : warned && phase === "done" ? "Parcial"
+    : "",
   );
 
   // --- per-mode configs (tuned in dev/wave-color-configurator.html) ------
@@ -311,6 +316,7 @@
       await listen<boolean>("recording-state", (e) => {
         if (e.payload) {
           clearTimers(); phase = "recording"; open = true;
+          warned = false; // HARDEN-05: reset warning flag at start of new recording
           bandsRaw.fill(0); nodes.fill(0); // fresh start, no stale spectrum flash
         } else phase = "transcribing";
       }),
@@ -319,6 +325,8 @@
       await listen<string>("transcribe-error", () => { phase = "error"; scheduleClose(1200); }),
       await listen("recording-cancelled", () => { phase = "done"; scheduleClose(80); }),
       await listen<boolean>("screen-notch", (e) => { hasNotch = e.payload; }),
+      // HARDEN-05: flag partial transcription — does NOT change phase or close widget
+      await listen<string>("transcribe-warning", () => { warned = true; }),
     );
 
     // WebGL is best-effort: a failure must never stop the notch from appearing.
