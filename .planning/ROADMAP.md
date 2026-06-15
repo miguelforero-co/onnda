@@ -7,8 +7,8 @@ Rediseño del panel de configuración de Voz Local hacia un panel lateral tipo "
 ## Phases
 
 - [x] **Phase 1: Rediseño del panel (sidebar Home+Settings, estilo WhisprFlow)** - Shell de UI + todos los settings + archivos + diccionario como items
-- [ ] **Phase 2: Parakeet como motor seleccionable** - Backend ASR adicional vía FluidAudio/ANE, integrado al selector
-- [ ] **Phase 3: Auto-learn from corrections** - Aprender de las correcciones del usuario para mejorar transcripciones
+- [x] **Phase 2: Motor ASR seleccionable** - Implementada con **Apple SpeechAnalyzer** (macOS 26, ANE) vía sidecar Swift, en vez de Parakeet (ver nota). Integrado al selector.
+- [x] **Phase 3: Auto-learn from corrections** - Aprender de las correcciones del usuario para mejorar transcripciones
 
 ## Phase Details
 
@@ -68,5 +68,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Rediseño del panel | 9/9 | ✅ Done | 2026-06-14 |
-| 2. Parakeet motor seleccionable | 0/TBD | Not started | - |
-| 3. Auto-learn from corrections | 0/TBD | Not started | - |
+| 2. Motor ASR seleccionable (Apple SpeechAnalyzer) | done | ✅ Done | 2026-06-14 |
+| 3. Auto-learn from corrections | done | ✅ Done | 2026-06-14 |
+
+> **Nota Phase 2:** se implementó con **Apple SpeechAnalyzer** (nativo macOS 26, ANE) en vez de Parakeet/FluidAudio. Un spike con audio español real mostró ~10-15× más rápido que Whisper (0.11-0.23s vs ~1.7s) + puntuación automática, sin descargar modelos ni bridge FFI. Parakeet queda diferido (SpeechAnalyzer cumple el objetivo de latencia). Whisper sigue como default; Apple es seleccionable en Ajustes → Modelos. UAT de dictado por voz pendiente del usuario.

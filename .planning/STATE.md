@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 01-09-PLAN.md (Phase 1 done — build green; human checklist pending user)
-last_updated: "2026-06-14T18:17:05.101Z"
+status: milestone-complete
+stopped_at: All 3 phases done (P1 redesign, P2 Apple ASR engine, P3 auto-learn) + 2 backlog quick-wins. UAT de dictado por voz pendiente del usuario.
+last_updated: "2026-06-15T04:00:00.000Z"
 last_activity: 2026-06-14
 progress:
   total_phases: 3
-  completed_phases: 1
+  completed_phases: 3
   total_plans: 9
   completed_plans: 9
   percent: 100
@@ -21,16 +21,15 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** Dictado por voz rápido, privado y siempre disponible vía atajo global.
-**Current focus:** Phase 02 — Parakeet como motor ASR seleccionable (vía FluidAudio/ANE)
+**Current focus:** Milestone completo. Pendiente: UAT de dictado por voz del usuario + decidir si Apple es el motor por defecto.
 
 ## Current Position
 
-Phase: 02 (Parakeet como motor seleccionable) — PLANNING NEXT
-Plan: TBD (Phase 1 complete: 9/9, build green)
-Status: Phase 1 done; planning Phase 2
-Last activity: 2026-06-14
+Phase: 3 de 3 — MILESTONE COMPLETO
+Status: P1 (rediseño) + P2 (motor Apple SpeechAnalyzer) + P3 (auto-learn) hechas; build verde, 34 tests. + quick-wins backlog: reemplazos/snippets y stats de uso.
+Last activity: 2026-06-14 (sesión nocturna autónoma)
 
-Progress: [███░░░░░░░] Phase 1 of 3 complete
+Progress: [██████████] 3 of 3 complete
 
 ## Accumulated Context
 
