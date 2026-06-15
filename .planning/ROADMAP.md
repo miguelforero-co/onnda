@@ -46,7 +46,7 @@ Plans:
 **Plans**: 3 plans (2 waves)
 
 Plans:
-- [ ] 02-01-PLAN.md — COMPAT-01: build x86_64 del sidecar (cross-compile) + CI macos-15 + dual-triple
+- [x] 02-01-PLAN.md — COMPAT-01: build x86_64 del sidecar (cross-compile) + CI macos-15 + dual-triple
 - [ ] 02-02-PLAN.md — COMPAT-02/03/04 backend: gate motor Apple, default por hardware, threads clamp
 - [ ] 02-03-PLAN.md — COMPAT-02 UI (disabled_reason) + COMPAT-05 fix flash notch (checkpoint)
 
@@ -97,7 +97,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Blindaje de producción | 4/4 | ✅ Done | 2026-06-15 |
-| 2. Compatibilidad honesta | 0/3 | ⬜ Not started | — |
+| 2. Compatibilidad honesta | 1/3 | In Progress|  |
 | 3. Firma, notarización y repo público | 0/? | ⬜ Not started | — |
 | 4. Métricas y crash reporting opt-in | 0/? | ⬜ Not started | — |
 | 5. Pulido | 0/? | ⬜ Not started | — |

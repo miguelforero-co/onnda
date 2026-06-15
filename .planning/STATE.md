@@ -1,17 +1,17 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.0
-milestone_name: Camino al lanzamiento público
-status: phase-complete
-stopped_at: Phase 1 (Blindaje de producción) COMPLETA — 4/4 planes, verifier PASSED 6/6, build verde. Listo para Phase 2.
-last_updated: "2026-06-15T19:00:00.000Z"
+milestone_name: milestone
+status: executing
+stopped_at: "Completed 02-01: build-sidecar.sh dual-triple + release.yml macos-15 (COMPAT-01)"
+last_updated: "2026-06-15T19:55:49.641Z"
 last_activity: 2026-06-15
 progress:
   total_phases: 5
   completed_phases: 1
-  total_plans: 4
-  completed_plans: 4
-  percent: 100
+  total_plans: 7
+  completed_plans: 5
+  percent: 71
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-15)
 
 **Core value:** Dictado por voz rápido, privado y siempre disponible vía atajo global.
-**Current focus:** Phase 1 completa. Siguiente: Phase 2 — Compatibilidad honesta (Intel + Apple Silicon).
+**Current focus:** Phase 02 — compatibilidad-honesta-intel-apple-silicon
 
 ## Current Position
 
-Phase: 1 de 5 — COMPLETA (Blindaje de producción)
-Plan: 4 of 4 done
-Status: Phase complete — listo para `/gsd-plan-phase 2`
-Last activity: 2026-06-15 — Phase 1 ejecutada y verificada
+Phase: 02 (compatibilidad-honesta-intel-apple-silicon) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
+Last activity: 2026-06-15
 
 Progress: [██        ] 1 of 5 complete
 
@@ -45,11 +45,14 @@ Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
 - Diagnóstico técnico completo (con file:line) en `.planning/research/LAUNCH-DIAGNOSIS.md`.
 
 **Phase 1 (decisiones de implementación):**
+
 - KeepOne rotation para tauri-plugin-log (evita bug macOS con KeepAll); plugin registrado primero en el builder.
 - mpsc::channel para propagar Result del stream cpal desde thread spawneado (HARDEN-01).
 - parking_lot::Mutex solo en MODEL_CACHE; CAPTURE/COMMITTED_TEXT/STREAM_HANDLE diferidos a Phase 5.
 - URLs de modelos pinneadas a commit SHA de HF + SHA256 verificado en streaming antes de rename (HARDEN-03).
 - transcribe-warning no aborta el loop (preserva segmentos acumulados); check_model_status reutiliza lógica primary/fallback.
+- [Phase 02-compatibilidad-honesta-intel-apple-silicon]: swift build --triple x86_64-apple-macosx11.0 para cross-compilar sidecar Swift a x86_64 desde arm64; ambos triples antes del primer tauri build
+- [Phase 02-compatibilidad-honesta-intel-apple-silicon]: CI usa macos-15 (Xcode 26.x, SDK macOS 26) requerido por Package.swift .macOS(26.0)
 
 ### Pending Todos
 
@@ -64,6 +67,6 @@ Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
 
 ## Session Continuity
 
-Last session: 2026-06-15
-Stopped at: Phase 1 completa y verificada
+Last session: 2026-06-15T19:55:49.629Z
+Stopped at: Completed 02-01: build-sidecar.sh dual-triple + release.yml macos-15 (COMPAT-01)
 Resume file: None

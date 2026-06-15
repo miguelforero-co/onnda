@@ -15,7 +15,7 @@ Derivados del diagnóstico en `research/LAUNCH-DIAGNOSIS.md`. Cada requirement e
 
 ### COMPAT — Compatibilidad honesta Intel + Apple Silicon
 
-- [ ] **COMPAT-01**: El DMG de Intel (x86_64) se construye correctamente en CI (sidecar Apple opcional o build x86_64 del sidecar)
+- [x] **COMPAT-01**: El DMG de Intel (x86_64) se construye correctamente en CI (sidecar Apple opcional o build x86_64 del sidecar)
 - [ ] **COMPAT-02**: El motor Apple solo aparece disponible en Apple Silicon + macOS 26 con sidecar presente; oculto o deshabilitado con explicación donde no aplica
 - [ ] **COMPAT-03**: El modelo por defecto se elige según el hardware al primer arranque (Intel / poca RAM → small/base; Apple Silicon → turbo o motor Apple)
 - [ ] **COMPAT-04**: El número de threads de inferencia se limita a los cores reales de la máquina
