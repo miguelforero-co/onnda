@@ -756,6 +756,25 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
             .unwrap_or(false)
     };
 
+    // Gate del motor Apple: requiere Apple Silicon (aarch64) + macOS ≥ 26 + sidecar presente.
+    // En el binario x86_64 el bloque #[cfg(target_arch = "aarch64")] se elimina en compilación.
+    let apple_disabled_reason: Option<String> = {
+        #[cfg(target_arch = "aarch64")]
+        {
+            if crate::compat::macos_major_version() >= 26 && crate::compat::sidecar_available(&app) {
+                None
+            } else if crate::compat::macos_major_version() >= 26 {
+                Some("Sidecar ASR no encontrado en este bundle".to_string())
+            } else {
+                Some("Requiere macOS 26 (Tahoe) o superior".to_string())
+            }
+        }
+        #[cfg(not(target_arch = "aarch64"))]
+        {
+            Some("Requiere Apple Silicon + macOS 26".to_string())
+        }
+    };
+
     vec![
         ModelInfo {
             id: "base".to_string(),
@@ -763,6 +782,7 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
             size_mb: 141,
             downloaded: model_exists("base"),
             coming_soon: false,
+            disabled_reason: None,
         },
         ModelInfo {
             id: "small".to_string(),
@@ -770,6 +790,7 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
             size_mb: 466,
             downloaded: model_exists("small"),
             coming_soon: false,
+            disabled_reason: None,
         },
         ModelInfo {
             id: "medium".to_string(),
@@ -777,6 +798,7 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
             size_mb: 1536,
             downloaded: model_exists("medium"),
             coming_soon: false,
+            disabled_reason: None,
         },
         ModelInfo {
             id: "large-v3-turbo".to_string(),
@@ -784,13 +806,15 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
             size_mb: 874,
             downloaded: model_exists("large-v3-turbo"),
             coming_soon: false,
+            disabled_reason: None,
         },
         ModelInfo {
             id: crate::speech_backend::APPLE_MODEL_ID.to_string(),
             name: "Apple (Neural Engine)".to_string(),
             size_mb: 0,           // on-device, assets managed by macOS
-            downloaded: true,     // no .bin to download; always available on macOS 26+
+            downloaded: apple_disabled_reason.is_none(),
             coming_soon: false,
+            disabled_reason: apple_disabled_reason,
         },
     ]
 }
@@ -986,4 +1010,8 @@ pub struct ModelInfo {
     /// Parakeet ANE). The frontend renders these as a "Próximamente" card
     /// without a download action (D-13).
     pub coming_soon: bool,
+    /// Some(msg) cuando el modelo existe pero no está disponible en este hardware —
+    /// la UI lo muestra deshabilitado con el mensaje como explicación (tooltip o subtítulo).
+    /// None cuando el modelo puede usarse normalmente en esta máquina.
+    pub disabled_reason: Option<String>,
 }
