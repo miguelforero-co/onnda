@@ -8,7 +8,7 @@ Llevar Voz Local de "app personal madura" a "producto público": descarga direct
 
 ## Phases
 
-- [ ] **Phase 1: Blindaje de producción** — cero crashes en ruta crítica, integridad+offline del modelo, fallos visibles, logging a disco
+- [x] **Phase 1: Blindaje de producción** — cero crashes en ruta crítica, integridad+offline del modelo, fallos visibles, logging a disco
 - [ ] **Phase 2: Compatibilidad honesta (Intel + Apple Silicon)** — build x86_64, motor Apple gateado a Silicon, modelo por defecto según hardware
 - [ ] **Phase 3: Firma, notarización y repo público** — Developer ID + notarytool en CI, updater real, LICENSE MIT, higiene OSS
 - [ ] **Phase 4: Métricas y crash reporting opt-in** — Aptabase + Sentry/GlitchTip, solo conteos, consentimiento honesto
@@ -32,7 +32,7 @@ Plans:
 - [x] 01-01-PLAN.md — Fundación: deps (parking_lot, tauri-plugin-log, log) + registro del logger a disco (HARDEN-06)
 - [x] 01-02-PLAN.md — Hardening backend: mic no crashea (HARDEN-01) + MODEL_CACHE parking_lot (HARDEN-02) + eprintln→log (HARDEN-06)
 - [x] 01-03-PLAN.md — commands.rs: integridad SHA256+pin (HARDEN-03) + check_model_status (HARDEN-04) + transcribe-warning (HARDEN-05) + eprintln→log (HARDEN-06)
-- [ ] 01-04-PLAN.md — Frontend: banner de modelo ausente (HARDEN-04) + aviso no bloqueante de fallo parcial (HARDEN-05) + checkpoint humano
+- [x] 01-04-PLAN.md — Frontend: banner de modelo ausente (HARDEN-04) + aviso no bloqueante de fallo parcial (HARDEN-05) + checkpoint humano
 
 ### Phase 2: Compatibilidad honesta (Intel + Apple Silicon)
 **Goal**: La app se instala y funciona bien tanto en Intel como en Apple Silicon, sin ofrecer features que no existen en cada hardware y eligiendo un modelo razonable por máquina.
@@ -94,7 +94,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Blindaje de producción | 3/4 | In Progress|  |
+| 1. Blindaje de producción | 4/4 | ✅ Done | 2026-06-15 |
 | 2. Compatibilidad honesta | 0/? | ⬜ Not started | — |
 | 3. Firma, notarización y repo público | 0/? | ⬜ Not started | — |
 | 4. Métricas y crash reporting opt-in | 0/? | ⬜ Not started | — |
