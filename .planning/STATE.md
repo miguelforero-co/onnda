@@ -1,15 +1,15 @@
 ---
 gsd_state_version: 1.0
 milestone: v2.0
-milestone_name: Camino al lanzamiento público
-status: defining
-stopped_at: Milestone v2.0 iniciado — roadmap de 5 fases creado, listo para planear Phase 1.
-last_updated: "2026-06-15T12:00:00.000Z"
-last_activity: 2026-06-15
+milestone_name: milestone
+status: executing
+stopped_at: Milestone v2.0 roadmap creado
+last_updated: "2026-06-15T18:30:21.892Z"
+last_activity: 2026-06-15 -- Phase 1 planning complete
 progress:
   total_phases: 5
   completed_phases: 0
-  total_plans: 0
+  total_plans: 4
   completed_plans: 0
   percent: 0
 ---
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-06-15)
 
 Phase: Not started (defining requirements)
 Plan: —
-Status: Roadmap creado (5 fases), listo para `/gsd-plan-phase 1`
-Last activity: 2026-06-15 — Milestone v2.0 iniciado
+Status: Ready to execute
+Last activity: 2026-06-15 -- Phase 1 planning complete
 
 Progress: [          ] 0 of 5 complete
 
@@ -37,6 +37,7 @@ Progress: [          ] 0 of 5 complete
 ### Decisions
 
 Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
+
 - Distribución por descarga directa, NO App Store (auto-paste incompatible con App Sandbox).
 - Soportar Intel + Apple Silicon; Neural Engine solo en Silicon (no existe en Intel).
 - Gratis + OSS en v1, sin cuentas ni backend ni pagos.
