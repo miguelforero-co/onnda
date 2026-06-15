@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 01-08-PLAN.md
+stopped_at: Completed 01-09-PLAN.md (Phase 1 done — build green; human checklist pending user)
 last_updated: "2026-06-14T18:17:05.101Z"
 last_activity: 2026-06-14
 progress:
   total_phases: 3
-  completed_phases: 0
+  completed_phases: 1
   total_plans: 9
-  completed_plans: 8
-  percent: 89
+  completed_plans: 9
+  percent: 100
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-14)
 
 **Core value:** Dictado por voz rápido, privado y siempre disponible vía atajo global.
-**Current focus:** Phase 01 — Rediseño del panel (sidebar Home+Settings, estilo WhisprFlow)
+**Current focus:** Phase 02 — Parakeet como motor ASR seleccionable (vía FluidAudio/ANE)
 
 ## Current Position
 
-Phase: 01 (Rediseño del panel (sidebar Home+Settings, estilo WhisprFlow)) — EXECUTING
-Plan: 9 of 9
-Status: Ready to execute
+Phase: 02 (Parakeet como motor seleccionable) — PLANNING NEXT
+Plan: TBD (Phase 1 complete: 9/9, build green)
+Status: Phase 1 done; planning Phase 2
 Last activity: 2026-06-14
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [███░░░░░░░] Phase 1 of 3 complete
 
 ## Accumulated Context
 

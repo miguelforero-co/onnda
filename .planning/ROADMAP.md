@@ -6,7 +6,7 @@ Rediseño del panel de configuración de Voz Local hacia un panel lateral tipo "
 
 ## Phases
 
-- [ ] **Phase 1: Rediseño del panel (sidebar Home+Settings, estilo WhisprFlow)** - Shell de UI + todos los settings + archivos + diccionario como items
+- [x] **Phase 1: Rediseño del panel (sidebar Home+Settings, estilo WhisprFlow)** - Shell de UI + todos los settings + archivos + diccionario como items
 - [ ] **Phase 2: Parakeet como motor seleccionable** - Backend ASR adicional vía FluidAudio/ANE, integrado al selector
 - [ ] **Phase 3: Auto-learn from corrections** - Aprender de las correcciones del usuario para mejorar transcripciones
 
@@ -35,7 +35,7 @@ Plans:
 - [x] 01-06-PLAN.md — Gestión de datos (reveal/clear) + check-for-updates (con fallback check-only)
 - [x] 01-07-PLAN.md — Sección Ajustes: hotkey, sonidos, pause-media, lenguaje, launch-at-login, permisos, modelos+Parakeet, updates, datos
 - [x] 01-08-PLAN.md — Secciones Home + Transcripciones (filtro+upload) + Diccionario (items)
-- [ ] 01-09-PLAN.md — Integración final + checklist de verificación manual (7 criterios)
+- [x] 01-09-PLAN.md — Integración final + checklist de verificación manual (7 criterios)
 
 ### Phase 2: Parakeet como motor seleccionable
 **Goal**: Parakeet (vía FluidAudio/ANE) queda disponible como motor ASR seleccionable en el selector de modelos, implementando el trait `TranscriptionBackend`, sin romper el pipeline existente de Whisper.
@@ -67,6 +67,6 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Rediseño del panel | 0/9 | Not started | - |
+| 1. Rediseño del panel | 9/9 | ✅ Done | 2026-06-14 |
 | 2. Parakeet motor seleccionable | 0/TBD | Not started | - |
 | 3. Auto-learn from corrections | 0/TBD | Not started | - |
