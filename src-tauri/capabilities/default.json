@@ -18,6 +18,10 @@
     "process:allow-exit",
     "process:allow-restart",
     "shell:allow-open",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [{ "name": "binaries/asr", "sidecar": true, "args": true }]
+    },
     "dialog:allow-open",
     "fs:allow-read-file",
     "fs:allow-write-file",

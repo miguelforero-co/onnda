@@ -18,6 +18,7 @@ mod streaming;
 mod transcription;
 mod vad;
 mod whisper_backend;
+mod speech_backend;
 
 // New module stubs (filled in by downstream Wave 2+ plans).
 mod sounds;

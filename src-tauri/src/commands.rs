@@ -151,6 +151,12 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
         } else {
             settings.selected_model.clone()
         };
+        // Apple SpeechAnalyzer is effectively instant (~0.15s, ANE) and has no
+        // model to warm — incremental pre-commits would only add overhead. Skip
+        // the streaming loop entirely; the full audio is transcribed once at stop.
+        if model_name == crate::speech_backend::APPLE_MODEL_ID {
+            return;
+        }
         let Some(dir) = models_dir(&app_for_stream) else { return; };
         let primary = dir.join(format!("ggml-{}.bin", model_name));
         let fallback = dir.join("ggml-base.bin");
@@ -306,32 +312,39 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     let custom_words = settings.custom_words.clone();
     let word_correction_threshold = settings.word_correction_threshold;
     let model_name = if settings.selected_model.is_empty() {
-        "large-v3-turbo"
+        "large-v3-turbo".to_string()
     } else {
-        settings.selected_model.as_str()
+        settings.selected_model.clone()
     };
+    let is_apple = model_name == crate::speech_backend::APPLE_MODEL_ID;
 
-    let Some(dir) = models_dir(&app) else {
-        app.emit("transcribing", false).ok();
-        app.emit("transcribe-error", "Modelo no encontrado. Descárgalo en Ajustes → Modelos.").ok();
-        return;
-    };
-    let primary  = dir.join(format!("ggml-{}.bin", model_name));
-    let fallback = dir.join("ggml-base.bin");
-    let model_path = if primary.exists() {
-        primary
-    } else if fallback.exists() {
-        fallback
+    // Whisper needs a downloaded .bin; Apple SpeechAnalyzer transcribes via the
+    // sidecar with no local model file, so skip the model-path resolution.
+    let model_path_str = if is_apple {
+        String::new()
     } else {
-        app.emit("transcribing", false).ok();
-        app.emit("transcribe-error", "Modelo no encontrado. Descárgalo en Ajustes → Modelos.").ok();
-        return;
-    };
-
-    let Some(model_path_str) = model_path.to_str().map(str::to_owned) else {
-        app.emit("transcribing", false).ok();
-        app.emit("transcribe-error", "Ruta del modelo contiene caracteres inválidos").ok();
-        return;
+        let Some(dir) = models_dir(&app) else {
+            app.emit("transcribing", false).ok();
+            app.emit("transcribe-error", "Modelo no encontrado. Descárgalo en Ajustes → Modelos.").ok();
+            return;
+        };
+        let primary  = dir.join(format!("ggml-{}.bin", model_name));
+        let fallback = dir.join("ggml-base.bin");
+        let model_path = if primary.exists() {
+            primary
+        } else if fallback.exists() {
+            fallback
+        } else {
+            app.emit("transcribing", false).ok();
+            app.emit("transcribe-error", "Modelo no encontrado. Descárgalo en Ajustes → Modelos.").ok();
+            return;
+        };
+        let Some(s) = model_path.to_str().map(str::to_owned) else {
+            app.emit("transcribing", false).ok();
+            app.emit("transcribe-error", "Ruta del modelo contiene caracteres inválidos").ok();
+            return;
+        };
+        s
     };
 
     let app_clone = app.clone();
@@ -354,18 +367,26 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     let prompt_tail = custom_words.clone();
     let min_tail = (sample_rate as usize) / 10; // 100ms — skip a negligible tail
     let tail_result = if tail.len() > min_tail {
-        tokio::task::spawn_blocking(move || {
-            WhisperBackend::new(model_path_str).transcribe(
-                &tail,
-                &TranscribeOpts {
-                    language: lang_tail,
-                    initial_prompt: prompt_tail,
-                    word_correction_threshold: 1.0,
-                    sample_rate,
-                },
-            )
-        })
-        .await
+        if is_apple {
+            // Apple SpeechAnalyzer via the async sidecar (no spawn_blocking).
+            match crate::speech_backend::apple_transcribe(&app, &tail, sample_rate, &lang_tail).await {
+                Ok(t) => Ok(Ok(t)),
+                Err(e) => Ok(Err(e)),
+            }
+        } else {
+            tokio::task::spawn_blocking(move || {
+                WhisperBackend::new(model_path_str).transcribe(
+                    &tail,
+                    &TranscribeOpts {
+                        language: lang_tail,
+                        initial_prompt: prompt_tail,
+                        word_correction_threshold: 1.0,
+                        sample_rate,
+                    },
+                )
+            })
+            .await
+        }
     } else {
         Ok(Ok(String::new()))
     };
@@ -546,31 +567,37 @@ pub async fn transcribe_file<R: Runtime>(app: AppHandle<R>, path: String) -> Res
     let custom_words = settings.custom_words.clone();
     let word_correction_threshold = settings.word_correction_threshold;
     let model_name = if settings.selected_model.is_empty() {
-        "large-v3-turbo"
+        "large-v3-turbo".to_string()
     } else {
-        settings.selected_model.as_str()
+        settings.selected_model.clone()
     };
+    let is_apple = model_name == crate::speech_backend::APPLE_MODEL_ID;
 
-    let Some(dir) = models_dir(&app) else {
-        let msg = "Modelo no encontrado. Descárgalo en Ajustes → Modelos.";
-        app.emit("file-transcribe-error", msg).ok();
-        return Err(msg.to_string());
-    };
-    let primary = dir.join(format!("ggml-{}.bin", model_name));
-    let fallback = dir.join("ggml-base.bin");
-    let model_path = if primary.exists() {
-        primary
-    } else if fallback.exists() {
-        fallback
+    let model_path_str = if is_apple {
+        String::new()
     } else {
-        let msg = "Modelo no encontrado. Descárgalo en Ajustes → Modelos.";
-        app.emit("file-transcribe-error", msg).ok();
-        return Err(msg.to_string());
-    };
-    let Some(model_path_str) = model_path.to_str().map(str::to_owned) else {
-        let msg = "Ruta del modelo contiene caracteres inválidos";
-        app.emit("file-transcribe-error", msg).ok();
-        return Err(msg.to_string());
+        let Some(dir) = models_dir(&app) else {
+            let msg = "Modelo no encontrado. Descárgalo en Ajustes → Modelos.";
+            app.emit("file-transcribe-error", msg).ok();
+            return Err(msg.to_string());
+        };
+        let primary = dir.join(format!("ggml-{}.bin", model_name));
+        let fallback = dir.join("ggml-base.bin");
+        let model_path = if primary.exists() {
+            primary
+        } else if fallback.exists() {
+            fallback
+        } else {
+            let msg = "Modelo no encontrado. Descárgalo en Ajustes → Modelos.";
+            app.emit("file-transcribe-error", msg).ok();
+            return Err(msg.to_string());
+        };
+        let Some(s) = model_path.to_str().map(str::to_owned) else {
+            let msg = "Ruta del modelo contiene caracteres inválidos";
+            app.emit("file-transcribe-error", msg).ok();
+            return Err(msg.to_string());
+        };
+        s
     };
 
     // 4. Transcribe off the async runtime.
@@ -578,27 +605,37 @@ pub async fn transcribe_file<R: Runtime>(app: AppHandle<R>, path: String) -> Res
     let lang = language.clone();
     let prompt = custom_words.clone();
     let transcribe_samples = samples.clone();
-    let raw = match tokio::task::spawn_blocking(move || {
-        WhisperBackend::new(model_path_str).transcribe(
-            &transcribe_samples,
-            &TranscribeOpts {
-                language: lang,
-                initial_prompt: prompt,
-                word_correction_threshold: 1.0,
-                sample_rate: 16000,
-            },
-        )
-    })
-    .await
-    {
-        Ok(Ok(t)) => t,
-        Ok(Err(e)) => {
-            app.emit("file-transcribe-error", e.to_string()).ok();
-            return Err(e.to_string());
+    let raw = if is_apple {
+        match crate::speech_backend::apple_transcribe(&app, &transcribe_samples, 16000, &lang).await {
+            Ok(t) => t,
+            Err(e) => {
+                app.emit("file-transcribe-error", e.to_string()).ok();
+                return Err(e.to_string());
+            }
         }
-        Err(e) => {
-            app.emit("file-transcribe-error", e.to_string()).ok();
-            return Err(e.to_string());
+    } else {
+        match tokio::task::spawn_blocking(move || {
+            WhisperBackend::new(model_path_str).transcribe(
+                &transcribe_samples,
+                &TranscribeOpts {
+                    language: lang,
+                    initial_prompt: prompt,
+                    word_correction_threshold: 1.0,
+                    sample_rate: 16000,
+                },
+            )
+        })
+        .await
+        {
+            Ok(Ok(t)) => t,
+            Ok(Err(e)) => {
+                app.emit("file-transcribe-error", e.to_string()).ok();
+                return Err(e.to_string());
+            }
+            Err(e) => {
+                app.emit("file-transcribe-error", e.to_string()).ok();
+                return Err(e.to_string());
+            }
         }
     };
 
@@ -701,11 +738,11 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
             coming_soon: false,
         },
         ModelInfo {
-            id: "parakeet".to_string(),
-            name: "Parakeet (ANE)".to_string(),
-            size_mb: 0,
-            downloaded: false,
-            coming_soon: true,
+            id: crate::speech_backend::APPLE_MODEL_ID.to_string(),
+            name: "Apple (Neural Engine)".to_string(),
+            size_mb: 0,           // on-device, assets managed by macOS
+            downloaded: true,     // no .bin to download; always available on macOS 26+
+            coming_soon: false,
         },
     ]
 }

@@ -26,3 +26,6 @@ src-tauri/gen/
 # Whisper models (too large for GitHub — bundled in the DMG release)
 src-tauri/resources/models/*.bin
 src-tauri/resources/models/*.onnx
+
+# Swift ASR sidecar build artifacts (the compiled binary in binaries/ is committed)
+src-tauri/sidecar-asr/.build/

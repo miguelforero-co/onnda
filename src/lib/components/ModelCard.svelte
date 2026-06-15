@@ -36,7 +36,7 @@
 >
   <div class="model-info">
     <strong>{model.name}</strong>
-    <span>{model.size_mb} MB</span>
+    <span>{model.size_mb > 0 ? `${model.size_mb} MB` : "En el dispositivo · sin descarga · más rápido"}</span>
     {#if comingSoon}<span class="sub">Disponible en una próxima versión.</span>{/if}
   </div>
 
@@ -46,7 +46,7 @@
     {:else if model.downloaded && selected}
       <span class="badge active">Activo</span>
     {:else if model.downloaded}
-      <span class="badge installed">Instalado</span>
+      <span class="badge installed">{model.size_mb > 0 ? "Instalado" : "Nativo"}</span>
     {:else if progress}
       <div class="dl-bar-wrap"><div class="dl-bar" style="width:{progress.percent}%"></div></div>
       <span class="dl-pct">{Math.round(progress.percent)}%</span>
