@@ -8,6 +8,7 @@ use tauri_plugin_log::{Target, TargetKind, RotationStrategy};
 mod audio;
 mod backend;
 mod commands;
+mod compat;
 mod escape;
 mod history;
 mod mic_permission;
