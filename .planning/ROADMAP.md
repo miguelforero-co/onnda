@@ -9,7 +9,7 @@ Llevar Voz Local de "app personal madura" a "producto público": descarga direct
 ## Phases
 
 - [x] **Phase 1: Blindaje de producción** — cero crashes en ruta crítica, integridad+offline del modelo, fallos visibles, logging a disco
-- [ ] **Phase 2: Compatibilidad honesta (Intel + Apple Silicon)** — build x86_64, motor Apple gateado a Silicon, modelo por defecto según hardware
+- [x] **Phase 2: Compatibilidad honesta (Intel + Apple Silicon)** — build x86_64, motor Apple gateado a Silicon, modelo por defecto según hardware
 - [ ] **Phase 3: Firma, notarización y repo público** — Developer ID + notarytool en CI, updater real, LICENSE MIT, higiene OSS
 - [ ] **Phase 4: Métricas y crash reporting opt-in** — Aptabase + Sentry/GlitchTip, solo conteos, consentimiento honesto
 - [ ] **Phase 5: Pulido** — CI en PRs, tests de rutas críticas, partir god-file commands.rs
@@ -97,7 +97,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Blindaje de producción | 4/4 | ✅ Done | 2026-06-15 |
-| 2. Compatibilidad honesta | 1/3 | In Progress|  |
+| 2. Compatibilidad honesta | 3/3 | ✅ Done | 2026-06-15 |
 | 3. Firma, notarización y repo público | 0/? | ⬜ Not started | — |
 | 4. Métricas y crash reporting opt-in | 0/? | ⬜ Not started | — |
 | 5. Pulido | 0/? | ⬜ Not started | — |

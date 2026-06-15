@@ -60,7 +60,7 @@ Derivados del diagnóstico en `research/LAUNCH-DIAGNOSIS.md`. Cada requirement e
 | REQ-ID | Phase | Status |
 |--------|-------|--------|
 | HARDEN-01..06 | Phase 1 | ✅ Done (2026-06-15) |
-| COMPAT-01..05 | Phase 2 | Pending |
+| COMPAT-01..05 | Phase 2 | ✅ Done (2026-06-15) |
 | DIST-01..05 | Phase 3 | Pending |
 | METRICS-01..03 | Phase 4 | Pending |
 | POLISH-01..03 | Phase 5 | Pending |

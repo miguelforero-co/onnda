@@ -2,9 +2,9 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: verifying
-stopped_at: "Checkpoint: verificar UI del catálogo y ausencia de flash de notch (02-03, task 3)"
-last_updated: "2026-06-15T20:18:12.203Z"
+status: phase-complete
+stopped_at: Phase 2 (Compatibilidad honesta) COMPLETA — 3/3 planes, verifier PASSED 5/5. Siguiente: Phase 3 (NECESITA cuenta Apple Developer del usuario).
+last_updated: "2026-06-15T20:30:00.000Z"
 last_activity: 2026-06-15
 progress:
   total_phases: 5
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-15)
 
 **Core value:** Dictado por voz rápido, privado y siempre disponible vía atajo global.
-**Current focus:** Phase 02 — compatibilidad-honesta-intel-apple-silicon
+**Current focus:** Phases 1 y 2 completas. Siguiente: Phase 3 (firma/notarización) — BLOQUEADA hasta que el usuario abra su cuenta Apple Developer.
 
 ## Current Position
 
-Phase: 02 (compatibilidad-honesta-intel-apple-silicon) — EXECUTING
+Phase: 2 de 5 — COMPLETA (Compatibilidad honesta)
 Plan: 3 of 3
 Status: Phase complete — ready for verification
 Last activity: 2026-06-15
 
-Progress: [██        ] 1 of 5 complete
+Progress: [████      ] 2 of 5 complete
 
 ## Accumulated Context
 
