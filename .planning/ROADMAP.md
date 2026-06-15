@@ -43,10 +43,12 @@ Plans:
   2. El motor Apple solo se ofrece donde funciona (Apple Silicon + macOS 26); en Intel no aparece o aparece deshabilitado con explicación.
   3. Al primer arranque, el modelo por defecto se ajusta al hardware (Intel/poca RAM → liviano; Silicon → turbo o Apple) y los threads no exceden los cores reales.
   4. El widget no muestra el flash de forma-notch en pantallas sin notch.
-**Plans**: TBD
+**Plans**: 3 plans (2 waves)
 
 Plans:
-- [ ] 02-01: TBD
+- [ ] 02-01-PLAN.md — COMPAT-01: build x86_64 del sidecar (cross-compile) + CI macos-15 + dual-triple
+- [ ] 02-02-PLAN.md — COMPAT-02/03/04 backend: gate motor Apple, default por hardware, threads clamp
+- [ ] 02-03-PLAN.md — COMPAT-02 UI (disabled_reason) + COMPAT-05 fix flash notch (checkpoint)
 
 ### Phase 3: Firma, notarización y repo público
 **Goal**: Un usuario puede descargar, instalar y actualizar la app sin advertencias de Gatekeeper ni comandos de terminal, y el repositorio está listo para abrirse como open source.
@@ -95,7 +97,7 @@ Plans:
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Blindaje de producción | 4/4 | ✅ Done | 2026-06-15 |
-| 2. Compatibilidad honesta | 0/? | ⬜ Not started | — |
+| 2. Compatibilidad honesta | 0/3 | ⬜ Not started | — |
 | 3. Firma, notarización y repo público | 0/? | ⬜ Not started | — |
 | 4. Métricas y crash reporting opt-in | 0/? | ⬜ Not started | — |
 | 5. Pulido | 0/? | ⬜ Not started | — |
