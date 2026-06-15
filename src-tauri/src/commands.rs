@@ -235,10 +235,20 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
             // Advance the committed marker regardless, so we never reprocess this
             // audio even if the segment came back empty or errored.
             COMMITTED_SAMPLES.fetch_add(cut, Ordering::SeqCst);
-            if let Ok(Ok(t)) = text {
-                let t = t.trim().to_string();
-                if !t.is_empty() {
-                    COMMITTED_TEXT.lock().unwrap().push(t);
+            match text {
+                Ok(Ok(t)) => {
+                    let t = t.trim().to_string();
+                    if !t.is_empty() {
+                        COMMITTED_TEXT.lock().unwrap().push(t);
+                    }
+                }
+                Ok(Err(e)) => {
+                    log::warn!("[voz-local] streaming segment failed: {e}");
+                    app_for_stream.emit("transcribe-warning", "Parte del dictado no pudo procesarse").ok();
+                }
+                Err(e) => {
+                    log::warn!("[voz-local] streaming segment JoinError: {e}");
+                    app_for_stream.emit("transcribe-warning", "Parte del dictado no pudo procesarse").ok();
                 }
             }
         }
@@ -285,7 +295,7 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     }
 
     let rms = crate::transcription::rms_f32(&samples);
-    eprintln!("[voz-local] samples: {}, rate: {}, rms: {:.6}", samples.len(), sample_rate, rms);
+    log::debug!("[voz-local] samples: {}, rate: {}, rms: {:.6}", samples.len(), sample_rate, rms);
 
     if samples.is_empty() {
         app.emit("transcribing", false).ok();
@@ -356,7 +366,7 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     let committed = COMMITTED_SAMPLES.load(Ordering::SeqCst).min(samples.len());
     let tail: Vec<f32> = samples[committed..].to_vec();
 
-    eprintln!(
+    log::info!(
         "[voz-local] streaming: {} committed segment(s), tail = {:.1}s of {:.1}s total",
         committed_text.len(),
         tail.len() as f32 / sample_rate as f32,
@@ -397,17 +407,21 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     let tail_text = match tail_result {
         Ok(Ok(t)) => t.trim().to_string(),
         Ok(Err(e)) => {
+            log::warn!("[voz-local] tail transcription failed: {e}");
             if committed_text.is_empty() {
                 app.emit("transcribe-error", e.to_string()).ok();
                 return;
             }
+            app.emit("transcribe-warning", "El cierre del dictado tuvo un error parcial").ok();
             String::new()
         }
         Err(e) => {
+            log::warn!("[voz-local] tail transcription JoinError: {e}");
             if committed_text.is_empty() {
                 app.emit("transcribe-error", e.to_string()).ok();
                 return;
             }
+            app.emit("transcribe-warning", "El cierre del dictado tuvo un error parcial").ok();
             String::new()
         }
     };
