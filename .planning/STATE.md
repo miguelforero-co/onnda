@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: phase-complete
-stopped_at: Phase 2 (Compatibilidad honesta) COMPLETA — 3/3 planes, verifier PASSED 5/5. Siguiente: Phase 3 (NECESITA cuenta Apple Developer del usuario).
-last_updated: "2026-06-15T20:30:00.000Z"
+status: executing
+stopped_at: Completed 05-01-PLAN.md (CI workflow)
+last_updated: "2026-06-15T20:38:28.173Z"
 last_activity: 2026-06-15
 progress:
   total_phases: 5
   completed_phases: 2
-  total_plans: 7
-  completed_plans: 7
-  percent: 100
+  total_plans: 10
+  completed_plans: 8
+  percent: 80
 ---
 
 # Project State
@@ -21,13 +21,13 @@ progress:
 See: .planning/PROJECT.md (updated 2026-06-15)
 
 **Core value:** Dictado por voz rápido, privado y siempre disponible vía atajo global.
-**Current focus:** Phases 1 y 2 completas. Siguiente: Phase 3 (firma/notarización) — BLOQUEADA hasta que el usuario abra su cuenta Apple Developer.
+**Current focus:** Phase 05 — pulido
 
 ## Current Position
 
-Phase: 2 de 5 — COMPLETA (Compatibilidad honesta)
-Plan: 3 of 3
-Status: Phase complete — ready for verification
+Phase: 05 (pulido) — EXECUTING
+Plan: 2 of 3
+Status: Ready to execute
 Last activity: 2026-06-15
 
 Progress: [████      ] 2 of 5 complete
@@ -57,6 +57,7 @@ Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
 - [Phase 02-compatibilidad-honesta-intel-apple-silicon]: Default for AppSettings unchanged (selected_model stays large-v3-turbo) to preserve existing settings.json deserialization; first-run override only in init() not-exists branch
 - [Phase 02-compatibilidad-honesta-intel-apple-silicon]: Reused .coming-soon CSS for hardwareDisabled; disabled_reason rendered as inline subtitle + badge inside ModelCard (no new call-site props)
 - [Phase 02-compatibilidad-honesta-intel-apple-silicon]: hasNotch init changed from true to false; existing CSS transition handles pill→notch on real notch screens with no layout-shift
+- [Phase 05-01]: CI workflow (ci.yml): cargo build no-bundle + cargo test in src-tauri + npm ci + npm run check on macos-15, clippy non-blocking (POLISH-01)
 
 ### Pending Todos
 
@@ -71,6 +72,6 @@ Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
 
 ## Session Continuity
 
-Last session: 2026-06-15T20:18:12.200Z
-Stopped at: Checkpoint: verificar UI del catálogo y ausencia de flash de notch (02-03, task 3)
+Last session: 2026-06-15T20:38:28.171Z
+Stopped at: Completed 05-01-PLAN.md (CI workflow)
 Resume file: None

@@ -37,7 +37,7 @@ Derivados del diagnóstico en `research/LAUNCH-DIAGNOSIS.md`. Cada requirement e
 
 ### POLISH — Pulido
 
-- [ ] **POLISH-01**: CI corre build + tests + `svelte-check` en cada PR (no solo en release-on-tag)
+- [x] **POLISH-01**: CI corre build + tests + `svelte-check` en cada PR (no solo en release-on-tag)
 - [ ] **POLISH-02**: Tests cubren las rutas críticas hoy sin probar (recording/transcription en `commands.rs`, `whisper_backend.rs`, `vad.rs`)
 - [ ] **POLISH-03**: `commands.rs` (god-file 909 LOC) se parte en módulos enfocados (paste, models, recording)
 
