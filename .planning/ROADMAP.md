@@ -29,7 +29,7 @@ Llevar Voz Local de "app personal madura" a "producto público": descarga direct
 **Plans**: 4 plans (3 waves)
 
 Plans:
-- [ ] 01-01-PLAN.md — Fundación: deps (parking_lot, tauri-plugin-log, log) + registro del logger a disco (HARDEN-06)
+- [x] 01-01-PLAN.md — Fundación: deps (parking_lot, tauri-plugin-log, log) + registro del logger a disco (HARDEN-06)
 - [ ] 01-02-PLAN.md — Hardening backend: mic no crashea (HARDEN-01) + MODEL_CACHE parking_lot (HARDEN-02) + eprintln→log (HARDEN-06)
 - [ ] 01-03-PLAN.md — commands.rs: integridad SHA256+pin (HARDEN-03) + check_model_status (HARDEN-04) + transcribe-warning (HARDEN-05) + eprintln→log (HARDEN-06)
 - [ ] 01-04-PLAN.md — Frontend: banner de modelo ausente (HARDEN-04) + aviso no bloqueante de fallo parcial (HARDEN-05) + checkpoint humano
@@ -94,7 +94,7 @@ Plans:
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Blindaje de producción | 0/? | ⬜ Not started | — |
+| 1. Blindaje de producción | 1/4 | In Progress|  |
 | 2. Compatibilidad honesta | 0/? | ⬜ Not started | — |
 | 3. Firma, notarización y repo público | 0/? | ⬜ Not started | — |
 | 4. Métricas y crash reporting opt-in | 0/? | ⬜ Not started | — |

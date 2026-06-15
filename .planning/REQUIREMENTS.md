@@ -11,7 +11,7 @@ Derivados del diagnóstico en `research/LAUNCH-DIAGNOSIS.md`. Cada requirement e
 - [ ] **HARDEN-03**: El modelo descargado se verifica por integridad (SHA256 contra hash fijado) y la URL de descarga está pinneada a un commit estable
 - [ ] **HARDEN-04**: En el primer arranque sin conexión (modelo no descargado) el usuario ve un estado claro y accionable, no un fallo críptico
 - [ ] **HARDEN-05**: Los fallos de transcripción (segmento de streaming o tail) se muestran al usuario en vez de descartarse en silencio
-- [ ] **HARDEN-06**: La app escribe logs rotativos a disco para diagnosticar fallos en producción (reemplaza los `eprintln!` que se pierden al lanzar desde Finder)
+- [x] **HARDEN-06**: La app escribe logs rotativos a disco para diagnosticar fallos en producción (reemplaza los `eprintln!` que se pierden al lanzar desde Finder)
 
 ### COMPAT — Compatibilidad honesta Intel + Apple Silicon
 
