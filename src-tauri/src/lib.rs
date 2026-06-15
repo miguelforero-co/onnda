@@ -12,8 +12,10 @@ mod compat;
 mod escape;
 mod history;
 mod mic_permission;
+mod models;
 #[cfg(target_os = "macos")]
 mod notch;
+mod paste;
 mod settings;
 mod shortcut;
 mod streaming;
@@ -62,9 +64,9 @@ pub fn run() {
             commands::stop_and_transcribe,
             commands::transcribe_file,
             commands::is_recording_cmd,
-            commands::get_models,
-            commands::download_model,
-            commands::check_model_status,
+            models::get_models,
+            models::download_model,
+            models::check_model_status,
             commands::check_mic_permission,
             commands::check_accessibility_permission,
             commands::open_accessibility_settings,

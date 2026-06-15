@@ -21,12 +21,6 @@ static COMMITTED_TEXT: Mutex<Vec<String>> = Mutex::new(Vec::new());
 static COMMITTED_SAMPLES: AtomicUsize = AtomicUsize::new(0);
 static STREAM_HANDLE: Mutex<Option<tauri::async_runtime::JoinHandle<()>>> = Mutex::new(None);
 
-#[cfg(target_os = "macos")]
-fn ax_is_trusted() -> bool {
-    extern "C" { fn AXIsProcessTrusted() -> bool; }
-    unsafe { AXIsProcessTrusted() }
-}
-
 // ── Permission checks ──────────────────────────────────────────────────────
 
 #[tauri::command]
@@ -37,7 +31,7 @@ pub fn check_mic_permission() -> bool {
 #[tauri::command]
 pub fn check_accessibility_permission() -> bool {
     #[cfg(target_os = "macos")]
-    { ax_is_trusted() }
+    { crate::paste::ax_is_trusted() }
     #[cfg(not(target_os = "macos"))]
     { true }
 }
@@ -157,16 +151,8 @@ pub fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result<(), St
         if model_name == crate::speech_backend::APPLE_MODEL_ID {
             return;
         }
-        let Some(dir) = models_dir(&app_for_stream) else { return; };
-        let primary = dir.join(format!("ggml-{}.bin", model_name));
-        let fallback = dir.join("ggml-base.bin");
-        let model_path = if primary.exists() {
-            primary
-        } else if fallback.exists() {
-            fallback
-        } else {
-            return;
-        };
+        let Some(dir) = crate::models::models_dir(&app_for_stream) else { return; };
+        let Some(model_path) = crate::models::resolve_model_path(&dir, &model_name) else { return; };
         let Some(model_path_str) = model_path.to_str().map(str::to_owned) else { return; };
 
         // Warm the model so the first segment (and the final tail) is pure inference.
@@ -333,18 +319,12 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     let model_path_str = if is_apple {
         String::new()
     } else {
-        let Some(dir) = models_dir(&app) else {
+        let Some(dir) = crate::models::models_dir(&app) else {
             app.emit("transcribing", false).ok();
             app.emit("transcribe-error", "Modelo no encontrado. Descárgalo en Ajustes → Modelos.").ok();
             return;
         };
-        let primary  = dir.join(format!("ggml-{}.bin", model_name));
-        let fallback = dir.join("ggml-base.bin");
-        let model_path = if primary.exists() {
-            primary
-        } else if fallback.exists() {
-            fallback
-        } else {
+        let Some(model_path) = crate::models::resolve_model_path(&dir, &model_name) else {
             app.emit("transcribing", false).ok();
             app.emit("transcribe-error", "Modelo no encontrado. Descárgalo en Ajustes → Modelos.").ok();
             return;
@@ -449,7 +429,7 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     let text_for_paste = text.clone();
     tokio::spawn(async move {
         tokio::time::sleep(std::time::Duration::from_millis(300)).await;
-        paste_text(&text_for_paste);
+        crate::paste::paste_text(&text_for_paste);
     });
 }
 
@@ -493,7 +473,7 @@ pub async fn cancel_recording_internal<R: Runtime>(app: AppHandle<R>) {
 pub fn test_paste() -> String {
     #[cfg(target_os = "macos")]
     {
-        if !ax_is_trusted() {
+        if !crate::paste::ax_is_trusted() {
             return "no_accessibility".to_string();
         }
         // Try posting a harmless zero-length CGEvent to verify the API works
@@ -593,18 +573,12 @@ pub async fn transcribe_file<R: Runtime>(app: AppHandle<R>, path: String) -> Res
     let model_path_str = if is_apple {
         String::new()
     } else {
-        let Some(dir) = models_dir(&app) else {
+        let Some(dir) = crate::models::models_dir(&app) else {
             let msg = "Modelo no encontrado. Descárgalo en Ajustes → Modelos.";
             app.emit("file-transcribe-error", msg).ok();
             return Err(msg.to_string());
         };
-        let primary = dir.join(format!("ggml-{}.bin", model_name));
-        let fallback = dir.join("ggml-base.bin");
-        let model_path = if primary.exists() {
-            primary
-        } else if fallback.exists() {
-            fallback
-        } else {
+        let Some(model_path) = crate::models::resolve_model_path(&dir, &model_name) else {
             let msg = "Modelo no encontrado. Descárgalo en Ajustes → Modelos.";
             app.emit("file-transcribe-error", msg).ok();
             return Err(msg.to_string());
@@ -739,279 +713,4 @@ pub fn correct_history_entry<R: Runtime>(
 #[tauri::command]
 pub fn get_recording_audio<R: Runtime>(app: AppHandle<R>, filename: String) -> Option<String> {
     history::get_audio_base64(&app, &filename)
-}
-
-// ── Models ─────────────────────────────────────────────────────────────────
-
-fn models_dir<R: Runtime>(app: &AppHandle<R>) -> Option<std::path::PathBuf> {
-    app.path().app_data_dir().ok().map(|p| p.join("models"))
-}
-
-#[tauri::command]
-pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
-    let dir = models_dir(&app);
-    let model_exists = |name: &str| {
-        dir.as_ref()
-            .map(|p| p.join(format!("ggml-{}.bin", name)).exists())
-            .unwrap_or(false)
-    };
-
-    // Gate del motor Apple: requiere Apple Silicon (aarch64) + macOS ≥ 26 + sidecar presente.
-    // En el binario x86_64 el bloque #[cfg(target_arch = "aarch64")] se elimina en compilación.
-    let apple_disabled_reason: Option<String> = {
-        #[cfg(target_arch = "aarch64")]
-        {
-            if crate::compat::macos_major_version() >= 26 && crate::compat::sidecar_available(&app) {
-                None
-            } else if crate::compat::macos_major_version() >= 26 {
-                Some("Sidecar ASR no encontrado en este bundle".to_string())
-            } else {
-                Some("Requiere macOS 26 (Tahoe) o superior".to_string())
-            }
-        }
-        #[cfg(not(target_arch = "aarch64"))]
-        {
-            Some("Requiere Apple Silicon + macOS 26".to_string())
-        }
-    };
-
-    vec![
-        ModelInfo {
-            id: "base".to_string(),
-            name: "Whisper Base".to_string(),
-            size_mb: 141,
-            downloaded: model_exists("base"),
-            coming_soon: false,
-            disabled_reason: None,
-        },
-        ModelInfo {
-            id: "small".to_string(),
-            name: "Whisper Small".to_string(),
-            size_mb: 466,
-            downloaded: model_exists("small"),
-            coming_soon: false,
-            disabled_reason: None,
-        },
-        ModelInfo {
-            id: "medium".to_string(),
-            name: "Whisper Medium".to_string(),
-            size_mb: 1536,
-            downloaded: model_exists("medium"),
-            coming_soon: false,
-            disabled_reason: None,
-        },
-        ModelInfo {
-            id: "large-v3-turbo".to_string(),
-            name: "Whisper Large v3 Turbo".to_string(),
-            size_mb: 874,
-            downloaded: model_exists("large-v3-turbo"),
-            coming_soon: false,
-            disabled_reason: None,
-        },
-        ModelInfo {
-            id: crate::speech_backend::APPLE_MODEL_ID.to_string(),
-            name: "Apple (Neural Engine)".to_string(),
-            size_mb: 0,           // on-device, assets managed by macOS
-            downloaded: apple_disabled_reason.is_none(),
-            coming_soon: false,
-            disabled_reason: apple_disabled_reason,
-        },
-    ]
-}
-
-#[tauri::command]
-pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> Result<(), String> {
-    use sha2::{Sha256, Digest};
-
-    // Pinned URLs and expected SHA256 hashes (verified 2026-06-15 via HF x-linked-etag)
-    let (url, expected_sha256) = match model_id.as_str() {
-        "large-v3-turbo" => (
-            "https://huggingface.co/ggerganov/whisper.cpp/resolve/0b364b566045a405be7225ee1e415a073e04da77/ggml-large-v3-turbo-q8_0.bin",
-            "317eb69c11673c9de1e1f0d459b253999804ec71ac4c23c17ecf5fbe24e259a1",
-        ),
-        "base" => (
-            "https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/ggml-base.bin",
-            "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe",
-        ),
-        "small" => (
-            "https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/ggml-small.bin",
-            "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b",
-        ),
-        "medium" => (
-            "https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/ggml-medium.bin",
-            "6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208",
-        ),
-        other => return Err(format!("Modelo desconocido: {}", other)),
-    };
-
-    let dir = models_dir(&app).ok_or("No se pudo obtener el directorio de datos")?;
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-
-    let dest = dir.join(format!("ggml-{}.bin", model_id));
-    let tmp  = dir.join(format!("ggml-{}.bin.tmp", model_id));
-
-    // Clean up any leftover .tmp from a previous failed download
-    let _ = tokio::fs::remove_file(&tmp).await;
-
-    let client = reqwest::Client::builder()
-        .user_agent("voz-local/0.1")
-        .build()
-        .map_err(|e| e.to_string())?;
-
-    let resp = client.get(url).send().await.map_err(|e| e.to_string())?;
-    if !resp.status().is_success() {
-        return Err(format!("HTTP {} al descargar el modelo", resp.status()));
-    }
-
-    let total = resp.content_length().unwrap_or(0);
-    let mut downloaded: u64 = 0;
-    let mut hasher = Sha256::new();
-
-    let mut file = tokio::fs::File::create(&tmp).await.map_err(|e| e.to_string())?;
-    let mut stream = resp.bytes_stream();
-
-    use futures_util::StreamExt;
-    use tokio::io::AsyncWriteExt;
-
-    while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| {
-            let _ = std::fs::remove_file(&tmp);
-            e.to_string()
-        })?;
-        hasher.update(&chunk);
-        file.write_all(&chunk).await.map_err(|e| e.to_string())?;
-        downloaded += chunk.len() as u64;
-
-        let percent = if total > 0 { downloaded as f32 / total as f32 * 100.0 } else { 0.0 };
-        app.emit("download-progress", serde_json::json!({
-            "model_id": model_id,
-            "downloaded_mb": downloaded as f32 / 1_048_576.0,
-            "total_mb":      total      as f32 / 1_048_576.0,
-            "percent":       percent,
-        })).ok();
-    }
-
-    // Flush OS buffers before rename (tokio File does not guarantee flush on drop)
-    file.flush().await.map_err(|e| e.to_string())?;
-    drop(file);
-
-    // Verify SHA256 before making the file visible — never rename a corrupt download
-    let computed = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect::<String>();
-    if computed != expected_sha256 {
-        let _ = tokio::fs::remove_file(&tmp).await;
-        return Err(format!(
-            "La descarga de '{}' está corrupta (hash incorrecto). Inténtalo de nuevo.",
-            model_id
-        ));
-    }
-
-    tokio::fs::rename(&tmp, &dest).await.map_err(|e| e.to_string())?;
-    app.emit("download-complete", &model_id).ok();
-    Ok(())
-}
-
-#[derive(serde::Serialize)]
-pub struct ModelStatus {
-    pub ready: bool,
-    pub model_id: String,
-}
-
-/// Proactively check whether the currently selected (or default) model is
-/// available on disk so the frontend can show a banner at startup instead of
-/// discovering the absence only when the user tries to dictate.
-#[tauri::command]
-pub fn check_model_status<R: Runtime>(app: AppHandle<R>) -> ModelStatus {
-    let settings = settings::load(&app);
-    let model_name = if settings.selected_model.is_empty() {
-        crate::compat::hardware_default_model().to_string()
-    } else {
-        settings.selected_model.clone()
-    };
-    // Apple SpeechAnalyzer uses the on-device Neural Engine — no .bin to download.
-    if model_name == crate::speech_backend::APPLE_MODEL_ID {
-        return ModelStatus { ready: true, model_id: model_name };
-    }
-    let Some(dir) = models_dir(&app) else {
-        return ModelStatus { ready: false, model_id: model_name };
-    };
-    let primary  = dir.join(format!("ggml-{}.bin", model_name));
-    let fallback = dir.join("ggml-base.bin");
-    let ready = primary.exists() || fallback.exists();
-    ModelStatus { ready, model_id: model_name }
-}
-
-// ── Internals ──────────────────────────────────────────────────────────────
-
-fn paste_text(text: &str) {
-    #[cfg(target_os = "macos")]
-    {
-        // 1. Write to clipboard using NSPasteboard directly — avoids pbcopy's locale
-        //    encoding issues (pbcopy can mangle UTF-8 when LANG is not set in the env).
-        unsafe { write_clipboard_utf8(text) };
-
-        // 2. Simulate Cmd+V via CoreGraphics CGEventPost.
-        //    Requires Accessibility permission.
-        unsafe { post_cmd_v() };
-    }
-}
-
-#[cfg(target_os = "macos")]
-unsafe fn write_clipboard_utf8(text: &str) {
-    use objc2::{class, msg_send, runtime::AnyObject};
-    use objc2_foundation::{NSString, ns_string};
-
-    let pb: *mut AnyObject = msg_send![class!(NSPasteboard), generalPasteboard];
-    // Clear existing clipboard content
-    let _: i64 = msg_send![pb, clearContents];
-    // Create NSString from Rust &str (always UTF-8 → Unicode)
-    let ns_str = NSString::from_str(text);
-    // Store as public.utf8-plain-text
-    let pb_type = ns_string!("public.utf8-plain-text");
-    let _: bool = msg_send![pb, setString: &*ns_str, forType: pb_type];
-}
-
-#[cfg(target_os = "macos")]
-unsafe fn post_cmd_v() {
-    use std::ffi::c_void;
-
-    #[link(name = "CoreGraphics", kind = "framework")]
-    extern "C" {
-        fn CGEventSourceCreate(state_id: i32) -> *mut c_void;
-        fn CGEventCreateKeyboardEvent(source: *mut c_void, virtual_key: u16, key_down: bool) -> *mut c_void;
-        fn CGEventSetFlags(event: *mut c_void, flags: u64);
-        fn CGEventPost(tap: i32, event: *mut c_void);
-        fn CFRelease(cf: *mut c_void);
-    }
-
-    const V_KEY: u16 = 9;           // kVK_ANSI_V
-    const CMD_MASK: u64 = 0x100000; // kCGEventFlagMaskCommand
-    const HID_TAP: i32 = 0;         // kCGHIDEventTap
-    const HID_STATE: i32 = 1;       // kCGEventSourceStateHIDSystemState
-
-    let src = CGEventSourceCreate(HID_STATE);
-    if src.is_null() { return; }
-
-    let dn = CGEventCreateKeyboardEvent(src, V_KEY, true);
-    if !dn.is_null() { CGEventSetFlags(dn, CMD_MASK); CGEventPost(HID_TAP, dn); CFRelease(dn); }
-
-    let up = CGEventCreateKeyboardEvent(src, V_KEY, false);
-    if !up.is_null() { CGEventSetFlags(up, CMD_MASK); CGEventPost(HID_TAP, up); CFRelease(up); }
-
-    CFRelease(src);
-}
-
-#[derive(serde::Serialize)]
-pub struct ModelInfo {
-    pub id: String,
-    pub name: String,
-    pub size_mb: u32,
-    pub downloaded: bool,
-    /// True for catalog entries that are listed but not yet functional (e.g.
-    /// Parakeet ANE). The frontend renders these as a "Próximamente" card
-    /// without a download action (D-13).
-    pub coming_soon: bool,
-    /// Some(msg) cuando el modelo existe pero no está disponible en este hardware —
-    /// la UI lo muestra deshabilitado con el mensaje como explicación (tooltip o subtítulo).
-    /// None cuando el modelo puede usarse normalmente en esta máquina.
-    pub disabled_reason: Option<String>,
 }
