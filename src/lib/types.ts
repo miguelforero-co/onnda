@@ -50,6 +50,7 @@ export interface ModelInfo {
   size_mb: number;
   downloaded: boolean;
   coming_soon: boolean;
+  disabled_reason: string | null;
 }
 
 export interface DownloadProgress {

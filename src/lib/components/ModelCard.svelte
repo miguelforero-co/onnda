@@ -21,14 +21,15 @@
     onSelect?: (id: string) => void;
   } = $props();
 
-  const selectable = $derived(model.downloaded && !comingSoon);
+  const hardwareDisabled = $derived(!!model.disabled_reason);
+  const selectable = $derived(model.downloaded && !comingSoon && !model.disabled_reason);
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <div
   class="model-card"
   class:selected={selected && !comingSoon}
-  class:coming-soon={comingSoon}
+  class:coming-soon={comingSoon || hardwareDisabled}
   role={selectable ? "button" : "presentation"}
   tabindex={selectable ? 0 : -1}
   onclick={() => { if (selectable) onSelect?.(model.id); }}
@@ -38,10 +39,13 @@
     <strong>{model.name}</strong>
     <span>{model.size_mb > 0 ? `${model.size_mb} MB` : "En el dispositivo · sin descarga · más rápido"}</span>
     {#if comingSoon}<span class="sub">Disponible en una próxima versión.</span>{/if}
+    {#if hardwareDisabled}<span class="sub" title={model.disabled_reason}>{model.disabled_reason}</span>{/if}
   </div>
 
   <div class="model-action">
-    {#if comingSoon}
+    {#if hardwareDisabled}
+      <span class="badge soon">No disponible</span>
+    {:else if comingSoon}
       <span class="badge soon">Próximamente</span>
     {:else if model.downloaded && selected}
       <span class="badge active">Activo</span>
