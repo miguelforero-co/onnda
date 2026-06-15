@@ -16,9 +16,9 @@ Derivados del diagnóstico en `research/LAUNCH-DIAGNOSIS.md`. Cada requirement e
 ### COMPAT — Compatibilidad honesta Intel + Apple Silicon
 
 - [x] **COMPAT-01**: El DMG de Intel (x86_64) se construye correctamente en CI (sidecar Apple opcional o build x86_64 del sidecar)
-- [ ] **COMPAT-02**: El motor Apple solo aparece disponible en Apple Silicon + macOS 26 con sidecar presente; oculto o deshabilitado con explicación donde no aplica
-- [ ] **COMPAT-03**: El modelo por defecto se elige según el hardware al primer arranque (Intel / poca RAM → small/base; Apple Silicon → turbo o motor Apple)
-- [ ] **COMPAT-04**: El número de threads de inferencia se limita a los cores reales de la máquina
+- [x] **COMPAT-02**: El motor Apple solo aparece disponible en Apple Silicon + macOS 26 con sidecar presente; oculto o deshabilitado con explicación donde no aplica
+- [x] **COMPAT-03**: El modelo por defecto se elige según el hardware al primer arranque (Intel / poca RAM → small/base; Apple Silicon → turbo o motor Apple)
+- [x] **COMPAT-04**: El número de threads de inferencia se limita a los cores reales de la máquina
 - [ ] **COMPAT-05**: El widget no muestra el flash de forma-notch en pantallas sin notch (`hasNotch` init correcto)
 
 ### DIST — Firma, notarización y repo público

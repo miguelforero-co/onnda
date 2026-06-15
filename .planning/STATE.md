@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-stopped_at: "Completed 02-01: build-sidecar.sh dual-triple + release.yml macos-15 (COMPAT-01)"
-last_updated: "2026-06-15T19:55:49.641Z"
+stopped_at: Completed 02-compatibilidad-honesta-intel-apple-silicon-02-PLAN.md
+last_updated: "2026-06-15T20:13:39.003Z"
 last_activity: 2026-06-15
 progress:
   total_phases: 5
   completed_phases: 1
   total_plans: 7
-  completed_plans: 5
-  percent: 71
+  completed_plans: 6
+  percent: 86
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-15)
 ## Current Position
 
 Phase: 02 (compatibilidad-honesta-intel-apple-silicon) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-15
 
@@ -53,6 +53,8 @@ Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
 - transcribe-warning no aborta el loop (preserva segmentos acumulados); check_model_status reutiliza lógica primary/fallback.
 - [Phase 02-compatibilidad-honesta-intel-apple-silicon]: swift build --triple x86_64-apple-macosx11.0 para cross-compilar sidecar Swift a x86_64 desde arm64; ambos triples antes del primer tauri build
 - [Phase 02-compatibilidad-honesta-intel-apple-silicon]: CI usa macos-15 (Xcode 26.x, SDK macOS 26) requerido por Package.swift .macOS(26.0)
+- [Phase 02-compatibilidad-honesta-intel-apple-silicon]: disabled_reason: Option<String> added to ModelInfo (not reusing coming_soon) to distinguish hardware-unavailable from not-yet-built
+- [Phase 02-compatibilidad-honesta-intel-apple-silicon]: Default for AppSettings unchanged (selected_model stays large-v3-turbo) to preserve existing settings.json deserialization; first-run override only in init() not-exists branch
 
 ### Pending Todos
 
@@ -67,6 +69,6 @@ Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
 
 ## Session Continuity
 
-Last session: 2026-06-15T19:55:49.629Z
-Stopped at: Completed 02-01: build-sidecar.sh dual-triple + release.yml macos-15 (COMPAT-01)
+Last session: 2026-06-15T20:13:38.997Z
+Stopped at: Completed 02-compatibilidad-honesta-intel-apple-silicon-02-PLAN.md
 Resume file: None
