@@ -41,7 +41,7 @@
     word_correction_threshold: 0.85,
     sounds_enabled: true,
     sound_on_listen: true, sound_on_stop: true, sound_on_cancel: true,
-    pause_media: false, dictionary: [],
+    pause_media: false, dictionary: [], replacements: [],
   });
   let view = $state<View>("home");
   // onboarding has two steps: "perms" then "models"

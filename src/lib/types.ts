@@ -16,6 +16,13 @@ export interface Settings {
   sound_on_cancel: boolean;
   pause_media: boolean;
   dictionary: string[];
+  replacements: Replacement[];
+}
+
+export interface Replacement {
+  from: string;
+  to: string;
+  regex: boolean;
 }
 
 export interface HistoryEntry {

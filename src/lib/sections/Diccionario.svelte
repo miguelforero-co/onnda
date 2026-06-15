@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Settings } from "$lib/types";
+  import type { Settings, Replacement } from "$lib/types";
 
   // Prop contract from 01-03 (Diccionario stub). D-19/D-20/D-21: item-list editor.
   let {
@@ -65,6 +65,29 @@
     editingIdx = null;
   }
 
+  // ── Replacements / snippets (deterministic post-transcription) ──
+  let rFrom = $state("");
+  let rTo = $state("");
+  let rRegex = $state(false);
+
+  function addReplacement() {
+    const from = rFrom.trim();
+    if (!from) return;
+    const next: Replacement = { from, to: rTo, regex: rRegex };
+    settings.replacements = [...(settings.replacements ?? []), next];
+    rFrom = ""; rTo = ""; rRegex = false;
+    onSave();
+  }
+
+  function removeReplacement(idx: number) {
+    settings.replacements = (settings.replacements ?? []).filter((_, i) => i !== idx);
+    onSave();
+  }
+
+  function onReplKey(e: KeyboardEvent) {
+    if (e.key === "Enter") { e.preventDefault(); addReplacement(); }
+  }
+
   function onAddKey(e: KeyboardEvent) {
     if (e.key === "Enter") { e.preventDefault(); addWord(); }
   }
@@ -122,6 +145,47 @@
         {/if}
       {/each}
     </div>
+  {/if}
+</section>
+
+<section>
+  <h2 class="sub-title">Reemplazos y atajos de texto</h2>
+  <p class="section-hint">
+    Corrige términos o expande atajos en cada transcripción (ambos motores).
+    Ej: «air table» → «Airtable», o «mi correo» → tu email. No distingue mayúsculas.
+  </p>
+
+  <div class="repl-add">
+    <input class="ipt" type="text" placeholder="Buscar (lo que se dice)" bind:value={rFrom} onkeydown={onReplKey} />
+    <span class="arrow">→</span>
+    <input class="ipt" type="text" placeholder="Reemplazar por" bind:value={rTo} onkeydown={onReplKey} />
+    <label class="rx-toggle" title="Tratar «Buscar» como expresión regular">
+      <input type="checkbox" bind:checked={rRegex} /> regex
+    </label>
+    <button class="link-btn" onclick={addReplacement} disabled={!rFrom.trim()}>+ Agregar</button>
+  </div>
+
+  {#if (settings.replacements ?? []).length === 0}
+    <div class="empty">
+      <p>Sin reemplazos</p>
+      <span>Agrega reglas para corregir nombres o expandir atajos al dictar.</span>
+    </div>
+  {:else}
+    <ul class="repl-list">
+      {#each settings.replacements as r, idx (idx)}
+        <li class="repl-row">
+          <code class="repl-from">{r.from}</code>
+          <span class="arrow">→</span>
+          <code class="repl-to">{r.to || "(vacío)"}</code>
+          {#if r.regex}<span class="rx-badge">regex</span>{/if}
+          <button class="icon-btn del" onclick={() => removeReplacement(idx)} title="Eliminar">
+            <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+              <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
+            </svg>
+          </button>
+        </li>
+      {/each}
+    </ul>
   {/if}
 </section>
 
@@ -183,4 +247,30 @@
   }
   .empty p { font-size: 14px; font-weight: 450; color: var(--muted); }
   .empty span { font-size: 12px; color: var(--faint); line-height: 1.5; }
+
+  /* ── Replacements ── */
+  .sub-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+  .repl-add { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .arrow { color: var(--faint); font-size: 13px; }
+  .rx-toggle {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 11px; color: var(--muted); cursor: pointer; white-space: nowrap;
+  }
+  .repl-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+  .repl-row {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--glass-fill); border: 1px solid var(--line);
+    box-shadow: var(--glass-edge); border-radius: var(--r-sm); padding: 6px 10px;
+  }
+  .repl-from, .repl-to {
+    font-size: 12px; color: var(--text);
+    background: var(--bg-2); border-radius: 5px; padding: 2px 7px;
+    max-width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .repl-to { color: var(--muted); }
+  .rx-badge {
+    font-size: 10px; color: var(--faint);
+    border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px;
+  }
+  .repl-row .icon-btn { margin-left: auto; }
 </style>

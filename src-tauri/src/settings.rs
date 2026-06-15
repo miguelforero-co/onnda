@@ -39,6 +39,23 @@ pub struct AppSettings {
     /// the joined string (`dictionary.join(", ")`) as Whisper initial_prompt.
     #[serde(default)]
     pub dictionary: Vec<String>,
+    /// Deterministic post-transcription find/replace rules + voice snippets.
+    /// Applied to every transcription (dictation and file) after vocabulary
+    /// correction, for BOTH engines. This is how custom vocabulary reaches the
+    /// Apple engine, which has no initial_prompt: e.g. "air table" -> "Airtable".
+    #[serde(default)]
+    pub replacements: Vec<Replacement>,
+}
+
+/// One post-transcription replacement. `from` -> `to`. When `regex` is false the
+/// match is a case-insensitive literal (multi-word allowed, e.g. snippets like
+/// "mi correo" -> "hello@example.com"); when true, `from` is a regex pattern.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct Replacement {
+    pub from: String,
+    pub to: String,
+    #[serde(default)]
+    pub regex: bool,
 }
 
 fn default_word_correction_threshold() -> f32 { 0.85 }
@@ -62,6 +79,7 @@ impl Default for AppSettings {
             sound_on_cancel: false,
             pause_media: false,
             dictionary: Vec::new(),
+            replacements: Vec::new(),
         }
     }
 }

@@ -418,7 +418,10 @@ pub async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
         parts.push(tail_text);
     }
     let assembled = parts.join(" ").split_whitespace().collect::<Vec<_>>().join(" ");
-    let text = crate::transcription::correct_words(&assembled, &custom_words, word_correction_threshold);
+    let corrected = crate::transcription::correct_words(&assembled, &custom_words, word_correction_threshold);
+    // Deterministic find/replace + snippets (works for both engines; the main
+    // way custom vocabulary reaches the Apple engine, which has no prompt).
+    let text = crate::replacements::apply_replacements(&corrected, &settings.replacements);
 
     if text.is_empty() {
         app.emit("transcribe-error", "No se detectó voz").ok();
@@ -639,8 +642,9 @@ pub async fn transcribe_file<R: Runtime>(app: AppHandle<R>, path: String) -> Res
         }
     };
 
-    // 5. Correct vocabulary once over the assembled text.
-    let text = crate::transcription::correct_words(raw.trim(), &custom_words, word_correction_threshold);
+    // 5. Correct vocabulary, then apply deterministic find/replace + snippets.
+    let corrected = crate::transcription::correct_words(raw.trim(), &custom_words, word_correction_threshold);
+    let text = crate::replacements::apply_replacements(&corrected, &settings.replacements);
     if text.is_empty() {
         let msg = "No se detectó voz";
         app.emit("file-transcribe-error", msg).ok();

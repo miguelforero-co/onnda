@@ -44,6 +44,9 @@ whisper-rs = "0.14"
 # String similarity (word correction, same crate Aztec Voice uses)
 strsim = "0.11"
 
+# Deterministic post-transcription find/replace + voice snippets
+regex = "1"
+
 # File transcription: decode arbitrary audio containers (wav/mp3/m4a) to PCM.
 symphonia = { version = "0.6", features = ["mp3", "isomp4", "aac", "alac", "wav", "pcm"] }
 # Model download integrity (sha256 verify).
