@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 05-pulido-05-02-PLAN.md
+status: phase-complete
+stopped_at: Phases 1, 2, 5 COMPLETAS. Pendientes F3 (firma — necesita cuenta Apple Developer) y F4 (métricas — necesita key Aptabase).
 last_updated: "2026-06-15T20:41:43.172Z"
 last_activity: 2026-06-15
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 10
-  completed_plans: 9
+  completed_plans: 10
   percent: 90
 ---
 

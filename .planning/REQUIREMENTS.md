@@ -39,7 +39,7 @@ Derivados del diagnóstico en `research/LAUNCH-DIAGNOSIS.md`. Cada requirement e
 
 - [x] **POLISH-01**: CI corre build + tests + `svelte-check` en cada PR (no solo en release-on-tag)
 - [x] **POLISH-02**: Tests cubren las rutas críticas hoy sin probar (recording/transcription en `commands.rs`, `whisper_backend.rs`, `vad.rs`)
-- [ ] **POLISH-03**: `commands.rs` (god-file 909 LOC) se parte en módulos enfocados (paste, models, recording)
+- [x] **POLISH-03**: `commands.rs` (god-file 909 LOC) se parte en módulos enfocados (paste, models, recording)
 
 ## Future Requirements (diferidos)
 
@@ -63,4 +63,4 @@ Derivados del diagnóstico en `research/LAUNCH-DIAGNOSIS.md`. Cada requirement e
 | COMPAT-01..05 | Phase 2 | ✅ Done (2026-06-15) |
 | DIST-01..05 | Phase 3 | Pending |
 | METRICS-01..03 | Phase 4 | Pending |
-| POLISH-01..03 | Phase 5 | Pending |
+| POLISH-01..03 | Phase 5 | ✅ Done (2026-06-15) |

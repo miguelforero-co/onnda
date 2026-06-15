@@ -12,7 +12,7 @@ Llevar Voz Local de "app personal madura" a "producto público": descarga direct
 - [x] **Phase 2: Compatibilidad honesta (Intel + Apple Silicon)** — build x86_64, motor Apple gateado a Silicon, modelo por defecto según hardware
 - [ ] **Phase 3: Firma, notarización y repo público** — Developer ID + notarytool en CI, updater real, LICENSE MIT, higiene OSS
 - [ ] **Phase 4: Métricas y crash reporting opt-in** — Aptabase + Sentry/GlitchTip, solo conteos, consentimiento honesto
-- [ ] **Phase 5: Pulido** — CI en PRs, tests de rutas críticas, partir god-file commands.rs
+- [x] **Phase 5: Pulido** — CI en PRs, tests de rutas críticas, partir god-file commands.rs
 
 ## Phase Details
 
@@ -90,7 +90,7 @@ Plans:
 Plans:
 - [x] 05-01-PLAN.md — POLISH-01: workflow de CI (build + tests + svelte-check) en push/PR (wave 1)
 - [x] 05-02-PLAN.md — POLISH-02: tests de lógica pura de vad_trim (wave 1)
-- [ ] 05-03-PLAN.md — POLISH-03 + POLISH-02: partir commands.rs en paste/models/recording + resolve_model_path testeado (wave 2, depende de 05-02)
+- [x] 05-03-PLAN.md — POLISH-03 + POLISH-02: partir commands.rs en paste/models/recording + resolve_model_path testeado (wave 2, depende de 05-02)
 
 ## Progress
 
@@ -102,4 +102,4 @@ Plans:
 | 2. Compatibilidad honesta | 3/3 | ✅ Done | 2026-06-15 |
 | 3. Firma, notarización y repo público | 0/? | ⬜ Not started | — |
 | 4. Métricas y crash reporting opt-in | 0/? | ⬜ Not started | — |
-| 5. Pulido | 2/3 | In Progress|  |
+| 5. Pulido | 3/3 | ✅ Done | 2026-06-15 |
