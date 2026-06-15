@@ -783,12 +783,27 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
 
 #[tauri::command]
 pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> Result<(), String> {
-    let url = match model_id.as_str() {
-        "large-v3-turbo" => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-large-v3-turbo-q8_0.bin",
-        "base"           => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-base.bin",
-        "small"          => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin",
-        "medium"         => "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-medium.bin",
-        other            => return Err(format!("Modelo desconocido: {}", other)),
+    use sha2::{Sha256, Digest};
+
+    // Pinned URLs and expected SHA256 hashes (verified 2026-06-15 via HF x-linked-etag)
+    let (url, expected_sha256) = match model_id.as_str() {
+        "large-v3-turbo" => (
+            "https://huggingface.co/ggerganov/whisper.cpp/resolve/0b364b566045a405be7225ee1e415a073e04da77/ggml-large-v3-turbo-q8_0.bin",
+            "317eb69c11673c9de1e1f0d459b253999804ec71ac4c23c17ecf5fbe24e259a1",
+        ),
+        "base" => (
+            "https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/ggml-base.bin",
+            "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe",
+        ),
+        "small" => (
+            "https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/ggml-small.bin",
+            "1be3a9b2063867b937e64e2ec7483364a79917e157fa98c5d94b5c1fffea987b",
+        ),
+        "medium" => (
+            "https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/ggml-medium.bin",
+            "6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208",
+        ),
+        other => return Err(format!("Modelo desconocido: {}", other)),
     };
 
     let dir = models_dir(&app).ok_or("No se pudo obtener el directorio de datos")?;
@@ -797,6 +812,9 @@ pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> 
     let dest = dir.join(format!("ggml-{}.bin", model_id));
     let tmp  = dir.join(format!("ggml-{}.bin.tmp", model_id));
 
+    // Clean up any leftover .tmp from a previous failed download
+    let _ = tokio::fs::remove_file(&tmp).await;
+
     let client = reqwest::Client::builder()
         .user_agent("voz-local/0.1")
         .build()
@@ -804,11 +822,12 @@ pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> 
 
     let resp = client.get(url).send().await.map_err(|e| e.to_string())?;
     if !resp.status().is_success() {
-        return Err(format!("HTTP {}", resp.status()));
+        return Err(format!("HTTP {} al descargar el modelo", resp.status()));
     }
 
     let total = resp.content_length().unwrap_or(0);
     let mut downloaded: u64 = 0;
+    let mut hasher = Sha256::new();
 
     let mut file = tokio::fs::File::create(&tmp).await.map_err(|e| e.to_string())?;
     let mut stream = resp.bytes_stream();
@@ -817,7 +836,11 @@ pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> 
     use tokio::io::AsyncWriteExt;
 
     while let Some(chunk) = stream.next().await {
-        let chunk = chunk.map_err(|e| e.to_string())?;
+        let chunk = chunk.map_err(|e| {
+            let _ = std::fs::remove_file(&tmp);
+            e.to_string()
+        })?;
+        hasher.update(&chunk);
         file.write_all(&chunk).await.map_err(|e| e.to_string())?;
         downloaded += chunk.len() as u64;
 
@@ -830,7 +853,20 @@ pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> 
         })).ok();
     }
 
+    // Flush OS buffers before rename (tokio File does not guarantee flush on drop)
+    file.flush().await.map_err(|e| e.to_string())?;
     drop(file);
+
+    // Verify SHA256 before making the file visible — never rename a corrupt download
+    let computed = hasher.finalize().iter().map(|b| format!("{b:02x}")).collect::<String>();
+    if computed != expected_sha256 {
+        let _ = tokio::fs::remove_file(&tmp).await;
+        return Err(format!(
+            "La descarga de '{}' está corrupta (hash incorrecto). Inténtalo de nuevo.",
+            model_id
+        ));
+    }
+
     tokio::fs::rename(&tmp, &dest).await.map_err(|e| e.to_string())?;
     app.emit("download-complete", &model_id).ok();
     Ok(())
