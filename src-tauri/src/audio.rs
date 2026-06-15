@@ -34,12 +34,14 @@ impl AudioCapture {
         let mut planner = rustfft::FftPlanner::<f32>::new();
         let fft = planner.plan_fft_forward(FFT_SIZE);
 
+        let (tx, rx) = std::sync::mpsc::channel::<Result<(), String>>();
+
         let thread = std::thread::spawn(move || {
             use cpal::traits::StreamTrait;
             let samples_cb = Arc::clone(&samples_thread);
             let last_emit = Arc::clone(&last_emit_ms);
 
-            let stream = device
+            let stream = match device
                 .build_input_stream(
                     &config.into(),
                     move |data: &[f32], _| {
@@ -67,16 +69,35 @@ impl AudioCapture {
                             on_level(rms_f32(data), bands);
                         }
                     },
-                    |err| eprintln!("cpal error: {err}"),
+                    |err| log::error!("[audio] cpal stream error: {err}"),
                     None,
-                )
-                .expect("failed to build input stream");
+                ) {
+                Ok(s) => { tx.send(Ok(())).ok(); s }
+                Err(e) => {
+                    let msg = match e {
+                        cpal::BuildStreamError::DeviceNotAvailable =>
+                            "El micrófono dejó de estar disponible. Revisa que no esté en uso por otra app.".to_string(),
+                        cpal::BuildStreamError::StreamConfigNotSupported =>
+                            "El micrófono no admite la configuración solicitada.".to_string(),
+                        e => format!("Error al configurar el micrófono: {e}"),
+                    };
+                    tx.send(Err(msg)).ok();
+                    return;
+                }
+            };
 
-            stream.play().expect("failed to start stream");
+            if let Err(e) = stream.play() {
+                log::error!("[audio] stream.play() error: {e}");
+                return;
+            }
             while !stop_thread.load(Ordering::Relaxed) {
                 std::thread::sleep(std::time::Duration::from_millis(10));
             }
         });
+
+        rx.recv()
+            .map_err(|_| anyhow!("El thread de audio terminó inesperadamente"))?
+            .map_err(|e| anyhow!("{e}"))?;
 
         Ok(Self { sample_rate, samples, stop, thread: Some(thread) })
     }
