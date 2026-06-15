@@ -19,7 +19,7 @@ fn register_shortcut<R: Runtime>(app: &AppHandle<R>, shortcut_str: &str) -> taur
                         if !crate::commands::is_recording() {
                             show_widget(&app_press);
                             if let Err(e) = crate::commands::start_recording_internal(&app_press) {
-                                eprintln!("[shortcut] start_recording error: {e}");
+                                log::error!("[shortcut] start_recording error: {e}");
                             }
                         }
                     } else {
@@ -32,7 +32,7 @@ fn register_shortcut<R: Runtime>(app: &AppHandle<R>, shortcut_str: &str) -> taur
                         } else {
                             show_widget(&app_press);
                             if let Err(e) = crate::commands::start_recording_internal(&app_press) {
-                                eprintln!("[shortcut] start_recording error: {e}");
+                                log::error!("[shortcut] start_recording error: {e}");
                             }
                         }
                     }

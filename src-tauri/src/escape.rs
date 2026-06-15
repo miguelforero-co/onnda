@@ -18,7 +18,7 @@ pub fn install<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     use std::ptr::NonNull;
 
     if MainThreadMarker::new().is_none() {
-        eprintln!("[escape] not on main thread; skipping monitor install");
+        log::warn!("[escape] not on main thread; skipping monitor install");
         return;
     }
     let app = app.clone();
