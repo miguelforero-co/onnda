@@ -3,6 +3,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     AppHandle, Manager, Runtime,
 };
+use tauri_plugin_log::{Target, TargetKind, RotationStrategy};
 
 mod audio;
 mod backend;
@@ -32,6 +33,16 @@ mod updater_check;
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .level(log::LevelFilter::Info)
+                .target(Target::new(TargetKind::LogDir {
+                    file_name: Some("voz-local".to_string()),
+                }))
+                .max_file_size(5_000_000)
+                .rotation_strategy(RotationStrategy::KeepOne)
+                .build(),
+        )
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_autostart::init(
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
