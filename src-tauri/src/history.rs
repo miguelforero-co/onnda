@@ -14,6 +14,10 @@ pub struct HistoryEntry {
     pub source: String, // "dictation" | "file"
     #[serde(default)]
     pub original_filename: Option<String>, // set for source == "file"
+    /// The text exactly as the ASR produced it, captured the first time the user
+    /// edits this entry. Lets auto-learn diff original vs corrected. None until edited.
+    #[serde(default)]
+    pub original_text: Option<String>,
 }
 
 fn default_source() -> String {
@@ -76,6 +80,7 @@ pub fn save_entry<R: Runtime>(
         duration_secs,
         source,
         original_filename,
+        original_text: None,
     };
 
     let mut history = load(app);
@@ -98,6 +103,28 @@ pub fn delete<R: Runtime>(app: &AppHandle<R>, id: &str) {
             fs::write(history_path(app), json).ok();
         }
     }
+}
+
+/// Update an entry's text (a user correction). Captures `original_text` on the
+/// first edit so auto-learn can diff ASR-output vs corrected. Returns
+/// (previous_text, updated_entry), or None if the id isn't found.
+pub fn update_text<R: Runtime>(
+    app: &AppHandle<R>,
+    id: &str,
+    new_text: &str,
+) -> Option<(String, HistoryEntry)> {
+    let mut history = load(app);
+    let pos = history.iter().position(|e| e.id == id)?;
+    let prev_text = history[pos].text.clone();
+    if history[pos].original_text.is_none() {
+        history[pos].original_text = Some(prev_text.clone());
+    }
+    history[pos].text = new_text.to_string();
+    let updated = history[pos].clone();
+    if let Ok(json) = serde_json::to_string_pretty(&history) {
+        fs::write(history_path(app), json).ok();
+    }
+    Some((prev_text, updated))
 }
 
 pub fn get_audio_base64<R: Runtime>(app: &AppHandle<R>, filename: &str) -> Option<String> {

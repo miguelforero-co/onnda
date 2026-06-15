@@ -42,6 +42,7 @@
     sounds_enabled: true,
     sound_on_listen: true, sound_on_stop: true, sound_on_cancel: true,
     pause_media: false, dictionary: [], replacements: [],
+    auto_learn: true, learned_corrections: [],
   });
   let view = $state<View>("home");
   // onboarding has two steps: "perms" then "models"
@@ -151,6 +152,9 @@
   }
 
   async function goHistory() { history = await invoke("get_history"); }
+  // Auto-learn (Phase 3) mutates settings on the backend (learned_corrections +
+  // replacements). Re-pull so the frontend copy doesn't overwrite them on next save.
+  async function reloadSettings() { settings = await invoke("get_settings"); }
 </script>
 
 {#if view === "onboarding"}
@@ -229,7 +233,7 @@
         <Home {history} />
       {/if}
       {#if view === "transcripciones"}
-        <Transcripciones {history} onRefresh={goHistory} />
+        <Transcripciones {history} onRefresh={goHistory} onSettingsChanged={reloadSettings} />
       {/if}
       {#if view === "importar"}
         <Importar {history} onRefresh={goHistory} />

@@ -152,6 +152,20 @@
   <p class="section-hint">Reproduce un sonido al iniciar, terminar y cancelar el dictado.</p>
 </section>
 
+<!-- ── Aprendizaje (Phase 3 — auto-learn from corrections) ── -->
+<section>
+  <h2 class="section-label">Aprendizaje</h2>
+  <div class="rows">
+    <Toggle
+      id="auto-learn"
+      label="Aprender de mis correcciones"
+      bind:checked={settings.auto_learn}
+      onchange={() => onSave()}
+    />
+  </div>
+  <p class="section-hint">Cuando corriges una transcripción y repites la misma corrección, Voz Local crea una regla para aplicarla sola. Edita una transcripción en "Transcripciones".</p>
+</section>
+
 <!-- ── Sistema (D-10 launch-at-login) ── -->
 <section>
   <h2 class="section-label">Sistema</h2>

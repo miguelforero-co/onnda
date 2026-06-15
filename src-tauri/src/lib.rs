@@ -20,6 +20,7 @@ mod vad;
 mod whisper_backend;
 mod speech_backend;
 mod replacements;
+mod learn;
 
 // New module stubs (filled in by downstream Wave 2+ plans).
 mod sounds;
@@ -57,6 +58,7 @@ pub fn run() {
             commands::open_microphone_settings,
             commands::get_history,
             commands::delete_history_entry,
+            commands::correct_history_entry,
             commands::get_recording_audio,
             commands::hide_widget,
             commands::test_paste,

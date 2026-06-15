@@ -692,6 +692,36 @@ pub fn delete_history_entry<R: Runtime>(app: AppHandle<R>, id: String) {
     history::delete(&app, &id);
 }
 
+/// Save a user correction to a transcription. Updates the stored text and, when
+/// auto-learn is on, diffs the ORIGINAL ASR output against the correction and
+/// learns recurring word substitutions as replacement rules (Phase 3).
+/// Returns what was learned/promoted so the UI can give feedback.
+#[tauri::command]
+pub fn correct_history_entry<R: Runtime>(
+    app: AppHandle<R>,
+    id: String,
+    new_text: String,
+) -> crate::learn::LearnOutcome {
+    let Some((prev_text, entry)) = history::update_text(&app, &id, &new_text) else {
+        return crate::learn::LearnOutcome::default();
+    };
+
+    let mut settings = settings::load(&app);
+    if !settings.auto_learn {
+        return crate::learn::LearnOutcome::default();
+    }
+    // Diff against the original ASR text (captured on first edit), not a prior
+    // manual edit, so we learn from the true machine output.
+    let base = entry.original_text.clone().unwrap_or(prev_text);
+    let pairs = crate::learn::word_diff(&base, &new_text);
+    if pairs.is_empty() {
+        return crate::learn::LearnOutcome::default();
+    }
+    let outcome = crate::learn::record_corrections(&mut settings, &pairs);
+    let _ = settings::save(&app, &settings);
+    outcome
+}
+
 #[tauri::command]
 pub fn get_recording_audio<R: Runtime>(app: AppHandle<R>, filename: String) -> Option<String> {
     history::get_audio_base64(&app, &filename)

@@ -45,6 +45,25 @@ pub struct AppSettings {
     /// Apple engine, which has no initial_prompt: e.g. "air table" -> "Airtable".
     #[serde(default)]
     pub replacements: Vec<Replacement>,
+    /// When true, repeated manual corrections in the history are learned as
+    /// replacement rules automatically (Phase 3 — auto-learn from corrections).
+    #[serde(default = "default_true")]
+    pub auto_learn: bool,
+    /// Running tally of word-level corrections the user has made. Once a given
+    /// from→to reaches the promotion threshold it is added to `replacements`.
+    #[serde(default)]
+    pub learned_corrections: Vec<LearnedCorrection>,
+}
+
+/// A correction observed from user edits, with how many times it's been seen.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct LearnedCorrection {
+    pub from: String,
+    pub to: String,
+    pub count: u32,
+    /// True once this correction has been promoted into `replacements`.
+    #[serde(default)]
+    pub promoted: bool,
 }
 
 /// One post-transcription replacement. `from` -> `to`. When `regex` is false the
@@ -80,6 +99,8 @@ impl Default for AppSettings {
             pause_media: false,
             dictionary: Vec::new(),
             replacements: Vec::new(),
+            auto_learn: true,
+            learned_corrections: Vec::new(),
         }
     }
 }

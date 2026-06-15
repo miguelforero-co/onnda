@@ -17,12 +17,21 @@ export interface Settings {
   pause_media: boolean;
   dictionary: string[];
   replacements: Replacement[];
+  auto_learn: boolean;
+  learned_corrections: LearnedCorrection[];
 }
 
 export interface Replacement {
   from: string;
   to: string;
   regex: boolean;
+}
+
+export interface LearnedCorrection {
+  from: string;
+  to: string;
+  count: number;
+  promoted: boolean;
 }
 
 export interface HistoryEntry {

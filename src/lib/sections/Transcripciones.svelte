@@ -8,9 +8,11 @@
   let {
     history,
     onRefresh,
+    onSettingsChanged,
   }: {
     history: HistoryEntry[];
     onRefresh: () => void;
+    onSettingsChanged?: () => void;
   } = $props();
 
   // ── Source filter ──
@@ -72,6 +74,44 @@
     try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
   }
 
+  // ── Edit + auto-learn from corrections (Phase 3) ──
+  let editingId = $state<string | null>(null);
+  let editText = $state("");
+  let learnNote = $state<string | null>(null);
+  let noteTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function startEdit(e: HistoryEntry) {
+    editingId = e.id;
+    editText = e.text;
+  }
+  function cancelEdit() { editingId = null; }
+
+  function showNote(msg: string) {
+    learnNote = msg;
+    if (noteTimer) clearTimeout(noteTimer);
+    noteTimer = setTimeout(() => { learnNote = null; }, 6000);
+  }
+
+  async function saveEdit(id: string) {
+    const newText = editText.trim();
+    editingId = null;
+    if (!newText) return;
+    const outcome = await invoke<{ learned: [string, string][]; promoted: [string, string][] }>(
+      "correct_history_entry", { id, newText }
+    ).catch(() => null);
+    onRefresh();
+    onSettingsChanged?.();
+    if (outcome && outcome.promoted.length > 0) {
+      const [from, to] = outcome.promoted[0];
+      showNote(`Aprendido: «${from}» → «${to}». Se corregirá solo de ahora en adelante.`);
+    }
+  }
+
+  function onEditKey(e: KeyboardEvent, id: string) {
+    if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); saveEdit(id); }
+    if (e.key === "Escape") { e.preventDefault(); cancelEdit(); }
+  }
+
   function fmtTime(ms: number) {
     const d = new Date(ms), now = new Date();
     return now.toDateString() === d.toDateString()
@@ -101,6 +141,10 @@
   </div>
 </div>
 
+{#if learnNote}
+  <div class="learn-note">✓ {learnNote}</div>
+{/if}
+
 {#if filtered.length === 0}
   <div class="empty">
     <p>Sin transcripciones aún</p>
@@ -115,6 +159,11 @@
           {#if e.duration_secs >= 1}<span class="hist-dur">{fmtDur(e.duration_secs)}</span>{/if}
           {#if e.source === "file" && e.original_filename}<span class="hist-file">{e.original_filename}</span>{/if}
           <div class="hist-actions">
+            <button class="icon-btn" onclick={() => startEdit(e)} title="Editar / corregir">
+              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M6.8 1.4l1.8 1.8-5 5L1.4 8.6 1.8 6.4z"/>
+              </svg>
+            </button>
             <button class="icon-btn" onclick={() => copyEntry(e.text)} title="Copiar">
               <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
                 <rect x="2.5" y="2.5" width="5.5" height="5.5" rx="1"/><path d="M5.5 2.5V1.5a1 1 0 0 0-1-1H1.5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1"/>
@@ -136,7 +185,24 @@
             </button>
           </div>
         </div>
-        <p class="hist-text">{e.text}</p>
+        {#if editingId === e.id}
+          <div class="edit-box">
+            <!-- svelte-ignore a11y_autofocus -->
+            <textarea
+              class="edit-area"
+              bind:value={editText}
+              onkeydown={(ev) => onEditKey(ev, e.id)}
+              autofocus
+            ></textarea>
+            <div class="edit-actions">
+              <button class="link-btn" onclick={() => saveEdit(e.id)}>Guardar</button>
+              <button class="link-btn muted" onclick={cancelEdit}>Cancelar</button>
+              <span class="edit-hint">⌘↵ guardar · Esc cancelar</span>
+            </div>
+          </div>
+        {:else}
+          <p class="hist-text">{e.text}</p>
+        {/if}
       </div>
     {/each}
   </div>
@@ -215,5 +281,28 @@
   .hist-text {
     font-size: 13px; color: var(--muted); line-height: 1.55;
     word-break: break-word; white-space: pre-wrap;
+  }
+
+  /* ── Inline edit (auto-learn) ── */
+  .edit-box { display: flex; flex-direction: column; gap: 6px; }
+  .edit-area {
+    font-size: 13px; color: var(--text); line-height: 1.55;
+    background: var(--bg-2); border: 1px solid var(--line);
+    border-radius: var(--r-sm); padding: 8px 10px; resize: vertical;
+    min-height: 56px; outline: none; width: 100%; box-sizing: border-box;
+    font-family: inherit;
+  }
+  .edit-area:focus {
+    background: var(--elev-1); border-color: transparent;
+    box-shadow: 0 0 0 1px var(--iris-4), 0 0 0 4px rgba(127,200,255,0.16);
+  }
+  .edit-actions { display: flex; align-items: center; gap: 14px; }
+  .link-btn.muted { color: var(--muted); }
+  .edit-hint { font-size: 10.5px; color: var(--faint); margin-left: auto; }
+
+  .learn-note {
+    margin-top: 12px; font-size: 12px; color: var(--text);
+    background: rgba(127,200,255,.10); border: 1px solid var(--line);
+    border-radius: var(--r-sm); padding: 8px 12px;
   }
 </style>
