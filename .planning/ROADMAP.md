@@ -89,7 +89,7 @@ Plans:
 
 Plans:
 - [x] 05-01-PLAN.md — POLISH-01: workflow de CI (build + tests + svelte-check) en push/PR (wave 1)
-- [ ] 05-02-PLAN.md — POLISH-02: tests de lógica pura de vad_trim (wave 1)
+- [x] 05-02-PLAN.md — POLISH-02: tests de lógica pura de vad_trim (wave 1)
 - [ ] 05-03-PLAN.md — POLISH-03 + POLISH-02: partir commands.rs en paste/models/recording + resolve_model_path testeado (wave 2, depende de 05-02)
 
 ## Progress
@@ -102,4 +102,4 @@ Plans:
 | 2. Compatibilidad honesta | 3/3 | ✅ Done | 2026-06-15 |
 | 3. Firma, notarización y repo público | 0/? | ⬜ Not started | — |
 | 4. Métricas y crash reporting opt-in | 0/? | ⬜ Not started | — |
-| 5. Pulido | 1/3 | In Progress|  |
+| 5. Pulido | 2/3 | In Progress|  |

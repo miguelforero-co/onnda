@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v2.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-01-PLAN.md (CI workflow)
-last_updated: "2026-06-15T20:38:28.173Z"
+stopped_at: Completed 05-pulido-05-02-PLAN.md
+last_updated: "2026-06-15T20:41:43.172Z"
 last_activity: 2026-06-15
 progress:
   total_phases: 5
   completed_phases: 2
   total_plans: 10
-  completed_plans: 8
-  percent: 80
+  completed_plans: 9
+  percent: 90
 ---
 
 # Project State
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-06-15)
 ## Current Position
 
 Phase: 05 (pulido) — EXECUTING
-Plan: 2 of 3
+Plan: 3 of 3
 Status: Ready to execute
 Last activity: 2026-06-15
 
@@ -58,6 +58,7 @@ Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
 - [Phase 02-compatibilidad-honesta-intel-apple-silicon]: Reused .coming-soon CSS for hardwareDisabled; disabled_reason rendered as inline subtitle + badge inside ModelCard (no new call-site props)
 - [Phase 02-compatibilidad-honesta-intel-apple-silicon]: hasNotch init changed from true to false; existing CSS transition handles pill→notch on real notch screens with no layout-shift
 - [Phase 05-01]: CI workflow (ci.yml): cargo build no-bundle + cargo test in src-tauri + npm ci + npm run check on macos-15, clippy non-blocking (POLISH-01)
+- [Phase 05-pulido]: Pure f32 slices (zeros + sine) chosen for vad_trim tests — no audio pipeline mocks needed; tests are self-contained and run in 0.00s
 
 ### Pending Todos
 
@@ -72,6 +73,6 @@ Decisions logged in PROJECT.md Key Decisions table. Clave para v2.0:
 
 ## Session Continuity
 
-Last session: 2026-06-15T20:38:28.171Z
-Stopped at: Completed 05-01-PLAN.md (CI workflow)
+Last session: 2026-06-15T20:41:43.169Z
+Stopped at: Completed 05-pulido-05-02-PLAN.md
 Resume file: None
