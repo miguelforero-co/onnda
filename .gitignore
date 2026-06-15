@@ -29,3 +29,6 @@ src-tauri/resources/models/*.onnx
 
 # Swift ASR sidecar build artifacts (the compiled binary in binaries/ is committed)
 src-tauri/sidecar-asr/.build/
+
+# Compiled test/scratch binaries at repo root
+rust_out
