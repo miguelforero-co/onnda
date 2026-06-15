@@ -160,7 +160,12 @@ pub fn load<R: Runtime>(app: &AppHandle<R>) -> AppSettings {
 pub fn save<R: Runtime>(app: &AppHandle<R>, settings: &AppSettings) -> tauri::Result<()> {
     let path = settings_path(app);
     let json = serde_json::to_string_pretty(settings).unwrap();
-    fs::write(path, json).map_err(|e| tauri::Error::Anyhow(e.into()))?;
+    // Write to a temp file then rename — an atomic swap, so a concurrent writer
+    // (e.g. save_settings vs correct_history_entry) can never leave a half-written
+    // or corrupt settings.json.
+    let tmp = path.with_extension("json.tmp");
+    fs::write(&tmp, json).map_err(|e| tauri::Error::Anyhow(e.into()))?;
+    fs::rename(&tmp, &path).map_err(|e| tauri::Error::Anyhow(e.into()))?;
     *CACHE.lock().unwrap() = Some(settings.clone());
     Ok(())
 }

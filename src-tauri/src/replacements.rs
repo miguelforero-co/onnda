@@ -27,7 +27,14 @@ pub fn apply_replacements(text: &str, rules: &[Replacement]) -> String {
             format!("(?i){}", regex::escape(&r.from))
         };
         if let Ok(re) = Regex::new(&pattern) {
-            out = re.replace_all(&out, r.to.as_str()).into_owned();
+            out = if r.regex {
+                // Regex rules may reference capture groups ($1, ${name}).
+                re.replace_all(&out, r.to.as_str()).into_owned()
+            } else {
+                // Literal rules / snippets must be inserted verbatim — no $-expansion
+                // (so "cuesta $5" or an email isn't mangled).
+                re.replace_all(&out, regex::NoExpand(r.to.as_str())).into_owned()
+            };
         }
     }
     out
@@ -71,6 +78,16 @@ mod tests {
     fn invalid_regex_is_skipped_not_panicking() {
         let rules = vec![rx("(", "x"), lit("hola", "chau")];
         assert_eq!(apply_replacements("hola", &rules), "chau");
+    }
+
+    #[test]
+    fn literal_to_with_dollar_is_verbatim() {
+        // "$5" must not be treated as a capture-group reference.
+        let rules = vec![lit("mi precio", "cuesta $5 cada uno")];
+        assert_eq!(
+            apply_replacements("dile mi precio", &rules),
+            "dile cuesta $5 cada uno"
+        );
     }
 
     #[test]

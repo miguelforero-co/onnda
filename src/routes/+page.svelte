@@ -154,7 +154,12 @@
   async function goHistory() { history = await invoke("get_history"); }
   // Auto-learn (Phase 3) mutates settings on the backend (learned_corrections +
   // replacements). Re-pull so the frontend copy doesn't overwrite them on next save.
-  async function reloadSettings() { settings = await invoke("get_settings"); }
+  // Cancel any pending debounced save first — it captured the pre-learn object and
+  // would clobber the just-learned rules when it fires.
+  async function reloadSettings() {
+    if (saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
+    settings = await invoke("get_settings");
+  }
 </script>
 
 {#if view === "onboarding"}

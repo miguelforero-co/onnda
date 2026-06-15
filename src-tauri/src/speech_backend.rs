@@ -99,10 +99,15 @@ pub async fn apple_transcribe<R: Runtime>(
     let wav_str = wav.to_string_lossy().to_string();
     let locale = if language.is_empty() { "auto" } else { language };
 
-    let result = app
-        .shell()
-        .sidecar("asr")
-        .map_err(|e| anyhow!("sidecar not available: {e}"))?
+    // Build the sidecar command first; clean up the temp WAV on every error path.
+    let sidecar = match app.shell().sidecar("asr") {
+        Ok(s) => s,
+        Err(e) => {
+            let _ = std::fs::remove_file(&wav);
+            return Err(anyhow!("sidecar not available: {e}"));
+        }
+    };
+    let result = sidecar
         .args([wav_str, locale.to_string()])
         .output()
         .await
