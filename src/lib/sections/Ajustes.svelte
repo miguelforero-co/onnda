@@ -6,6 +6,12 @@
   import HotkeyRecorder from "$lib/components/HotkeyRecorder.svelte";
   import PermissionRow from "$lib/components/PermissionRow.svelte";
   import ModelCard from "$lib/components/ModelCard.svelte";
+  import { theme, type ThemeMode } from "$lib/stores/theme.svelte";
+  const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
+    { value: "light", label: "Claro" },
+    { value: "dark",  label: "Oscuro" },
+    { value: "auto",  label: "Automático" },
+  ];
 
   // Prop contract from 01-03 (Ajustes stub).
   let {
@@ -93,6 +99,25 @@
 </script>
 
 <h1 class="page-title">Ajustes</h1>
+
+<!-- ── Apariencia (onnda theme selector) ── -->
+<section>
+  <h2 class="section-label">Apariencia</h2>
+  <div class="rows">
+    <div class="theme-row">
+      <span class="theme-label">Apariencia</span>
+      <div class="seg">
+        {#each THEME_OPTIONS as opt}
+          <button
+            class="seg-btn"
+            class:on={theme.mode === opt.value}
+            onclick={() => theme.set(opt.value)}
+          >{opt.label}</button>
+        {/each}
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- ── Grabación (D-11 hotkey, D-12 push-to-talk) ── -->
 <section>
@@ -323,4 +348,15 @@
   .link-btn:disabled { color: var(--faint); cursor: default; opacity: .7; }
   /* Destructive actions reuse coral per UI-SPEC (no separate red); confirm gates intent. */
   .link-btn.danger { color: var(--coral); }
+
+  /* ── Apariencia (onnda theme selector) ── */
+  .theme-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); padding: var(--s2) 0; padding-left: 14px; padding-right: 14px; min-height: 42px; }
+  .theme-label { font-family: var(--font-sans); font-size: 13px; color: var(--text); font-weight: 450; }
+  .seg { display: inline-flex; background: var(--surface); border-radius: var(--r-nav); padding: 2px; gap: 2px; }
+  .seg-btn {
+    border: none; background: transparent; cursor: pointer;
+    font-family: var(--font-sans); font-size: 13px; color: var(--text-muted);
+    padding: 6px 12px; border-radius: 6px;
+  }
+  .seg-btn.on { background: var(--nav-active-bg); color: var(--nav-active-ink); }
 </style>
