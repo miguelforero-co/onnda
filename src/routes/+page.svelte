@@ -4,6 +4,7 @@
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, onDestroy } from "svelte";
   import "$lib/styles/tokens.css";
+  import "@fontsource/goudy-bookletter-1911";
   import type { Settings, HistoryEntry, ModelInfo, DownloadProgress, View } from "$lib/types";
 
   import Sidebar from "$lib/components/Sidebar.svelte";
