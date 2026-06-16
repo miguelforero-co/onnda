@@ -87,7 +87,7 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 51px var(--s10) var(--s10);  /* top aligns with the sidebar wordmark (51px) */
+    padding: var(--screen-top) var(--s10) var(--s10);  /* aligns with the sidebar wordmark */
     overflow: hidden;
   }
   .content { display: flex; flex-direction: column; gap: var(--s8); } /* 32 */

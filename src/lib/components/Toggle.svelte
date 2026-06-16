@@ -31,18 +31,15 @@
 
   .toggle {
     position: relative; width: 36px; height: 20px;
-    background: var(--line); border: 1px solid var(--line);
+    background: var(--line);
     border-radius: 10px;
-    flex-shrink: 0; transition: background .18s, border-color .18s; cursor: pointer;
+    flex-shrink: 0; transition: background .18s; cursor: pointer;
   }
-  .toggle.on {
-    background: var(--nav-active-bg);
-    border-color: var(--nav-active-bg);
-  }
+  .toggle.on { background: var(--nav-active-bg); }
   @media (prefers-contrast: more) { .toggle.on { background: var(--nav-active-bg); } }
   .toggle input { display: none; }
   .knob {
-    position: absolute; top: 2px; left: 2px;
+    position: absolute; top: 2px; left: 2px;   /* 16px knob centered in 20px track */
     width: 16px; height: 16px;
     background: var(--text-muted);
     border-radius: 50%;

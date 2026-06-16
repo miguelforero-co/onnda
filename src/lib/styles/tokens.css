@@ -36,6 +36,9 @@
   /* Feedback colors */
   --danger:    #c0473e;      /* destructive actions (delete / clear)          */
 
+  /* Subtle inset fill (dropzone, wells) — slightly darker than --bg on light */
+  --inset:     rgba(0,0,0,0.04);
+
   /* Legacy hairlines (shim — see back-compat block below) */
   --line:        rgba(0,0,0,0.10);
   --line-strong: rgba(0,0,0,0.18);
@@ -68,6 +71,9 @@
   /* Feedback colors */
   --danger:    #e0796f;
 
+  /* Subtle inset fill — slightly lighter than --bg on dark */
+  --inset:     rgba(255,255,255,0.05);
+
   /* Legacy hairlines (shim) */
   --line:        rgba(255,255,255,0.10);
   --line-strong: rgba(255,255,255,0.16);
@@ -87,6 +93,7 @@
 
   /* Layout constants (Figma) */
   --sidebar-w: 245px;
+  --screen-top: 51px;     /* top offset of every screen (aligns with wordmark) */
   --seam: 2px;            /* black gap between panels + frame around them */
   --dot-pitch: 16px;      /* notebook dot grid spacing (base-8)          */
 

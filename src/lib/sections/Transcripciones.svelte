@@ -211,9 +211,9 @@
 </div>
 
 <style>
-  /* ── Root container: top offset matches Home (81px) ── */
+  /* ── Root container: top offset matches Home ── */
   .screen {
-    padding: 81px var(--s10) var(--s10);
+    padding: var(--screen-top) var(--s10) var(--s10);
     display: flex;
     flex-direction: column;
   }

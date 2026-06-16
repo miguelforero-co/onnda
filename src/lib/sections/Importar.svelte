@@ -265,9 +265,9 @@
 </div>
 
 <style>
-  /* ── Root container: 81px top offset matches Home / Transcripciones ── */
+  /* ── Root container: top offset matches Home / Transcripciones ── */
   .screen {
-    padding: 81px var(--s10) var(--s10);
+    padding: var(--screen-top) var(--s10) var(--s10);
     display: flex;
     flex-direction: column;
   }
@@ -289,7 +289,7 @@
     padding: var(--s8);
     border: 1px dashed var(--line);
     border-radius: var(--r-card);
-    background: transparent;
+    background: var(--inset);
     cursor: pointer;
     transition: border-color .15s, background .15s;
     min-height: 160px;
