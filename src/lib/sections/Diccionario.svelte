@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Settings, Replacement } from "$lib/types";
+  import SectionLabel from "$lib/components/ui/SectionLabel.svelte";
 
   // Prop contract from 01-03 (Diccionario stub). D-19/D-20/D-21: item-list editor.
   let {
@@ -97,180 +98,284 @@
   }
 </script>
 
-<h1 class="page-title">Diccionario</h1>
+<div class="screen">
+  <h1 class="page-title">Diccionario</h1>
 
-<section>
-  <p class="section-hint">
-    Agrega palabras o nombres propios para que Whisper los reconozca mejor.
-  </p>
+  <!-- ── Words section ── -->
+  <section class="section">
+    <SectionLabel text="Palabras" />
+    <p class="section-hint">
+      Agrega palabras o nombres propios para que Whisper los reconozca mejor.
+    </p>
 
-  <!-- ── Add input ── -->
-  <div class="add-row">
-    <input
-      class="ipt"
-      type="text"
-      placeholder="Escribe una palabra y pulsa Enter"
-      bind:value={draft}
-      onkeydown={onAddKey}
-    />
-    <button class="link-btn" onclick={addWord} disabled={!draft.trim()}>+ Agregar palabra</button>
-  </div>
-
-  <!-- ── Item list / empty state ── -->
-  {#if settings.dictionary.length === 0}
-    <div class="empty">
-      <p>Tu diccionario está vacío</p>
-      <span>Agrega palabras o nombres propios para que Whisper los reconozca mejor.</span>
+    <!-- ── Add input ── -->
+    <div class="add-row">
+      <input
+        class="ipt"
+        type="text"
+        placeholder="Escribe una palabra y pulsa Enter"
+        bind:value={draft}
+        onkeydown={onAddKey}
+      />
+      <button class="btn-primary" onclick={addWord} disabled={!draft.trim()}>Añadir</button>
     </div>
-  {:else}
-    <div class="chips">
-      {#each settings.dictionary as word, idx (idx)}
-        {#if editingIdx === idx}
-          <input
-            class="ipt chip-edit"
-            type="text"
-            bind:value={editValue}
-            onkeydown={(e) => onEditKey(e, idx)}
-            onblur={() => commitEdit(idx)}
-          />
-        {:else}
-          <span class="chip">
-            <button class="chip-word" onclick={() => startEdit(idx)} title="Editar">{word}</button>
-            <button class="icon-btn del" onclick={() => removeWord(idx)} title="Eliminar">
+
+    <!-- ── Item list / empty state ── -->
+    {#if settings.dictionary.length === 0}
+      <div class="empty">
+        <p>Tu diccionario está vacío</p>
+        <span>Agrega palabras o nombres propios para que Whisper los reconozca mejor.</span>
+      </div>
+    {:else}
+      <div class="chips">
+        {#each settings.dictionary as word, idx (idx)}
+          {#if editingIdx === idx}
+            <input
+              class="ipt chip-edit"
+              type="text"
+              bind:value={editValue}
+              onkeydown={(e) => onEditKey(e, idx)}
+              onblur={() => commitEdit(idx)}
+            />
+          {:else}
+            <span class="chip">
+              <button class="chip-word" onclick={() => startEdit(idx)} title="Editar">{word}</button>
+              <button class="icon-btn del" onclick={() => removeWord(idx)} title="Eliminar">
+                <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
+                </svg>
+              </button>
+            </span>
+          {/if}
+        {/each}
+      </div>
+    {/if}
+  </section>
+
+  <!-- ── Replacements section ── -->
+  <section class="section">
+    <SectionLabel text="Reemplazos" />
+    <p class="section-hint">
+      Corrige términos o expande atajos en cada transcripción (ambos motores).
+      Ej: «air table» → «Airtable», o «mi correo» → tu email. No distingue mayúsculas.
+    </p>
+
+    <div class="repl-add">
+      <input class="ipt" type="text" placeholder="Buscar (lo que se dice)" bind:value={rFrom} onkeydown={onReplKey} />
+      <span class="arrow">→</span>
+      <input class="ipt" type="text" placeholder="Reemplazar por" bind:value={rTo} onkeydown={onReplKey} />
+      <label class="rx-toggle" title="Tratar «Buscar» como expresión regular">
+        <input type="checkbox" bind:checked={rRegex} /> regex
+      </label>
+      <button class="btn-primary" onclick={addReplacement} disabled={!rFrom.trim()}>Añadir</button>
+    </div>
+
+    {#if (settings.replacements ?? []).length === 0}
+      <div class="empty">
+        <p>Sin reemplazos</p>
+        <span>Agrega reglas para corregir nombres o expandir atajos al dictar.</span>
+      </div>
+    {:else}
+      <ul class="repl-list">
+        {#each settings.replacements as r, idx (idx)}
+          <li class="repl-card">
+            <code class="repl-from">{r.from}</code>
+            <span class="arrow">→</span>
+            <code class="repl-to">{r.to || "(vacío)"}</code>
+            {#if r.regex}<span class="rx-badge">regex</span>{/if}
+            <button class="icon-btn del" onclick={() => removeReplacement(idx)} title="Eliminar">
               <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                 <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
               </svg>
             </button>
-          </span>
-        {/if}
-      {/each}
-    </div>
-  {/if}
-</section>
-
-<section>
-  <h2 class="sub-title">Reemplazos y atajos de texto</h2>
-  <p class="section-hint">
-    Corrige términos o expande atajos en cada transcripción (ambos motores).
-    Ej: «air table» → «Airtable», o «mi correo» → tu email. No distingue mayúsculas.
-  </p>
-
-  <div class="repl-add">
-    <input class="ipt" type="text" placeholder="Buscar (lo que se dice)" bind:value={rFrom} onkeydown={onReplKey} />
-    <span class="arrow">→</span>
-    <input class="ipt" type="text" placeholder="Reemplazar por" bind:value={rTo} onkeydown={onReplKey} />
-    <label class="rx-toggle" title="Tratar «Buscar» como expresión regular">
-      <input type="checkbox" bind:checked={rRegex} /> regex
-    </label>
-    <button class="link-btn" onclick={addReplacement} disabled={!rFrom.trim()}>+ Agregar</button>
-  </div>
-
-  {#if (settings.replacements ?? []).length === 0}
-    <div class="empty">
-      <p>Sin reemplazos</p>
-      <span>Agrega reglas para corregir nombres o expandir atajos al dictar.</span>
-    </div>
-  {:else}
-    <ul class="repl-list">
-      {#each settings.replacements as r, idx (idx)}
-        <li class="repl-row">
-          <code class="repl-from">{r.from}</code>
-          <span class="arrow">→</span>
-          <code class="repl-to">{r.to || "(vacío)"}</code>
-          {#if r.regex}<span class="rx-badge">regex</span>{/if}
-          <button class="icon-btn del" onclick={() => removeReplacement(idx)} title="Eliminar">
-            <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
-            </svg>
-          </button>
-        </li>
-      {/each}
-    </ul>
-  {/if}
-</section>
+          </li>
+        {/each}
+      </ul>
+    {/if}
+  </section>
+</div>
 
 <style>
-  .page-title { font-size: 16px; font-weight: 600; line-height: 1.3; color: var(--text); }
+  /* ── Root container: 81px top offset matches Home / Transcripciones ── */
+  .screen {
+    padding: 81px var(--s10) var(--s10);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s8);
+  }
 
-  section { margin-top: 22px; display: flex; flex-direction: column; gap: 12px; }
-  .section-hint { font-size: 11px; color: var(--faint); padding: 0 3px; line-height: 1.5; }
+  /* ── Page title: serif, matches system ── */
+  .page-title {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--text);
+  }
 
-  .add-row { display: flex; align-items: center; gap: 12px; }
+  /* ── Section grouping ── */
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+  }
+  .section-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
 
+  /* ── Add row ── */
+  .add-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+  }
+
+  /* ── Inputs ── */
   .ipt {
-    font-size: 12.5px; color: var(--text); background: var(--bg-2);
-    border: 1px solid var(--line); border-radius: var(--r-sm);
-    padding: 7px 10px; outline: none; flex: 1;
-    transition: border-color .15s, box-shadow .15s, background .15s;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 8px 12px;
+    outline: none;
+    flex: 1;
+    transition: border-color .15s;
   }
-  .ipt::placeholder { color: var(--faint); }
-  .ipt:focus {
-    background: var(--elev-1); border-color: transparent;
-    box-shadow: 0 0 0 1px var(--iris-4), 0 0 0 4px rgba(127,200,255,0.16);
-  }
+  .ipt::placeholder { color: var(--text-muted); }
+  .ipt:focus { border-color: var(--text-muted); }
 
-  .link-btn {
-    background: none; border: none; padding: 4px 0;
-    font-size: 12px; font-weight: 450; color: var(--coral);
-    cursor: pointer; text-decoration: none; white-space: nowrap;
+  /* ── Primary button ── */
+  .btn-primary {
+    background: var(--nav-active-bg);
+    color: var(--nav-active-ink);
+    border: none;
+    border-radius: var(--r-nav);
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity .15s;
   }
-  .link-btn:hover { opacity: .75; }
-  .link-btn:disabled { color: var(--faint); cursor: default; opacity: .7; }
+  .btn-primary:hover:not(:disabled) { opacity: .9; }
+  .btn-primary:disabled { opacity: .35; cursor: default; }
 
-  /* ── Chips ── */
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  /* ── Chips (dictionary words) ── */
+  .chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--s2);
+  }
   .chip {
-    display: inline-flex; align-items: center; gap: 4px;
-    background: var(--glass-fill); border: 1px solid var(--line);
-    box-shadow: var(--glass-edge);
-    border-radius: 16px; padding: 4px 6px 4px 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 1px 4px 1px 10px;
   }
   .chip-word {
-    background: none; border: none; padding: 0;
-    font-size: 12.5px; color: var(--text); cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: var(--font-sans);
   }
-  .chip-edit { border-radius: 16px; padding: 4px 12px; flex: 0 1 auto; min-width: 120px; }
+  .chip-word:hover { color: var(--text); }
+  .chip-edit {
+    border-radius: var(--r-nav);
+    padding: 4px 12px;
+    flex: 0 1 auto;
+    min-width: 120px;
+  }
 
+  /* ── Icon buttons (delete inside chips / replacement rows) ── */
   .icon-btn {
     width: 18px; height: 18px; background: none; border: none;
-    border-radius: 50%; color: var(--faint); cursor: pointer;
+    border-radius: 50%; color: var(--text-muted); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: background .12s, color .12s;
   }
   .icon-btn svg { width: 8px; height: 8px; }
-  .icon-btn.del:hover { background: rgba(255,106,61,.14); color: var(--coral); }
+  /* Destructive: monochrome, no red */
+  .icon-btn.del:hover { background: rgba(127,127,127,0.10); color: var(--text); }
 
   /* ── Empty state ── */
   .empty {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 48px 20px; gap: 6px; text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 48px var(--s6);
+    gap: 6px;
+    text-align: center;
+    background: var(--surface);
+    border-radius: var(--r-card);
   }
-  .empty p { font-size: 14px; font-weight: 450; color: var(--muted); }
-  .empty span { font-size: 12px; color: var(--faint); line-height: 1.5; }
+  .empty p { font-size: 14px; font-weight: 400; color: var(--text); }
+  .empty span { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
 
   /* ── Replacements ── */
-  .sub-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
-  .repl-add { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .arrow { color: var(--faint); font-size: 13px; }
-  .rx-toggle {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: 11px; color: var(--muted); cursor: pointer; white-space: nowrap;
+  .repl-add {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    flex-wrap: wrap;
   }
-  .repl-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
-  .repl-row {
-    display: flex; align-items: center; gap: 8px;
-    background: var(--glass-fill); border: 1px solid var(--line);
-    box-shadow: var(--glass-edge); border-radius: var(--r-sm); padding: 6px 10px;
+  .arrow { color: var(--text-muted); font-size: 14px; }
+  .rx-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: var(--font-sans);
+  }
+  .repl-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+  }
+  .repl-card {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    background: var(--surface);
+    border-radius: var(--r-card);
+    padding: var(--s4);
   }
   .repl-from, .repl-to {
-    font-size: 12px; color: var(--text);
-    background: var(--bg-2); border-radius: 5px; padding: 2px 7px;
-    max-width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    font-size: 12px;
+    color: var(--text);
+    background: var(--bg);
+    border-radius: var(--r-nav);
+    padding: 2px 7px;
+    max-width: 38%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-family: var(--font-sans);
   }
-  .repl-to { color: var(--muted); }
+  .repl-to { color: var(--text-muted); }
   .rx-badge {
-    font-size: 10px; color: var(--faint);
-    border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 1px 6px;
+    font-family: var(--font-sans);
   }
-  .repl-row .icon-btn { margin-left: auto; }
+  .repl-card .icon-btn { margin-left: auto; }
 </style>
