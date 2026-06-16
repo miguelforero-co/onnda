@@ -1,167 +1,83 @@
-/* ── Voz Local — DARK glass + iridescent tokens (single source) ──
-   Base sampled from Raycast/Linear/Resend; iridescent ramp from the notch
-   thin-film LUT broadened with Stripe/Vercel holographic hues.
-   This DARK set OVERRIDES the prior warm/light palette (CONTEXT D-04).
-   The widget (src/routes/widget/+page.svelte) does NOT import this. */
-:root {
+/* ── onnda — design tokens (single source of truth) ──
+   Flat/minimal system from Figma vf94mZpQRKSH4G3GVZgN3j (nodes 43:1623 light,
+   43:1914 dark). Semantic vars switch by [data-theme] on <html>. The widget
+   (src/routes/widget/+page.svelte) does NOT import this. All spacing base-8. */
+
+:root,
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  /* Surfaces */
+  --bg:           #d6d8d7;   /* window, sidebar, content                       */
+  --surface:      #e6e6e6;   /* cards                                          */
+  --surface-ink:  #181818;   /* feedback banner (dark on light)               */
+
+  /* Text */
+  --text:         #2b2b2b;   /* headings, numbers                             */
+  --text-muted:   #979797;   /* card labels                                  */
+  --text-section: #020202;   /* section labels (SUMMARY/ACTIVITY)            */
+  --text-on-ink:  #e6e6e6;   /* text on --surface-ink                        */
+
+  /* Navigation */
+  --nav-active-bg:  #020202;
+  --nav-active-ink: #e6e6e6;
+  --nav-ink:        #2e2e2e;
+
+  /* Wordmark */
+  --wordmark-tag: #000000;   /* "voice to text" tagline                       */
+
+  /* Streak dots */
+  --dot-on:    #4f7d5f;      /* active day (muted green)                       */
+  --dot-off:   #c4c6c5;      /* empty day                                     */
+  --dot-today: #2b2b2b;      /* today ring                                    */
+}
+
+:root[data-theme="dark"] {
   color-scheme: dark;
 
-  /* ── Backgrounds — near-black with a cool violet-blue tint (Igloo cue).
-     Value ladder is the depth system (Linear): each step ~+6–10 L*. */
-  --bg:        #07070B;   /* shell void — near-black, faint violet           */
-  --bg-2:      #0B0C12;   /* recessed wells / scroll track / inputs          */
-  --elev-1:    #111219;   /* base elevated surface (sidebar, panels)         */
-  --elev-2:    #181A23;   /* cards on panels                                 */
-  --elev-3:    #20232E;   /* hover / popover / highest surface               */
+  --bg:           #181818;
+  --surface:      #222222;
+  --surface-ink:  #222222;
 
-  /* Back-compat alias: components still reference --panel as the surface.
-     Maps to the elevated dark glass body. */
-  --panel:     var(--elev-1);
+  --text:         #e5e5e5;
+  --text-muted:   #c9c9c9;
+  --text-section: #b4b4b4;
+  --text-on-ink:  #e6e6e6;
 
-  /* ── Text — high-contrast off-white + muted greys (WCAG on dark glass) */
-  --text:      #F3F4F8;   /* primary  — ~16:1 on --elev-1                    */
-  --muted:     #A6A9B6;   /* secondary— ~6.6:1 on --elev-1 (AA)              */
-  --faint:     #6E7180;   /* tertiary/labels — ~3.4:1, large/uppercase only  */
-  --on-accent: #0A0A0F;   /* dark text for the rare light/iridescent fill    */
+  --nav-active-bg:  #e1e1e1;
+  --nav-active-ink: #393939;
+  --nav-ink:        #f1f1f1;
 
-  /* ── Hairlines & strokes (light, low-alpha — the edge that lifts glass) */
-  --line:        rgba(255,255,255,0.08);   /* default divider/border         */
-  --line-strong: rgba(255,255,255,0.14);   /* focused / hovered edge         */
-  --edge-hi:     rgba(255,255,255,0.16);   /* 1px top specular edge on glass */
-  --edge-lo:     rgba(0,0,0,0.55);         /* bottom contact shadow line     */
+  --wordmark-tag: #ffffff;
 
-  --r:    11px;   /* corner radius (slightly larger → modern/glassy)         */
-  --r-sm: 8px;
-  --r-lg: 16px;
-
-  /* ── Iridescent ramp — notch thin-film hues, broadened to Stripe/Vercel.
-     On dark these are LIGHT and SATURATED so they GLOW; opacity/blend
-     control intensity, never a raw fill behind text. */
-  --iris-1: #FF6A3D;   /* warm coral   (notch #FF6524 ↔ Stripe amber)        */
-  --iris-2: #FF7FA5;   /* hot pink     (Stripe #FF7FA5)                       */
-  --iris-3: #B48CFC;   /* violet       (Stripe #B48CFC)                       */
-  --iris-4: #7FC8FF;   /* icy blue     (notch #BFE9FF deepened)              */
-  --iris-5: #6FE6CE;   /* aqua/mint    (Vercel #95F5D6/#67B7BB)              */
-  --iris-spec: #FFFFFF;/* specular core(notch white crest, spec highlight)   */
-
-  /* Back-compat aliases for the older --film-* / --film-warm / --film-cool
-     names still referenced by Sidebar/Toggle (now mapped to the dark ramp). */
-  --film-1: var(--iris-1);
-  --film-2: var(--iris-2);
-  --film-3: var(--iris-spec);
-  --film-4: var(--iris-4);
-  --film-5: var(--iris-5);
-  --film-warm: var(--iris-1);
-  --film-cool: var(--iris-5);
-
-  /* The full holographic gradient (warm→pink→violet→blue→aqua, looping). */
-  --iris-ramp: linear-gradient(105deg,
-    var(--iris-1) 0%, var(--iris-2) 24%, var(--iris-3) 46%,
-    var(--iris-4) 70%, var(--iris-5) 100%);
-  /* Conic version for animated rings (needs @property --iris-angle). */
-  --iris-ring: conic-gradient(from var(--iris-angle, 120deg) in oklch shorter hue,
-    var(--iris-1), var(--iris-2), var(--iris-3),
-    var(--iris-4), var(--iris-5), var(--iris-1));
-  /* Specular sheen band (the moving holographic glint — Vercel beam). */
-  --iris-sheen: linear-gradient(115deg,
-    transparent 28%,
-    rgba(255,127,165,0.45) 42%, rgba(180,140,252,0.55) 50%,
-    rgba(127,200,255,0.45) 58%,
-    transparent 72%);
-
-  /* ── Aurora mesh — two-ish hued blobs behind the shell.
-     Low alpha so the black stays black; warm pole top-left, cool pole right. */
-  --aurora-warm:   radial-gradient(60% 70% at 12% -8%,
-                     rgba(255,106,61,0.20), transparent 60%);
-  --aurora-violet: radial-gradient(55% 65% at 88% 6%,
-                     rgba(180,140,252,0.20), transparent 62%);
-  --aurora-aqua:   radial-gradient(70% 80% at 70% 110%,
-                     rgba(111,230,206,0.14), transparent 60%);
-  /* Back-compat alias (older --aurora-cool name). */
-  --aurora-cool:   var(--aurora-violet);
-
-  /* ── Glass tokens — dark translucent fill + blur/saturate + edge + glow.
-     Fills are LOW alpha because the backdrop is dark; saturate boosts the
-     aurora bleeding through. Resend/Raycast treatment. */
-  --glass-fill:    rgba(22, 24, 33, 0.55);   /* dark glass body (over aurora) */
-  --glass-fill-hi: rgba(30, 33, 45, 0.66);   /* hover / raised glass          */
-  --glass-blur:    saturate(150%) blur(20px);
-  --glass-border:  1px solid var(--line);
-  --glass-edge:    inset 0 1px 0 var(--edge-hi);            /* top specular   */
-  --glass-glow:    inset 0 0 24px rgba(127,200,255,0.05);  /* faint inner cool*/
-  --glass-shadow:  0 16px 40px -12px rgba(0,0,0,0.7),       /* depth          */
-                   0 2px 8px rgba(0,0,0,0.45);
-  /* Back-compat alias (older --glass-film name). */
-  --glass-film:    var(--glass-fill);
-
-  /* ── Accent / brand — coral stays the brand, retuned to glow on dark. */
-  --accent:        #FF6A3D;   /* brand coral (notch warm pole)               */
-  --accent-soft:   rgba(255,106,61,0.16);   /* tint fill for active states   */
-  --accent-glow:   0 0 0 1px rgba(255,106,61,0.5),
-                   0 6px 22px -4px rgba(255,106,61,0.45);
-  /* Back-compat aliases for the older brand-color names. Coral → --accent;
-     amber/blue retuned to lighter, on-dark-legible hues for accents. */
-  --coral:  #FF6A3D;
-  --amber:  #FFB36A;   /* lighter amber, ~AA on dark glass for the active icon */
-  --blue:   #7FC8FF;   /* icy blue, legible on dark for permission ok/badge   */
-
-  /* ── Chrome / metal edge (Igloo cue) — for wordmark / premium edges. */
-  --chrome: linear-gradient(180deg,
-    #FFFFFF 0%, #C9CCD6 24%, #8A8E9C 49%,
-    #5A5E6B 50%, #9DA1AE 74%, #EDEFF4 100%);
-
-  /* ── Shadows / elevation (cast shadows on dark are deep + soft). */
-  --sh-1: 0 1px 2px rgba(0,0,0,0.5);
-  --sh-2: 0 8px 24px -8px rgba(0,0,0,0.6);
-  --sh-3: 0 24px 60px -16px rgba(0,0,0,0.72);
-
-  /* ── Sheen (neutral white glint for non-iridescent surfaces). */
-  --sheen-band: linear-gradient(120deg,
-    transparent 35%, rgba(255,255,255,0.14) 50%, transparent 65%);
-
-  /* ── Emboss tokens (back-compat; retuned for dark — top highlight + bottom shade). */
-  --emboss-hi:  inset 0 1px 0 rgba(255,255,255,0.18);
-  --emboss-lo:  inset 0 -1px 2px rgba(0,0,0,0.5);
-
-  /* ── Grain — SVG feTurbulence, kills banding on dark gradients. */
-  --grain: url("data:image/svg+xml,%3Csvg viewBox='0 0 250 250' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-
-  /* ── Motion — slow, matching the shader's sin(time*0.25). */
-  --drift-slow: 22s;   /* aurora / hue drift          */
-  --ring-dur:   18s;   /* iridescent ring rotation    */
-  --sheen-dur:  3.6s;  /* one holographic sheen sweep */
-  --ease-soft:  cubic-bezier(0.32, 0.72, 0, 1);
+  --dot-on:    #6fe6ce;
+  --dot-off:   #3a3a3a;
+  --dot-today: #e5e5e5;
 }
 
-/* Animatable angle for the conic iridescent ring. */
-@property --iris-angle {
-  syntax: "<angle>";
-  inherits: false;
-  initial-value: 120deg;
-}
+:root {
+  /* Spacing — base-8 (4 is the only half-step) */
+  --s1: 4px;  --s2: 8px;  --s3: 12px; --s4: 16px;
+  --s6: 24px; --s8: 32px; --s10: 40px;
 
-/* ── Accessibility fallbacks: flatten glass & kill color animation ── */
-@media (prefers-contrast: more) {
-  :root {
-    --glass-fill: var(--elev-2); --glass-fill-hi: var(--elev-3);
-    --glass-film: var(--elev-2);
-    --line: rgba(255,255,255,0.22); --muted: #C2C5D0;
-  }
-}
-@media (prefers-reduced-transparency: reduce) {
-  :root {
-    --glass-fill: var(--elev-2); --glass-fill-hi: var(--elev-3);
-    --glass-film: var(--elev-2); --glass-blur: none;
-  }
+  /* Radii */
+  --r-card: 16px; --r-nav: 8px; --r-window: 16px;
+
+  /* Type families */
+  --font-serif: "Goudy Bookletter 1911", Georgia, "Times New Roman", serif;
+  --font-sans:  "Helvetica Neue", -apple-system, "SF Pro Text", system-ui, sans-serif;
+
+  /* Layout constants (Figma) */
+  --sidebar-w: 245px;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  font-family: -apple-system, "SF Pro Text", system-ui, sans-serif;
+  font-family: var(--font-sans);
   background: var(--bg);
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
   height: 100vh;
