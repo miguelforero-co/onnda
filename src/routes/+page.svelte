@@ -292,39 +292,18 @@
 
 <style>
   /* ── Shell (sidebar + content fill the window to the very top) ── */
-  .shell { position: relative; display: flex; height: 100vh; background: var(--bg); }
-
-  /* Aurora mesh — warm top-left, violet top-right, aqua bottom, all ≤0.20
-     alpha so the void stays near-black. Blurred to melt the blob seams, plus
-     a 5% film grain so the gradient never bands. Pointer-transparent decorative
-     layers; content sits above via z-index. */
-  .shell::before {
-    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    background: var(--aurora-warm), var(--aurora-violet), var(--aurora-aqua);
-    filter: blur(8px);
-  }
-  .shell::after {
-    content: ""; position: absolute; inset: 0; z-index: 0;
-    background-image: var(--grain);
-    opacity: 0.05; mix-blend-mode: overlay; pointer-events: none;
-  }
-  .shell > :global(*) { position: relative; z-index: 1; }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .shell::before {
-      animation: aurora-drift var(--drift-slow) var(--ease-soft) infinite alternate;
-    }
-    @keyframes aurora-drift {
-      to { transform: translate3d(2.5%, 1.5%, 0) scale(1.06); opacity: 0.85; }
-    }
-  }
-  @media (prefers-reduced-transparency: reduce) {
-    .shell::before, .shell::after { display: none; }
+  .shell {
+    display: flex;
+    height: 100vh;
+    background: var(--bg);
+    border-radius: var(--r-window);
+    overflow: hidden;
   }
 
   .content {
-    flex: 1; overflow-y: auto; overflow-x: hidden;
-    background: transparent; padding: 32px;
+    flex: 1 0 0; min-width: 0;
+    height: 100vh; overflow-y: auto; overflow-x: hidden;
+    background: var(--bg);
   }
 
   /* ── Onboarding (preserved) ── */
