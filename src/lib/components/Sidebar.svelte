@@ -44,6 +44,7 @@
     width: var(--sidebar-w);
     flex-shrink: 0;
     background: var(--bg);
+    border-radius: var(--r-card);
     display: flex;
     flex-direction: column;
     /* top clears the floating macOS traffic lights; left 24 per Figma */

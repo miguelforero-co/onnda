@@ -291,19 +291,27 @@
 {/if}
 
 <style>
-  /* ── Shell (sidebar + content fill the window to the very top) ── */
+  /* ── Shell: black base (--shell) shows through as a 2px frame (padding) and a
+       2px seam (gap) between two rounded panels — the sidebar and the content.
+       Matches Figma: panels float on the black window base. ── */
   .shell {
     display: flex;
+    gap: var(--seam);
+    padding: var(--seam);
     height: 100vh;
-    background: var(--bg);
+    background: var(--shell);
     border-radius: var(--r-window);
     overflow: hidden;
   }
 
   .content {
-    flex: 1 0 0; min-width: 0;
-    height: 100vh; overflow-y: auto; overflow-x: hidden;
-    background: var(--bg);
+    flex: 1 0 0; min-width: 0; min-height: 0;
+    overflow-y: auto; overflow-x: hidden;
+    background-color: var(--bg);
+    /* notebook dot texture */
+    background-image: radial-gradient(var(--dot-grid) 1px, transparent 1.5px);
+    background-size: var(--dot-pitch) var(--dot-pitch);
+    border-radius: var(--r-card);
   }
 
   /* ── Onboarding (preserved) ── */

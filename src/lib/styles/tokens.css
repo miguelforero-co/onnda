@@ -8,9 +8,11 @@
   color-scheme: light;
 
   /* Surfaces */
-  --bg:           #d6d8d7;   /* window, sidebar, content                       */
+  --shell:        #000000;   /* window base: 2px frame + 2px seam behind panels */
+  --bg:           #d6d8d7;   /* sidebar + content panels                       */
   --surface:      #e6e6e6;   /* cards                                          */
   --surface-ink:  #181818;   /* feedback banner (dark on light)               */
+  --dot-grid:     rgba(0,0,0,0.07);  /* notebook dot texture on content        */
 
   /* Text */
   --text:         #2b2b2b;   /* headings, numbers                             */
@@ -39,9 +41,11 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
+  --shell:        #d6d8d7;   /* light frame/seam behind dark panels (Figma dark) */
   --bg:           #181818;
   --surface:      #222222;
   --surface-ink:  #222222;
+  --dot-grid:     rgba(255,255,255,0.05);
 
   --text:         #e5e5e5;
   --text-muted:   #c9c9c9;
@@ -77,6 +81,8 @@
 
   /* Layout constants (Figma) */
   --sidebar-w: 245px;
+  --seam: 2px;            /* black gap between panels + frame around them */
+  --dot-pitch: 16px;      /* notebook dot grid spacing (base-8)          */
 
   /* ── BACK-COMPAT SHIM (TEMPORARY) ──────────────────────────────────────
      Maps legacy dark-glass tokens to the flat onnda system so the not-yet-
