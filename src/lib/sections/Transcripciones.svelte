@@ -123,186 +123,213 @@
   onDestroy(() => audioEl?.pause());
 </script>
 
-<div class="head">
-  <h1 class="page-title">Transcripciones</h1>
-</div>
-
-<div class="toolbar">
-  <div class="seg" role="tablist">
-    <button class="seg-btn" class:on={filter === "all"} onclick={() => (filter = "all")}>Todas</button>
-    <button class="seg-btn" class:on={filter === "dictation"} onclick={() => (filter = "dictation")}>Dictado</button>
-    <button class="seg-btn" class:on={filter === "file"} onclick={() => (filter = "file")}>Archivo</button>
+<div class="screen">
+  <div class="head">
+    <h1 class="page-title">Transcripciones</h1>
   </div>
-  <div class="storage-row">
-    <span class="storage-metric">{formatBytes(storageBytes)}</span>
-    {#if history.length > 0}
-      <button class="link-btn danger" onclick={clearAll}>Borrar todo</button>
-    {/if}
-  </div>
-</div>
 
-{#if learnNote}
-  <div class="learn-note">✓ {learnNote}</div>
-{/if}
-
-{#if filtered.length === 0}
-  <div class="empty">
-    <p>Sin transcripciones aún</p>
-    <span>Presiona tu atajo para dictar, o sube un archivo de audio.</span>
+  <div class="toolbar">
+    <div class="seg" role="tablist">
+      <button class="seg-btn" class:on={filter === "all"} onclick={() => (filter = "all")}>Todas</button>
+      <button class="seg-btn" class:on={filter === "dictation"} onclick={() => (filter = "dictation")}>Dictado</button>
+      <button class="seg-btn" class:on={filter === "file"} onclick={() => (filter = "file")}>Archivo</button>
+    </div>
+    <div class="storage-row">
+      <span class="storage-metric">{formatBytes(storageBytes)}</span>
+      {#if history.length > 0}
+        <button class="link-btn danger" onclick={clearAll}>Borrar todo</button>
+      {/if}
+    </div>
   </div>
-{:else}
-  <div class="hist-list">
-    {#each filtered as e (e.id)}
-      <div class="hist-item">
-        <div class="hist-meta">
-          <span class="hist-time">{fmtTime(e.timestamp_ms)}</span>
-          {#if e.duration_secs >= 1}<span class="hist-dur">{fmtDur(e.duration_secs)}</span>{/if}
-          {#if e.source === "file" && e.original_filename}<span class="hist-file">{e.original_filename}</span>{/if}
-          <div class="hist-actions">
-            <button class="icon-btn" onclick={() => startEdit(e)} title="Editar / corregir">
-              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M6.8 1.4l1.8 1.8-5 5L1.4 8.6 1.8 6.4z"/>
-              </svg>
-            </button>
-            <button class="icon-btn" onclick={() => copyEntry(e.text)} title="Copiar">
-              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="2.5" y="2.5" width="5.5" height="5.5" rx="1"/><path d="M5.5 2.5V1.5a1 1 0 0 0-1-1H1.5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1"/>
-              </svg>
-            </button>
-            {#if e.audio_filename}
-              <button class="icon-btn" class:active={playingId === e.id} onclick={() => playAudio(e)} title="Reproducir">
-                {#if playingId === e.id}
-                  <svg viewBox="0 0 10 10" fill="currentColor"><rect x="0" y="0" width="3.5" height="10" rx="1"/><rect x="5.5" y="0" width="3.5" height="10" rx="1"/></svg>
-                {:else}
-                  <svg viewBox="0 0 10 10" fill="currentColor"><path d="M1 0.5l8 4.5-8 4.5z"/></svg>
-                {/if}
+
+  {#if learnNote}
+    <div class="learn-note">✓ {learnNote}</div>
+  {/if}
+
+  {#if filtered.length === 0}
+    <div class="empty">
+      <p>Sin transcripciones aún</p>
+      <span>Presiona tu atajo para dictar, o sube un archivo de audio.</span>
+    </div>
+  {:else}
+    <div class="hist-list">
+      {#each filtered as e (e.id)}
+        <div class="hist-item">
+          <div class="hist-meta">
+            <span class="hist-time">{fmtTime(e.timestamp_ms)}</span>
+            {#if e.duration_secs >= 1}<span class="hist-dur">{fmtDur(e.duration_secs)}</span>{/if}
+            {#if e.source === "file" && e.original_filename}<span class="hist-file">{e.original_filename}</span>{/if}
+            <div class="hist-actions">
+              <button class="icon-btn" onclick={() => startEdit(e)} title="Editar / corregir">
+                <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M6.8 1.4l1.8 1.8-5 5L1.4 8.6 1.8 6.4z"/>
+                </svg>
               </button>
-            {/if}
-            <button class="icon-btn del" onclick={() => deleteEntry(e.id)} title="Eliminar">
-              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
-              </svg>
-            </button>
-          </div>
-        </div>
-        {#if editingId === e.id}
-          <div class="edit-box">
-            <!-- svelte-ignore a11y_autofocus -->
-            <textarea
-              class="edit-area"
-              bind:value={editText}
-              onkeydown={(ev) => onEditKey(ev, e.id)}
-              autofocus
-            ></textarea>
-            <div class="edit-actions">
-              <button class="link-btn" onclick={() => saveEdit(e.id)}>Guardar</button>
-              <button class="link-btn muted" onclick={cancelEdit}>Cancelar</button>
-              <span class="edit-hint">⌘↵ guardar · Esc cancelar</span>
+              <button class="icon-btn" onclick={() => copyEntry(e.text)} title="Copiar">
+                <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2.5" y="2.5" width="5.5" height="5.5" rx="1"/><path d="M5.5 2.5V1.5a1 1 0 0 0-1-1H1.5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1"/>
+                </svg>
+              </button>
+              {#if e.audio_filename}
+                <button class="icon-btn" class:active={playingId === e.id} onclick={() => playAudio(e)} title="Reproducir">
+                  {#if playingId === e.id}
+                    <svg viewBox="0 0 10 10" fill="currentColor"><rect x="0" y="0" width="3.5" height="10" rx="1"/><rect x="5.5" y="0" width="3.5" height="10" rx="1"/></svg>
+                  {:else}
+                    <svg viewBox="0 0 10 10" fill="currentColor"><path d="M1 0.5l8 4.5-8 4.5z"/></svg>
+                  {/if}
+                </button>
+              {/if}
+              <button class="icon-btn del" onclick={() => deleteEntry(e.id)} title="Eliminar">
+                <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                  <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
+                </svg>
+              </button>
             </div>
           </div>
-        {:else}
-          <p class="hist-text">{e.text}</p>
-        {/if}
-      </div>
-    {/each}
-  </div>
-{/if}
+          {#if editingId === e.id}
+            <div class="edit-box">
+              <!-- svelte-ignore a11y_autofocus -->
+              <textarea
+                class="edit-area"
+                bind:value={editText}
+                onkeydown={(ev) => onEditKey(ev, e.id)}
+                autofocus
+              ></textarea>
+              <div class="edit-actions">
+                <button class="link-btn" onclick={() => saveEdit(e.id)}>Guardar</button>
+                <button class="link-btn text-muted" onclick={cancelEdit}>Cancelar</button>
+                <span class="edit-hint">⌘↵ guardar · Esc cancelar</span>
+              </div>
+            </div>
+          {:else}
+            <p class="hist-text">{e.text}</p>
+          {/if}
+        </div>
+      {/each}
+    </div>
+  {/if}
+</div>
 
 <style>
-  .page-title { font-size: 16px; font-weight: 600; line-height: 1.3; color: var(--text); }
+  /* ── Root container: top offset matches Home (81px) ── */
+  .screen {
+    padding: 81px var(--s10) var(--s10);
+    display: flex;
+    flex-direction: column;
+  }
 
-  .head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+  /* ── Page title: serif, matches Home greeting ── */
+  .head { display: flex; align-items: center; justify-content: space-between; gap: var(--s3); }
+  .page-title {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--text);
+  }
 
   /* ── Toolbar / filter ── */
-  .toolbar { display: flex; align-items: center; gap: 12px; margin-top: 18px; }
+  .toolbar { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s6); }
 
-  /* Storage metric (muted) + destructive "Borrar todo", pushed right. */
-  .storage-row { display: flex; align-items: center; gap: 14px; margin-left: auto; }
-  .storage-metric { font-size: 11.5px; color: var(--faint); }
+  /* Storage metric + destructive "Borrar todo", pushed right */
+  .storage-row { display: flex; align-items: center; gap: var(--s4); margin-left: auto; }
+  .storage-metric { font-size: 12px; color: var(--text-muted); }
+
   .link-btn {
     background: none; border: none; padding: 4px 0;
-    font-size: 12px; font-weight: 450; color: var(--coral);
+    font-size: 14px; font-weight: 400; color: var(--text-muted);
     cursor: pointer; text-decoration: none;
+    font-family: var(--font-sans);
   }
   .link-btn:hover { opacity: .75; }
-  .link-btn.danger { color: var(--coral); }
+  .link-btn.danger { color: var(--danger); }
+  .link-btn.text-muted { color: var(--text-muted); }
+
+  /* ── Segmented control (onnda theme-selector style) ── */
   .seg {
-    display: inline-flex; padding: 2px; border-radius: var(--r-sm);
-    background: var(--glass-fill);
-    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--line); box-shadow: var(--glass-edge);
+    display: inline-flex;
+    padding: 2px;
+    border-radius: var(--r-nav);
+    background: var(--surface);
   }
   .seg-btn {
     background: none; border: none; cursor: pointer;
-    font-size: 12px; font-weight: 450; color: var(--muted);
-    padding: 4px 12px; border-radius: 6px; transition: background .12s, color .12s;
+    font-size: 13px; font-weight: 400; color: var(--text-muted);
+    padding: 6px 12px; border-radius: 6px;
+    transition: background .12s, color .12s;
+    font-family: var(--font-sans);
   }
   .seg-btn:hover { color: var(--text); }
-  .seg-btn.on { background: rgba(255,255,255,0.10); color: var(--text); font-weight: 600; }
+  .seg-btn.on {
+    background: var(--nav-active-bg);
+    color: var(--nav-active-ink);
+  }
 
-  /* ── History list (reused from pre-refactor +page.svelte) ── */
+  /* ── History list ── */
   .empty {
     display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 60px 20px; gap: 6px; text-align: center;
+    justify-content: center; padding: 60px var(--s6); gap: 6px; text-align: center;
   }
-  .empty p { font-size: 14px; font-weight: 450; color: var(--muted); }
-  .empty span { font-size: 12px; color: var(--faint); line-height: 1.5; }
+  .empty p { font-size: 14px; font-weight: 400; color: var(--text); }
+  .empty span { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
 
-  .hist-list { display: flex; flex-direction: column; margin-top: 16px; }
+  .hist-list { display: flex; flex-direction: column; margin-top: var(--s4); }
   .hist-item {
-    padding: 12px 0;
+    padding: var(--s3) 0;
     border-bottom: 1px solid var(--line);
     display: flex; flex-direction: column; gap: 5px;
   }
   .hist-item:first-child { border-top: 1px solid var(--line); }
+
   .hist-meta { display: flex; align-items: center; gap: 6px; }
-  .hist-time { font-size: 11px; color: var(--faint); }
+  .hist-time { font-size: 12px; color: var(--text-muted); }
   .hist-dur {
-    font-size: 10.5px; color: var(--muted);
-    background: rgba(255,255,255,.07); border-radius: 10px; padding: 1px 6px;
+    font-size: 12px; color: var(--text-muted);
+    background: var(--surface); border-radius: 10px; padding: 1px 6px;
   }
   .hist-file {
-    font-size: 10.5px; color: var(--muted);
-    background: rgba(127,200,255,.12); border-radius: 10px; padding: 1px 7px;
+    font-size: 12px; color: var(--text-muted);
+    background: var(--surface); border-radius: 10px; padding: 1px 7px;
     max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
   .hist-actions { display: flex; gap: 2px; margin-left: auto; }
+
   .icon-btn {
     width: 22px; height: 22px; background: none; border: none;
-    border-radius: 5px; color: var(--faint); cursor: pointer;
+    border-radius: 5px; color: var(--text-muted); cursor: pointer;
     display: flex; align-items: center; justify-content: center;
     transition: background .12s, color .12s;
   }
   .icon-btn svg { width: 9px; height: 9px; }
-  .icon-btn:hover { background: rgba(255,255,255,.06); color: var(--muted); }
-  .icon-btn.active { color: var(--amber); }
-  .icon-btn.del:hover { color: var(--coral); }
+  .icon-btn:hover { background: rgba(127,127,127,0.10); color: var(--text); }
+  .icon-btn.active { color: var(--dot-on); }
+  .icon-btn.del:hover { color: var(--danger); background: rgba(127,127,127,0.10); }
 
   .hist-text {
-    font-size: 13px; color: var(--muted); line-height: 1.55;
+    font-size: 14px; color: var(--text); line-height: 1.55;
     word-break: break-word; white-space: pre-wrap;
+    font-family: var(--font-sans);
   }
 
   /* ── Inline edit (auto-learn) ── */
   .edit-box { display: flex; flex-direction: column; gap: 6px; }
   .edit-area {
-    font-size: 13px; color: var(--text); line-height: 1.55;
-    background: var(--bg-2); border: 1px solid var(--line);
-    border-radius: var(--r-sm); padding: 8px 10px; resize: vertical;
+    font-size: 14px; color: var(--text); line-height: 1.55;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-nav); padding: var(--s2) 10px; resize: vertical;
     min-height: 56px; outline: none; width: 100%; box-sizing: border-box;
-    font-family: inherit;
+    font-family: var(--font-sans);
   }
   .edit-area:focus {
-    background: var(--elev-1); border-color: transparent;
-    box-shadow: 0 0 0 1px var(--iris-4), 0 0 0 4px rgba(127,200,255,0.16);
+    border-color: transparent;
+    box-shadow: 0 0 0 2px var(--dot-on);
   }
-  .edit-actions { display: flex; align-items: center; gap: 14px; }
-  .link-btn.muted { color: var(--muted); }
-  .edit-hint { font-size: 10.5px; color: var(--faint); margin-left: auto; }
+  .edit-actions { display: flex; align-items: center; gap: var(--s4); }
+  .edit-hint { font-size: 12px; color: var(--text-muted); margin-left: auto; }
 
+  /* ── Learn note ── */
   .learn-note {
-    margin-top: 12px; font-size: 12px; color: var(--text);
-    background: rgba(127,200,255,.10); border: 1px solid var(--line);
-    border-radius: var(--r-sm); padding: 8px 12px;
+    margin-top: var(--s3); font-size: 12px; color: var(--text);
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-card); padding: var(--s3) var(--s4);
   }
 </style>
