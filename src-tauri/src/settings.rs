@@ -53,6 +53,10 @@ pub struct AppSettings {
     /// from→to reaches the promotion threshold it is added to `replacements`.
     #[serde(default)]
     pub learned_corrections: Vec<LearnedCorrection>,
+    /// Visual sensitivity of the widget mic animation: how strongly the wave
+    /// reacts to the audio spectrum. 1.0 = default; lower = calmer, higher = more reactive.
+    #[serde(default = "default_mic_sensitivity")]
+    pub mic_sensitivity: f32,
 }
 
 /// A correction observed from user edits, with how many times it's been seen.
@@ -79,6 +83,7 @@ pub struct Replacement {
 
 fn default_word_correction_threshold() -> f32 { 0.85 }
 fn default_true() -> bool { true }
+fn default_mic_sensitivity() -> f32 { 1.0 }
 
 impl Default for AppSettings {
     fn default() -> Self {
@@ -101,6 +106,7 @@ impl Default for AppSettings {
             replacements: Vec::new(),
             auto_learn: true,
             learned_corrections: Vec::new(),
+            mic_sensitivity: default_mic_sensitivity(),
         }
     }
 }

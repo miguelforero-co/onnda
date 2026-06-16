@@ -136,6 +136,19 @@
         bind:checked={settings.push_to_talk}
         onchange={() => onSave()}
       />
+      <div class="sep"></div>
+      <div class="row">
+        <span class="row-label">Sensibilidad de la animación</span>
+        <div class="slider-wrap">
+          <input
+            class="slider"
+            type="range" min="0.3" max="2.5" step="0.1"
+            bind:value={settings.mic_sensitivity}
+            onchange={() => onSave()}
+          />
+          <span class="slider-val">{settings.mic_sensitivity.toFixed(1)}×</span>
+        </div>
+      </div>
     </div>
     <p class="section-hint">
       {settings.push_to_talk
@@ -365,6 +378,27 @@
   }
   .sel:hover { border-color: var(--line-strong); }
   .sel:focus { border-color: var(--text-muted); }
+
+  /* ── Mic-animation sensitivity slider (monochrome) ── */
+  .slider-wrap { display: flex; align-items: center; gap: var(--s3); }
+  .slider-val {
+    font-size: 13px; color: var(--text-muted);
+    font-variant-numeric: tabular-nums; min-width: 30px; text-align: right;
+  }
+  .slider {
+    -webkit-appearance: none; appearance: none;
+    width: 140px; height: 4px; border-radius: 2px;
+    background: var(--line); cursor: pointer; outline: none;
+  }
+  .slider::-webkit-slider-thumb {
+    -webkit-appearance: none; appearance: none;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--nav-active-bg); cursor: pointer;
+  }
+  .slider::-moz-range-thumb {
+    width: 16px; height: 16px; border: none; border-radius: 50%;
+    background: var(--nav-active-bg); cursor: pointer;
+  }
 
   /* ── Permisos ── */
   .perm-list { display: flex; flex-direction: column; }

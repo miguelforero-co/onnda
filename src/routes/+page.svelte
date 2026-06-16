@@ -44,6 +44,7 @@
     sound_on_listen: true, sound_on_stop: true, sound_on_cancel: true,
     pause_media: false, dictionary: [], replacements: [],
     auto_learn: true, learned_corrections: [],
+    mic_sensitivity: 1.0,
   });
   let view = $state<View>("home");
   // onboarding has two steps: "perms" then "models"
