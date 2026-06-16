@@ -15,6 +15,55 @@ pub(crate) fn ax_is_trusted() -> bool {
     unsafe { AXIsProcessTrusted() }
 }
 
+/// Like `ax_is_trusted`, but passes the prompt option so macOS **registers this
+/// process in the Accessibility list** (making the toggle appear) and shows the
+/// system permission dialog when not yet trusted. Returns the current trust
+/// state. Without this, just opening the Settings pane leaves the app absent
+/// from the list — the user has nothing to toggle.
+#[cfg(target_os = "macos")]
+pub(crate) fn prompt_ax_trust() -> bool {
+    use std::ffi::c_void;
+
+    #[link(name = "CoreFoundation", kind = "framework")]
+    extern "C" {
+        fn CFDictionaryCreate(
+            allocator: *const c_void,
+            keys: *const *const c_void,
+            values: *const *const c_void,
+            num_values: isize,
+            key_callbacks: *const c_void,
+            value_callbacks: *const c_void,
+        ) -> *const c_void;
+        fn CFRelease(cf: *mut c_void);
+        static kCFBooleanTrue: *const c_void;
+        static kCFTypeDictionaryKeyCallBacks: c_void;
+        static kCFTypeDictionaryValueCallBacks: c_void;
+    }
+    #[link(name = "ApplicationServices", kind = "framework")]
+    extern "C" {
+        static kAXTrustedCheckOptionPrompt: *const c_void;
+        fn AXIsProcessTrustedWithOptions(options: *const c_void) -> bool;
+    }
+
+    unsafe {
+        let keys: [*const c_void; 1] = [kAXTrustedCheckOptionPrompt];
+        let values: [*const c_void; 1] = [kCFBooleanTrue];
+        let opts = CFDictionaryCreate(
+            std::ptr::null(),
+            keys.as_ptr(),
+            values.as_ptr(),
+            1,
+            &kCFTypeDictionaryKeyCallBacks as *const c_void,
+            &kCFTypeDictionaryValueCallBacks as *const c_void,
+        );
+        let trusted = AXIsProcessTrustedWithOptions(opts);
+        if !opts.is_null() {
+            CFRelease(opts as *mut c_void);
+        }
+        trusted
+    }
+}
+
 /// Write `text` to the clipboard and simulate Cmd+V in the foreground app.
 /// No-op on non-macOS builds (paste is macOS-only at this time).
 pub(crate) fn paste_text(text: &str) {

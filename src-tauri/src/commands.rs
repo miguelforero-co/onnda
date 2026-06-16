@@ -27,6 +27,17 @@ pub fn check_accessibility_permission() -> bool {
     { true }
 }
 
+/// Trigger the macOS Accessibility prompt so the app is registered in the list
+/// (the toggle appears) and the system dialog is shown when not yet trusted.
+/// Returns the current trust state.
+#[tauri::command]
+pub fn request_accessibility() -> bool {
+    #[cfg(target_os = "macos")]
+    { crate::paste::prompt_ax_trust() }
+    #[cfg(not(target_os = "macos"))]
+    { true }
+}
+
 #[tauri::command]
 pub fn open_accessibility_settings() {
     #[cfg(target_os = "macos")]

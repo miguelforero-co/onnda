@@ -70,6 +70,7 @@ pub fn run() {
             models::check_model_status,
             commands::check_mic_permission,
             commands::check_accessibility_permission,
+            commands::request_accessibility,
             commands::open_accessibility_settings,
             commands::open_microphone_settings,
             commands::get_history,

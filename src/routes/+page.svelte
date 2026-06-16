@@ -148,6 +148,15 @@
     a11yGranted = await invoke<boolean>("check_accessibility_permission");
   }
 
+  // Accessibility: the prompt registers the app in the list (so the toggle
+  // appears) and shows the system dialog; then we open the pane so the user can
+  // flip it. Just opening the pane alone leaves the app absent from the list.
+  async function requestA11y() {
+    await invoke("request_accessibility").catch(() => {});
+    await invoke("open_accessibility_settings").catch(() => {});
+    checkPerms();
+  }
+
   async function startDownload(modelId: string) {
     delete downloadErrors[modelId];
     downloadErrors = { ...downloadErrors };
@@ -206,7 +215,7 @@
           label="Accesibilidad"
           description="Para pegar donde escribes"
           granted={a11yGranted}
-          onOpen={() => invoke("open_accessibility_settings")}
+          onOpen={requestA11y}
         />
       </div>
 
@@ -258,7 +267,7 @@
              (Cmd+V via CGEvent needs Accessibility). Prompt the user to grant it. -->
         <div class="a11y-banner">
           <span>onnda necesita permiso de <strong>Accesibilidad</strong> para pegar el dictado en otras apps. Mientras tanto el texto se copia al portapapeles, pero no se pega solo.</span>
-          <button onclick={() => invoke("open_accessibility_settings")}>Activar</button>
+          <button onclick={requestA11y}>Activar</button>
         </div>
       {/if}
       {#if !modelReady}
