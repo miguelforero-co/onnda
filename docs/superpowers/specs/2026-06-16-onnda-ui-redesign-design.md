@@ -131,8 +131,13 @@ Referencia: nodo `43:1623`. Ventana 1000×726, radio 16, sidebar a la izquierda.
   - **FeedbackBanner** anclado abajo (left 40, ancho 689, top ~639).
 
 Datos: reutiliza los `$derived` que ya existen en `Home.svelte` (totalCount, fileCount,
-totalWords, weekWords, savedMinutes, streak). El nombre "Miguel" sale del usuario/sistema
-(placeholder configurable; por ahora derivado o constante).
+totalWords, weekWords, savedMinutes, streak).
+
+**Nombre del usuario:** vendrá del **onboarding** (signin, o si lo omite preguntamos
+"¿cómo debería llamarte?"). El onboarding NO es parte de este rediseño. Se modela ahora un
+store `userName` (persistido) que el onboarding poblará después; mientras tanto usa un
+fallback. El `Heading` muestra "Hey {userName}," — si no hay nombre, "Hey," o el nombre
+del sistema como fallback temporal.
 
 ## Plan de propagación (post-Home)
 
@@ -151,10 +156,8 @@ de tema.
 
 ## Riesgos / notas
 
-- **Pixel-perfect en tema dark**: el Figma dark tiene el layout de ACTIVITY incompleto
-  (solo 2 cards y posiciones absolutas distintas al light). Se toma el **light como layout
-  canónico** y el dark solo aporta la paleta. (Confirmar con el usuario si quiere respetar
-  el layout absoluto del dark — se asume que no.)
+- **Pixel-perfect en tema dark**: CONFIRMADO con el usuario — el **light es el layout
+  canónico** y el dark solo aporta la paleta. El layout del Figma dark (incompleto) se ignora.
 - Goudy Bookletter 1911: verificar licencia de embedding (es OFL/dominio público vía
   Google Fonts → ok para empaquetar).
 - El glifo de Settings (Figma "grid") puede no calzar exacto con Iconoir; swap trivial.
