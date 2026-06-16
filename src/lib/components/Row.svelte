@@ -23,5 +23,5 @@
     padding: 10px 14px; gap: 12px; min-height: 42px;
     cursor: default;
   }
-  .row-label { font-size: 13px; font-weight: 450; color: var(--text); }
+  .row-label { font-size: 14px; font-weight: 450; color: var(--text); }
 </style>

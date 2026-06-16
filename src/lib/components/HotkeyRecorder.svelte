@@ -1,7 +1,7 @@
 <script lang="ts">
   // Keydown-capture combo recorder. States per UI-SPEC L158-163:
   //   Idle       → kbd chip showing combo; click → Capturing.
-  //   Capturing  → pulsing coral-bordered field, "Presiona la combinación…"; listens keydown.
+  //   Capturing  → pulsing muted-bordered field, "Presiona la combinación…"; listens keydown.
   //   Validating → reject combos with no modifier → inline hint.
   //   Saved      → back to Idle, call onCommitted(newCombo).
   // GOTCHA (UI-SPEC L163 / PATTERNS): NEVER register mid-capture. The parent calls
@@ -112,34 +112,35 @@
   .hk { display: flex; justify-content: flex-end; }
 
   .field {
-    background: var(--bg-2); border: 1px solid var(--line);
-    border-radius: var(--r-sm); padding: 4px 9px; min-width: 140px;
+    background: var(--surface); border: 1px solid var(--line);
+    border-radius: var(--r-nav); padding: 8px 12px; min-width: 140px;
     text-align: right; cursor: pointer; outline: none;
-    transition: border-color .15s, box-shadow .15s, background .15s;
-    font-family: inherit; font-size: 12.5px; color: var(--text);
+    transition: border-color .15s, background .15s;
+    font-family: inherit; font-size: 14px; color: var(--text);
   }
   .field:hover { border-color: var(--line-strong); }
 
   .field.capturing {
-    border-color: var(--accent);
-    color: var(--accent);
+    border-color: var(--text-muted);
+    color: var(--text-muted);
     text-align: center;
     animation: pulse 1.2s ease-in-out infinite;
   }
 
   kbd {
-    display: inline-block; background: rgba(255,255,255,0.08);
-    border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px;
-    font-size: 11px; font-family: inherit; color: var(--muted);
+    display: inline-block;
+    background: var(--surface);
+    border: 1px solid var(--line); border-radius: var(--r-nav); padding: 1px 6px;
+    font-size: 12px; font-family: inherit; color: var(--text-muted);
   }
 
   .hk-hint {
-    font-size: 11px; color: var(--accent);
+    font-size: 12px; color: var(--text-muted);
     text-align: right; padding: 4px 3px 0; line-height: 1.5;
   }
 
   @keyframes pulse {
-    0%, 100% { border-color: rgba(255,106,61,.45); }
-    50%      { border-color: rgba(255,106,61,1); }
+    0%, 100% { border-color: var(--line); }
+    50%      { border-color: var(--text-muted); }
   }
 </style>
