@@ -162,17 +162,34 @@
                       onblur={() => commitEdit(idx)}
                     />
                   {:else}
-                    <button class="word-btn" onclick={() => startEdit(idx)} title="Editar">
-                      {word}
-                    </button>
+                    <span class="word-text">{word}</span>
                   {/if}
                 </td>
                 <td class="action-cell">
-                  <button class="icon-btn" onclick={() => removeWord(idx)} title="Eliminar">
-                    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                      <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
-                    </svg>
-                  </button>
+                  <div class="row-actions">
+                    <button
+                      class="icon-btn"
+                      onclick={() => startEdit(idx)}
+                      title="Editar"
+                      tabindex="0"
+                    >
+                      <!-- Pencil icon -->
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z"/>
+                      </svg>
+                    </button>
+                    <button
+                      class="icon-btn"
+                      onclick={() => removeWord(idx)}
+                      title="Eliminar"
+                      tabindex="0"
+                    >
+                      <!-- X icon -->
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
+                      </svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             {/each}
@@ -224,12 +241,12 @@
       {:else}
         <table class="repl-table">
           <thead>
-            <tr>
+            <tr class="repl-head-row">
               <th class="col-from">De</th>
               <th class="col-arrow"></th>
               <th class="col-to">A</th>
               <th class="col-badge"></th>
-              <th class="col-del"></th>
+              <th class="col-actions"></th>
             </tr>
           </thead>
           <tbody>
@@ -247,12 +264,19 @@
                 <td class="col-badge">
                   {#if r.regex}<span class="rx-badge">regex</span>{/if}
                 </td>
-                <td class="col-del">
-                  <button class="icon-btn" onclick={() => removeReplacement(idx)} title="Eliminar">
-                    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                      <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
-                    </svg>
-                  </button>
+                <td class="col-actions">
+                  <div class="row-actions">
+                    <button
+                      class="icon-btn"
+                      onclick={() => removeReplacement(idx)}
+                      title="Eliminar"
+                      tabindex="0"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
+                      </svg>
+                    </button>
+                  </div>
                 </td>
               </tr>
             {/each}
@@ -266,7 +290,7 @@
 <style>
   /* ── Root container ── */
   .screen {
-    padding: 81px var(--s10) var(--s10);
+    padding: var(--screen-top) var(--s10) var(--s10);
     display: flex;
     flex-direction: column;
     gap: var(--s8);
@@ -309,7 +333,7 @@
     gap: var(--s2);
     padding-bottom: var(--s3);
     border-bottom: 1px solid var(--line);
-    margin-bottom: var(--s2);
+    margin-bottom: var(--s1);
   }
 
   .repl-add-row {
@@ -318,7 +342,7 @@
     gap: var(--s2);
     padding-bottom: var(--s3);
     border-bottom: 1px solid var(--line);
-    margin-bottom: var(--s2);
+    margin-bottom: var(--s1);
     flex-wrap: wrap;
   }
 
@@ -372,7 +396,6 @@
     color: var(--text-muted);
     padding: var(--s4) 0 var(--s2);
     text-align: center;
-    border-top: none;
   }
 
   /* ── Words table ── */
@@ -381,33 +404,42 @@
     border-collapse: collapse;
   }
 
+  /* No per-row lines — hover background separates rows instead */
   .word-row {
-    border-top: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    transition: background 0.12s;
+  }
+  .word-row:hover {
+    background: var(--inset);
+  }
+  /* Show actions on hover or keyboard focus-within */
+  .word-row .row-actions {
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .word-row:hover .row-actions,
+  .word-row:focus-within .row-actions {
+    opacity: 1;
   }
 
   .word-cell {
-    padding: 10px 8px 10px 0;
+    padding: 10px 8px 10px 8px;
     width: 100%;
+    height: 42px;
   }
 
-  .action-cell {
-    padding: 10px 0;
-    text-align: right;
-    white-space: nowrap;
-  }
-
-  .word-btn {
-    background: none;
-    border: none;
-    padding: 0;
+  .word-text {
     font-size: 14px;
     font-family: var(--font-sans);
     color: var(--text);
-    cursor: pointer;
-    text-align: left;
     line-height: 1.4;
   }
-  .word-btn:hover { color: var(--text-muted); }
+
+  .action-cell {
+    padding: 10px 4px 10px 0;
+    text-align: right;
+    white-space: nowrap;
+  }
 
   /* ── Replacements table ── */
   .repl-table {
@@ -415,8 +447,9 @@
     border-collapse: collapse;
   }
 
-  .repl-table thead tr {
-    border-top: 1px solid var(--line);
+  /* Faint header underline only — no per-row lines */
+  .repl-head-row {
+    border-bottom: 1px solid var(--line);
   }
 
   .repl-table th {
@@ -424,24 +457,38 @@
     font-weight: 400;
     color: var(--text-muted);
     text-align: left;
-    padding: 8px 8px 8px 0;
+    padding: 6px 8px 6px 0;
     white-space: nowrap;
   }
 
   .repl-row {
-    border-top: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    transition: background 0.12s;
+  }
+  .repl-row:hover {
+    background: var(--inset);
+  }
+  /* Show actions on hover or keyboard focus-within */
+  .repl-row .row-actions {
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .repl-row:hover .row-actions,
+  .repl-row:focus-within .row-actions {
+    opacity: 1;
   }
 
   .repl-row td {
     padding: 10px 8px 10px 0;
     vertical-align: middle;
+    height: 42px;
   }
 
-  .col-from  { width: 36%; }
-  .col-arrow { width: 24px; text-align: center; padding-left: 0; padding-right: 0; }
-  .col-to    { width: 36%; }
-  .col-badge { width: 52px; }
-  .col-del   { width: 32px; text-align: right; padding-right: 0; }
+  .col-from   { width: 34%; }
+  .col-arrow  { width: 24px; text-align: center; padding-left: 0; padding-right: 0; }
+  .col-to     { width: 34%; }
+  .col-badge  { width: 52px; }
+  .col-actions { width: 36px; text-align: right; padding-right: 4px; }
 
   .code-cell {
     font-size: 13px;
@@ -493,10 +540,17 @@
     cursor: pointer;
   }
 
-  /* ── Icon delete button ── */
+  /* ── Row actions container ── */
+  .row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s1);
+  }
+
+  /* ── Icon buttons (edit + delete) ── */
   .icon-btn {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     background: none;
     border: none;
     border-radius: var(--r-nav);
@@ -508,9 +562,12 @@
     transition: background 0.12s, color 0.12s;
     flex-shrink: 0;
   }
-  .icon-btn svg { width: 8px; height: 8px; }
   .icon-btn:hover {
     background: var(--line);
     color: var(--text);
+  }
+  .icon-btn:focus-visible {
+    outline: 2px solid var(--text-muted);
+    outline-offset: 1px;
   }
 </style>
