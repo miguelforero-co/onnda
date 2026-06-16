@@ -6,6 +6,7 @@
   import HotkeyRecorder from "$lib/components/HotkeyRecorder.svelte";
   import PermissionRow from "$lib/components/PermissionRow.svelte";
   import ModelCard from "$lib/components/ModelCard.svelte";
+  import SectionLabel from "$lib/components/ui/SectionLabel.svelte";
   import { theme, type ThemeMode } from "$lib/stores/theme.svelte";
   const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
     { value: "light", label: "Claro" },
@@ -98,265 +99,357 @@
   }
 </script>
 
-<h1 class="page-title">Ajustes</h1>
+<div class="screen">
+  <h1 class="page-title">Ajustes</h1>
 
-<!-- ── Apariencia (onnda theme selector) ── -->
-<section>
-  <h2 class="section-label">Apariencia</h2>
-  <div class="rows">
-    <div class="theme-row">
-      <span class="theme-label">Apariencia</span>
-      <div class="seg">
-        {#each THEME_OPTIONS as opt}
-          <button
-            class="seg-btn"
-            class:on={theme.mode === opt.value}
-            onclick={() => theme.set(opt.value)}
-          >{opt.label}</button>
-        {/each}
+  <!-- ── Apariencia (onnda theme selector) ── -->
+  <section class="section">
+    <SectionLabel text="Apariencia" />
+    <div class="card">
+      <div class="theme-row">
+        <span class="row-label">Apariencia</span>
+        <div class="seg">
+          {#each THEME_OPTIONS as opt}
+            <button
+              class="seg-btn"
+              class:on={theme.mode === opt.value}
+              onclick={() => theme.set(opt.value)}
+            >{opt.label}</button>
+          {/each}
+        </div>
       </div>
     </div>
-  </div>
-</section>
+  </section>
 
-<!-- ── Grabación (D-11 hotkey, D-12 push-to-talk) ── -->
-<section>
-  <h2 class="section-label">Grabación</h2>
-  <div class="rows">
-    <div class="row">
-      <span class="row-label">Atajo de teclado</span>
-      <HotkeyRecorder bind:shortcut={settings.shortcut} onCommitted={() => onSave(true)} />
-    </div>
-    <div class="sep"></div>
-    <Toggle
-      id="ptt"
-      label="Push to talk"
-      bind:checked={settings.push_to_talk}
-      onchange={() => onSave()}
-    />
-  </div>
-  <p class="section-hint">
-    {settings.push_to_talk
-      ? "Mantén presionado para grabar, suelta para transcribir."
-      : "Presiona una vez para iniciar, otra para detener."}
-  </p>
-</section>
-
-<!-- ── Reconocimiento (idioma) ── -->
-<section>
-  <h2 class="section-label">Reconocimiento</h2>
-  <div class="rows">
-    <div class="row">
-      <span class="row-label">Idioma</span>
-      <select class="sel" bind:value={settings.selected_language} onchange={() => onSave()}>
-        {#each LANGUAGES as l}<option value={l.value}>{l.label}</option>{/each}
-      </select>
-    </div>
-  </div>
-  <p class="section-hint">Elige el modelo activo en "Modelos".</p>
-</section>
-
-<!-- ── Sonidos (D-07) + Pausar multimedia (D-08) ── -->
-<section>
-  <h2 class="section-label">Sonidos</h2>
-  <div class="rows">
-    <Toggle
-      id="sounds-enabled"
-      label="Sonidos"
-      bind:checked={settings.sounds_enabled}
-      onchange={() => onSave()}
-    />
-    <div class="sep"></div>
-    <Toggle
-      id="pause-media"
-      label="Pausar multimedia al grabar"
-      bind:checked={settings.pause_media}
-      onchange={() => onSave()}
-    />
-  </div>
-  <p class="section-hint">Reproduce un sonido al iniciar, terminar y cancelar el dictado.</p>
-</section>
-
-<!-- ── Aprendizaje (Phase 3 — auto-learn from corrections) ── -->
-<section>
-  <h2 class="section-label">Aprendizaje</h2>
-  <div class="rows">
-    <Toggle
-      id="auto-learn"
-      label="Aprender de mis correcciones"
-      bind:checked={settings.auto_learn}
-      onchange={() => onSave()}
-    />
-  </div>
-  <p class="section-hint">Cuando corriges una transcripción y repites la misma corrección, Voz Local crea una regla para aplicarla sola. Edita una transcripción en "Transcripciones".</p>
-</section>
-
-<!-- ── Sistema (D-10 launch-at-login) ── -->
-<section>
-  <h2 class="section-label">Sistema</h2>
-  <div class="rows">
-    <Toggle
-      id="autostart"
-      label="Iniciar con el sistema"
-      bind:checked={settings.autostart}
-      onchange={() => onSave()}
-    />
-  </div>
-</section>
-
-<!-- ── Permisos (D-09) — live, reuses parent polling ── -->
-<section>
-  <h2 class="section-label">Permisos</h2>
-  <div class="perm-list">
-    <PermissionRow
-      label="Micrófono"
-      description="Necesario para grabar tu voz."
-      granted={micGranted}
-      onOpen={() => invoke("open_microphone_settings")}
-    />
-    <PermissionRow
-      label="Accesibilidad"
-      description="Necesario para pegar el texto dictado."
-      granted={a11yGranted}
-      onOpen={() => invoke("open_accessibility_settings")}
-    />
-  </div>
-</section>
-
-<!-- ── Modelos (D-13) — cards incl. Parakeet "Próximamente" ── -->
-<section>
-  <h2 class="section-label">Modelos</h2>
-  <div class="model-list">
-    {#each modelList as m (m.id)}
-      <ModelCard
-        model={m}
-        comingSoon={m.coming_soon}
-        selected={settings.selected_model === m.id}
-        progress={downloadProgress[m.id]}
-        error={downloadErrors[m.id]}
-        onDownload={() => onDownload(m.id)}
-        onSelect={() => { settings.selected_model = m.id; onSave(); }}
+  <!-- ── Grabación (D-11 hotkey, D-12 push-to-talk) ── -->
+  <section class="section">
+    <SectionLabel text="Grabación" />
+    <div class="card">
+      <div class="row">
+        <span class="row-label">Atajo de teclado</span>
+        <HotkeyRecorder bind:shortcut={settings.shortcut} onCommitted={() => onSave(true)} />
+      </div>
+      <div class="sep"></div>
+      <Toggle
+        id="ptt"
+        label="Push to talk"
+        bind:checked={settings.push_to_talk}
+        onchange={() => onSave()}
       />
-    {/each}
-  </div>
-</section>
-
-<!-- ── Actualizaciones (D-14) ── -->
-<section>
-  <h2 class="section-label">Actualizaciones</h2>
-  <div class="rows">
-    <div class="row">
-      <span class="row-label">Versión</span>
-      <span class="version-value">v{appVersion}{#if buildHash} · {buildHash}{/if}</span>
     </div>
-    <div class="sep"></div>
-    <div class="row">
-      <span class="row-label">Buscar actualizaciones</span>
-      <div class="update-action">
-        {#if updateMsg}<span class="update-msg">{updateMsg}</span>{/if}
-        <button class="link-btn" onclick={checkUpdates} disabled={checkingUpdates}>
-          {checkingUpdates ? "Comprobando…" : "Buscar actualizaciones"}
-        </button>
+    <p class="section-hint">
+      {settings.push_to_talk
+        ? "Mantén presionado para grabar, suelta para transcribir."
+        : "Presiona una vez para iniciar, otra para detener."}
+    </p>
+  </section>
+
+  <!-- ── Reconocimiento (idioma) ── -->
+  <section class="section">
+    <SectionLabel text="Reconocimiento" />
+    <div class="card">
+      <div class="row">
+        <span class="row-label">Idioma</span>
+        <select class="sel" bind:value={settings.selected_language} onchange={() => onSave()}>
+          {#each LANGUAGES as l}<option value={l.value}>{l.label}</option>{/each}
+        </select>
       </div>
     </div>
-  </div>
-</section>
+    <p class="section-hint">Elige el modelo activo en "Modelos".</p>
+  </section>
 
-<!-- ── Datos (D-15) — destructive actions confirm-gated ── -->
-<section>
-  <h2 class="section-label">Datos</h2>
-  <div class="rows">
-    <div class="row">
-      <span class="row-label">Carpeta de datos</span>
-      <button class="link-btn" onclick={revealData}>Abrir carpeta de datos</button>
+  <!-- ── Sonidos (D-07) + Pausar multimedia (D-08) ── -->
+  <section class="section">
+    <SectionLabel text="Sonidos" />
+    <div class="card">
+      <Toggle
+        id="sounds-enabled"
+        label="Sonidos"
+        bind:checked={settings.sounds_enabled}
+        onchange={() => onSave()}
+      />
+      <div class="sep"></div>
+      <Toggle
+        id="pause-media"
+        label="Pausar multimedia al grabar"
+        bind:checked={settings.pause_media}
+        onchange={() => onSave()}
+      />
     </div>
-    <div class="sep"></div>
-    <div class="row">
-      <span class="row-label">Historial y audios</span>
-      <button class="link-btn danger" onclick={clearHistory}>Borrar historial y audios</button>
+    <p class="section-hint">Reproduce un sonido al iniciar, terminar y cancelar el dictado.</p>
+  </section>
+
+  <!-- ── Aprendizaje (Phase 3 — auto-learn from corrections) ── -->
+  <section class="section">
+    <SectionLabel text="Aprendizaje" />
+    <div class="card">
+      <Toggle
+        id="auto-learn"
+        label="Aprender de mis correcciones"
+        bind:checked={settings.auto_learn}
+        onchange={() => onSave()}
+      />
     </div>
-    <div class="sep"></div>
-    <div class="row">
-      <span class="row-label">Modelos descargados</span>
-      <button class="link-btn danger" onclick={clearModels}>Borrar modelos descargados</button>
+    <p class="section-hint">Cuando corriges una transcripción y repites la misma corrección, Voz Local crea una regla para aplicarla sola. Edita una transcripción en "Transcripciones".</p>
+  </section>
+
+  <!-- ── Sistema (D-10 launch-at-login) ── -->
+  <section class="section">
+    <SectionLabel text="Sistema" />
+    <div class="card">
+      <Toggle
+        id="autostart"
+        label="Iniciar con el sistema"
+        bind:checked={settings.autostart}
+        onchange={() => onSave()}
+      />
     </div>
-  </div>
-  <p class="section-hint">Las acciones de borrado son permanentes y piden confirmación.</p>
-</section>
+  </section>
+
+  <!-- ── Permisos (D-09) — live, reuses parent polling ── -->
+  <section class="section">
+    <SectionLabel text="Permisos" />
+    <div class="perm-list">
+      <PermissionRow
+        label="Micrófono"
+        description="Necesario para grabar tu voz."
+        granted={micGranted}
+        onOpen={() => invoke("open_microphone_settings")}
+      />
+      <PermissionRow
+        label="Accesibilidad"
+        description="Necesario para pegar el texto dictado."
+        granted={a11yGranted}
+        onOpen={() => invoke("open_accessibility_settings")}
+      />
+    </div>
+  </section>
+
+  <!-- ── Modelos (D-13) — cards incl. Parakeet "Próximamente" ── -->
+  <section class="section">
+    <SectionLabel text="Modelos" />
+    <div class="model-list">
+      {#each modelList as m (m.id)}
+        <ModelCard
+          model={m}
+          comingSoon={m.coming_soon}
+          selected={settings.selected_model === m.id}
+          progress={downloadProgress[m.id]}
+          error={downloadErrors[m.id]}
+          onDownload={() => onDownload(m.id)}
+          onSelect={() => { settings.selected_model = m.id; onSave(); }}
+        />
+      {/each}
+    </div>
+  </section>
+
+  <!-- ── Actualizaciones (D-14) ── -->
+  <section class="section">
+    <SectionLabel text="Actualizaciones" />
+    <div class="card">
+      <div class="row">
+        <span class="row-label">Versión</span>
+        <span class="version-value">v{appVersion}{#if buildHash} · {buildHash}{/if}</span>
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <span class="row-label">Buscar actualizaciones</span>
+        <div class="update-action">
+          {#if updateMsg}<span class="update-msg">{updateMsg}</span>{/if}
+          <button class="btn-primary" onclick={checkUpdates} disabled={checkingUpdates}>
+            {checkingUpdates ? "Comprobando…" : "Buscar actualizaciones"}
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Datos (D-15) — destructive actions confirm-gated ── -->
+  <section class="section">
+    <SectionLabel text="Datos" />
+    <div class="card">
+      <div class="row">
+        <span class="row-label">Carpeta de datos</span>
+        <button class="link-btn" onclick={revealData}>Abrir carpeta de datos</button>
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <span class="row-label">Historial y audios</span>
+        <button class="destruct-btn" onclick={clearHistory}>Borrar historial y audios</button>
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <span class="row-label">Modelos descargados</span>
+        <button class="destruct-btn" onclick={clearModels}>Borrar modelos descargados</button>
+      </div>
+    </div>
+    <p class="section-hint">Las acciones de borrado son permanentes y piden confirmación.</p>
+  </section>
+</div>
 
 <style>
-  .page-title { font-size: 16px; font-weight: 600; line-height: 1.3; color: var(--text); }
+  /* ── Root container: 81px top offset matches Home / Diccionario / Importar ── */
+  .screen {
+    padding: 81px var(--s10) var(--s10);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s8);
+  }
 
-  section { margin-top: 22px; display: flex; flex-direction: column; gap: 8px; }
+  /* ── Page title: serif, matches system ── */
+  .page-title {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--text);
+  }
 
-  .section-label {
-    font-size: 10.5px; font-weight: 600; text-transform: uppercase;
-    letter-spacing: .06em; color: var(--faint); padding: 0 3px;
+  /* ── Section grouping ── */
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
   }
   .section-hint {
-    font-size: 11px; color: var(--faint); padding: 0 3px; line-height: 1.5;
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
   }
 
-  .rows {
-    background: var(--glass-fill);
-    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--line); border-radius: var(--r);
-    box-shadow: var(--glass-edge), var(--sh-2);
-    overflow: hidden;
+  /* ── Settings card ── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--r-card);
+    padding: var(--s4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
   }
-  .sep { height: 1px; background: var(--line); margin: 0 12px; }
 
+  .sep { height: 1px; background: var(--line); }
+
+  /* ── Row (label + control) ── */
   .row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 14px; gap: 12px; min-height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s3);
+    min-height: 42px;
     cursor: default;
   }
-  .row-label { font-size: 13px; font-weight: 450; color: var(--text); }
+  .row-label {
+    font-size: 14px;
+    font-weight: 450;
+    color: var(--text);
+  }
 
+  /* ── Language select ── */
   .sel {
-    font-size: 12.5px; color: var(--text); background: var(--bg-2);
-    border: 1px solid var(--line); border-radius: var(--r-sm);
-    padding: 4px 9px; outline: none; appearance: none; -webkit-appearance: none;
-    text-align: right; width: auto; max-width: 190px; cursor: pointer;
-    transition: border-color .15s, box-shadow .15s, background .15s;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 8px 12px;
+    outline: none;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    transition: border-color .15s;
   }
-  .sel:focus {
-    background: var(--elev-1); border-color: transparent;
-    box-shadow: 0 0 0 1px var(--iris-4), 0 0 0 4px rgba(127,200,255,0.16);
-  }
+  .sel:focus { border-color: var(--text-muted); }
 
   /* ── Permisos ── */
   .perm-list { display: flex; flex-direction: column; }
 
   /* ── Modelos ── */
-  .model-list { display: flex; flex-direction: column; gap: 8px; }
+  .model-list { display: flex; flex-direction: column; gap: var(--s3); }
 
-  /* ── Actualizaciones / Datos ── */
-  .update-action { display: flex; align-items: center; gap: 12px; }
-  .update-msg { font-size: 12px; color: var(--muted); }
+  /* ── Actualizaciones ── */
+  .update-action { display: flex; align-items: center; gap: var(--s3); }
+  .update-msg {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
   .version-value {
-    font-size: 12.5px; color: var(--muted); font-weight: 450;
+    font-size: 12px;
+    color: var(--text-muted);
     font-variant-numeric: tabular-nums;
   }
 
-  .link-btn {
-    background: none; border: none; padding: 4px 0;
-    font-size: 12px; font-weight: 450; color: var(--coral);
-    cursor: pointer; text-decoration: none;
+  /* ── Primary button (check updates) ── */
+  .btn-primary {
+    background: var(--nav-active-bg);
+    color: var(--nav-active-ink);
+    border: none;
+    border-radius: var(--r-nav);
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity .15s;
   }
-  .link-btn:hover { opacity: .75; }
-  .link-btn:disabled { color: var(--faint); cursor: default; opacity: .7; }
-  /* Destructive actions reuse coral per UI-SPEC (no separate red); confirm gates intent. */
-  .link-btn.danger { color: var(--coral); }
+  .btn-primary:hover:not(:disabled) { opacity: .9; }
+  .btn-primary:disabled { opacity: .35; cursor: default; }
+
+  /* ── Secondary / link button (reveal data folder) ── */
+  .link-btn {
+    background: transparent;
+    border: none;
+    padding: 0;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: color .15s;
+  }
+  .link-btn:hover { color: var(--text); }
+
+  /* ── Destructive buttons — subtle monochrome, no red ── */
+  .destruct-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 4px 10px;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: background .15s, color .15s;
+  }
+  .destruct-btn:hover {
+    background: var(--surface);
+    color: var(--text);
+  }
 
   /* ── Apariencia (onnda theme selector) ── */
-  .theme-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s4); padding: var(--s2) 0; padding-left: 14px; padding-right: 14px; min-height: 42px; }
-  .theme-label { font-family: var(--font-sans); font-size: 13px; color: var(--text); font-weight: 450; }
-  .seg { display: inline-flex; background: var(--surface); border-radius: var(--r-nav); padding: 2px; gap: 2px; }
+  .theme-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--s4);
+    min-height: 42px;
+  }
+  .seg {
+    display: inline-flex;
+    background: var(--bg);
+    border-radius: var(--r-nav);
+    padding: 2px;
+    gap: 2px;
+  }
   .seg-btn {
-    border: none; background: transparent; cursor: pointer;
-    font-family: var(--font-sans); font-size: 13px; color: var(--text-muted);
-    padding: 6px 12px; border-radius: 6px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-family: var(--font-sans);
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: 6px 12px;
+    border-radius: 6px;
+    transition: background .12s, color .12s;
   }
   .seg-btn.on { background: var(--nav-active-bg); color: var(--nav-active-ink); }
 </style>
