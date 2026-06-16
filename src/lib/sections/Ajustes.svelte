@@ -5,9 +5,9 @@
   import Toggle from "$lib/components/Toggle.svelte";
   import HotkeyRecorder from "$lib/components/HotkeyRecorder.svelte";
   import PermissionRow from "$lib/components/PermissionRow.svelte";
-  import ModelCard from "$lib/components/ModelCard.svelte";
   import SectionLabel from "$lib/components/ui/SectionLabel.svelte";
   import { theme, type ThemeMode } from "$lib/stores/theme.svelte";
+
   const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
     { value: "light", label: "Claro" },
     { value: "dark",  label: "Oscuro" },
@@ -41,7 +41,7 @@
     onCheckPerms: () => void;
   } = $props();
 
-  // Supported recognition languages (was +page.svelte LANGUAGES before the shell refactor).
+  // Supported recognition languages.
   const LANGUAGES = [
     { value: "auto", label: "Automático" },
     { value: "es",   label: "Español" },
@@ -51,12 +51,13 @@
     { value: "de",   label: "Deutsch" },
   ];
 
-  // Local model list: mirrors the prop, but can be refreshed locally after a
-  // destructive clear_models (the parent only re-fetches on download events).
-  // The $effect below keeps it in sync with the prop on every change.
+  // Local model list: mirrors the prop, refreshed after clear_models.
   // svelte-ignore state_referenced_locally
   let modelList = $state<ModelInfo[]>(models);
   $effect(() => { modelList = models; });
+
+  // Derived: the currently selected ModelInfo object.
+  const selectedModel = $derived(modelList.find(m => m.id === settings.selected_model));
 
   // Refresh permissions the moment the section mounts (parent keeps polling every 3s).
   onMount(() => onCheckPerms());
@@ -121,7 +122,7 @@
     </div>
   </section>
 
-  <!-- ── Grabación (D-11 hotkey, D-12 push-to-talk) ── -->
+  <!-- ── Grabación (D-11 hotkey, D-12 push-to-talk, idioma) ── -->
   <section class="section">
     <SectionLabel text="Grabación" />
     <div class="card">
@@ -149,6 +150,13 @@
           <span class="slider-val">{settings.mic_sensitivity.toFixed(1)}×</span>
         </div>
       </div>
+      <div class="sep"></div>
+      <div class="row">
+        <span class="row-label">Idioma</span>
+        <select class="sel" bind:value={settings.selected_language} onchange={() => onSave()}>
+          {#each LANGUAGES as l}<option value={l.value}>{l.label}</option>{/each}
+        </select>
+      </div>
     </div>
     <p class="section-hint">
       {settings.push_to_talk
@@ -157,18 +165,50 @@
     </p>
   </section>
 
-  <!-- ── Reconocimiento (idioma) ── -->
+  <!-- ── Modelos (D-13) — compact dropdown + single download control ── -->
   <section class="section">
-    <SectionLabel text="Reconocimiento" />
+    <SectionLabel text="Modelos" />
     <div class="card">
       <div class="row">
-        <span class="row-label">Idioma</span>
-        <select class="sel" bind:value={settings.selected_language} onchange={() => onSave()}>
-          {#each LANGUAGES as l}<option value={l.value}>{l.label}</option>{/each}
+        <span class="row-label">Modelo activo</span>
+        <select
+          class="sel"
+          bind:value={settings.selected_model}
+          onchange={() => onSave()}
+        >
+          {#each modelList as m (m.id)}
+            <option value={m.id} disabled={m.coming_soon || !!m.disabled_reason}>
+              {m.name}{m.size_mb > 0 ? ` · ${(m.size_mb / 1024).toFixed(1)} GB` : " · Nativo"}
+            </option>
+          {/each}
         </select>
       </div>
+
+      {#if selectedModel}
+        <div class="sep"></div>
+        <div class="model-dl-row">
+          {#if downloadProgress[settings.selected_model]}
+            <!-- Downloading: slim progress bar + percent -->
+            <div class="dl-bar-wrap">
+              <div class="dl-bar" style="width:{downloadProgress[settings.selected_model].percent}%"></div>
+            </div>
+            <span class="dl-pct">{Math.round(downloadProgress[settings.selected_model].percent)}%</span>
+          {:else if selectedModel.downloaded}
+            <!-- Already downloaded: subtle dot + label -->
+            <span class="dot-on-indicator"></span>
+            <span class="dl-status">Descargado</span>
+          {:else}
+            <!-- Not downloaded: primary download button -->
+            <button class="btn-primary" onclick={() => onDownload(settings.selected_model)}>
+              Descargar
+            </button>
+          {/if}
+          {#if downloadErrors[settings.selected_model]}
+            <span class="dl-error">{downloadErrors[settings.selected_model]}</span>
+          {/if}
+        </div>
+      {/if}
     </div>
-    <p class="section-hint">Elige el modelo activo en "Modelos".</p>
   </section>
 
   <!-- ── Sonidos (D-07) + Pausar multimedia (D-08) ── -->
@@ -238,24 +278,6 @@
     </div>
   </section>
 
-  <!-- ── Modelos (D-13) — cards incl. Parakeet "Próximamente" ── -->
-  <section class="section">
-    <SectionLabel text="Modelos" />
-    <div class="model-list">
-      {#each modelList as m (m.id)}
-        <ModelCard
-          model={m}
-          comingSoon={m.coming_soon}
-          selected={settings.selected_model === m.id}
-          progress={downloadProgress[m.id]}
-          error={downloadErrors[m.id]}
-          onDownload={() => onDownload(m.id)}
-          onSelect={() => { settings.selected_model = m.id; onSave(); }}
-        />
-      {/each}
-    </div>
-  </section>
-
   <!-- ── Actualizaciones (D-14) ── -->
   <section class="section">
     <SectionLabel text="Actualizaciones" />
@@ -301,9 +323,9 @@
 </div>
 
 <style>
-  /* ── Root container: 81px top offset matches Home / Diccionario / Importar ── */
+  /* ── Root container ── */
   .screen {
-    padding: 81px var(--s10) var(--s10);
+    padding: var(--screen-top) var(--s10) var(--s10);
     display: flex;
     flex-direction: column;
     gap: var(--s8);
@@ -356,13 +378,12 @@
     color: var(--text);
   }
 
-  /* ── Language select ── */
+  /* ── Select (language + model) ── */
   .sel {
     font-size: 14px;
     font-family: var(--font-sans);
     color: var(--text);
     background-color: var(--bg);
-    /* chevron so it reads as a dropdown, not an input */
     background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 10px center;
@@ -378,6 +399,54 @@
   }
   .sel:hover { border-color: var(--line-strong); }
   .sel:focus { border-color: var(--text-muted); }
+
+  /* ── Model download row ── */
+  .model-dl-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    min-height: 32px;
+  }
+
+  /* Downloaded state: subtle dot + label */
+  .dot-on-indicator {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--dot-on);
+    flex-shrink: 0;
+  }
+  .dl-status {
+    font-size: 13px;
+    color: var(--text-muted);
+  }
+
+  /* Progress bar */
+  .dl-bar-wrap {
+    width: 100px;
+    height: 4px;
+    background: var(--line);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .dl-bar {
+    height: 100%;
+    background: var(--dot-on);
+    border-radius: 2px;
+    transition: width .3s linear;
+  }
+  .dl-pct {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-variant-numeric: tabular-nums;
+    min-width: 32px;
+  }
+
+  /* Download error — subtle, no red */
+  .dl-error {
+    font-size: 12px;
+    color: var(--text-muted);
+  }
 
   /* ── Mic-animation sensitivity slider (monochrome) ── */
   .slider-wrap { display: flex; align-items: center; gap: var(--s3); }
@@ -403,9 +472,6 @@
   /* ── Permisos ── */
   .perm-list { display: flex; flex-direction: column; }
 
-  /* ── Modelos ── */
-  .model-list { display: flex; flex-direction: column; gap: var(--s3); }
-
   /* ── Actualizaciones ── */
   .update-action { display: flex; align-items: center; gap: var(--s3); }
   .update-msg {
@@ -418,7 +484,7 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* ── Primary button (check updates) ── */
+  /* ── Primary button (download, check updates) ── */
   .btn-primary {
     background: var(--nav-active-bg);
     color: var(--nav-active-ink);
