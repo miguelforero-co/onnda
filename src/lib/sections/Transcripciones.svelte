@@ -137,7 +137,7 @@
     <div class="storage-row">
       <span class="storage-metric">{formatBytes(storageBytes)}</span>
       {#if history.length > 0}
-        <button class="link-btn danger" onclick={clearAll}>Borrar todo</button>
+        <button class="clear-btn" onclick={clearAll}>Borrar todo</button>
       {/if}
     </div>
   </div>
@@ -154,11 +154,11 @@
   {:else}
     <div class="hist-list">
       {#each filtered as e (e.id)}
-        <div class="hist-item">
+        <div class="hist-card">
           <div class="hist-meta">
             <span class="hist-time">{fmtTime(e.timestamp_ms)}</span>
-            {#if e.duration_secs >= 1}<span class="hist-dur">{fmtDur(e.duration_secs)}</span>{/if}
-            {#if e.source === "file" && e.original_filename}<span class="hist-file">{e.original_filename}</span>{/if}
+            {#if e.duration_secs >= 1}<span class="hist-chip">{fmtDur(e.duration_secs)}</span>{/if}
+            {#if e.source === "file" && e.original_filename}<span class="hist-chip hist-file">{e.original_filename}</span>{/if}
             <div class="hist-actions">
               <button class="icon-btn" onclick={() => startEdit(e)} title="Editar / corregir">
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
@@ -230,10 +230,29 @@
   /* ── Toolbar / filter ── */
   .toolbar { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s6); }
 
-  /* Storage metric + destructive "Borrar todo", pushed right */
-  .storage-row { display: flex; align-items: center; gap: var(--s4); margin-left: auto; }
+  /* Storage metric + subtle "Borrar todo" tag, pushed right */
+  .storage-row { display: flex; align-items: center; gap: var(--s3); margin-left: auto; }
   .storage-metric { font-size: 12px; color: var(--text-muted); }
 
+  /* "Borrar todo" — subtle monochrome tag, no red */
+  .clear-btn {
+    background: transparent;
+    border: 1px solid var(--line);
+    color: var(--text-muted);
+    border-radius: var(--r-nav);
+    padding: 4px 10px;
+    font-size: 13px;
+    font-family: var(--font-sans);
+    line-height: 1;
+    cursor: pointer;
+    transition: background .12s, color .12s;
+  }
+  .clear-btn:hover {
+    background: var(--surface);
+    color: var(--text);
+  }
+
+  /* ── Link-style buttons (Guardar / Cancelar inside edit) ── */
   .link-btn {
     background: none; border: none; padding: 4px 0;
     font-size: 14px; font-weight: 400; color: var(--text-muted);
@@ -241,7 +260,6 @@
     font-family: var(--font-sans);
   }
   .link-btn:hover { opacity: .75; }
-  .link-btn.danger { color: var(--danger); }
   .link-btn.text-muted { color: var(--text-muted); }
 
   /* ── Segmented control (onnda theme-selector style) ── */
@@ -264,7 +282,7 @@
     color: var(--nav-active-ink);
   }
 
-  /* ── History list ── */
+  /* ── History list: cards stacked vertically ── */
   .empty {
     display: flex; flex-direction: column; align-items: center;
     justify-content: center; padding: 60px var(--s6); gap: 6px; text-align: center;
@@ -272,25 +290,42 @@
   .empty p { font-size: 14px; font-weight: 400; color: var(--text); }
   .empty span { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
 
-  .hist-list { display: flex; flex-direction: column; margin-top: var(--s4); }
-  .hist-item {
-    padding: var(--s3) 0;
-    border-bottom: 1px solid var(--line);
-    display: flex; flex-direction: column; gap: 5px;
+  .hist-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+    margin-top: var(--s4);
   }
-  .hist-item:first-child { border-top: 1px solid var(--line); }
+
+  /* Each history entry is a card */
+  .hist-card {
+    background: var(--surface);
+    border-radius: var(--r-card);
+    padding: var(--s4);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+  }
 
   .hist-meta { display: flex; align-items: center; gap: 6px; }
   .hist-time { font-size: 12px; color: var(--text-muted); }
-  .hist-dur {
-    font-size: 12px; color: var(--text-muted);
-    background: var(--surface); border-radius: 10px; padding: 1px 6px;
+
+  /* Chips: bordered, no background fill */
+  .hist-chip {
+    font-size: 12px;
+    color: var(--text-muted);
+    background: transparent;
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 1px 8px;
   }
   .hist-file {
-    font-size: 12px; color: var(--text-muted);
-    background: var(--surface); border-radius: 10px; padding: 1px 7px;
-    max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    max-width: 180px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
+
   .hist-actions { display: flex; gap: 2px; margin-left: auto; }
 
   .icon-btn {
@@ -301,8 +336,11 @@
   }
   .icon-btn svg { width: 9px; height: 9px; }
   .icon-btn:hover { background: rgba(127,127,127,0.10); color: var(--text); }
+  /* Playing state uses muted green accent */
   .icon-btn.active { color: var(--dot-on); }
-  .icon-btn.del:hover { color: var(--danger); background: rgba(127,127,127,0.10); }
+  /* Delete icon: muted, no red on hover */
+  .icon-btn.del { color: var(--text-muted); }
+  .icon-btn.del:hover { background: rgba(127,127,127,0.10); color: var(--text); }
 
   .hist-text {
     font-size: 14px; color: var(--text); line-height: 1.55;
@@ -320,13 +358,12 @@
     font-family: var(--font-sans);
   }
   .edit-area:focus {
-    border-color: transparent;
-    box-shadow: 0 0 0 2px var(--dot-on);
+    border-color: var(--text-muted);
   }
   .edit-actions { display: flex; align-items: center; gap: var(--s4); }
   .edit-hint { font-size: 12px; color: var(--text-muted); margin-left: auto; }
 
-  /* ── Learn note ── */
+  /* ── Learn note: subtle card, no blue tint ── */
   .learn-note {
     margin-top: var(--s3); font-size: 12px; color: var(--text);
     background: var(--surface); border: 1px solid var(--line);
