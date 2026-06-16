@@ -96,6 +96,26 @@
     if (e.key === "Enter") { e.preventDefault(); commitEdit(idx); }
     if (e.key === "Escape") { editingIdx = null; }
   }
+
+  // Refocus the word input after adding so fast entry works
+  let wordInputEl: HTMLInputElement;
+  function addWordAndRefocus() {
+    addWord();
+    wordInputEl?.focus();
+  }
+  function onAddKeyRefocus(e: KeyboardEvent) {
+    if (e.key === "Enter") { e.preventDefault(); addWordAndRefocus(); }
+  }
+
+  // Refocus rFrom after adding a replacement
+  let rFromEl: HTMLInputElement;
+  function addReplacementAndRefocus() {
+    addReplacement();
+    rFromEl?.focus();
+  }
+  function onReplKeyRefocus(e: KeyboardEvent) {
+    if (e.key === "Enter") { e.preventDefault(); addReplacementAndRefocus(); }
+  }
 </script>
 
 <div class="screen">
@@ -108,48 +128,58 @@
       Agrega palabras o nombres propios para que Whisper los reconozca mejor.
     </p>
 
-    <!-- ── Add input ── -->
-    <div class="add-row">
-      <input
-        class="ipt"
-        type="text"
-        placeholder="Escribe una palabra y pulsa Enter"
-        bind:value={draft}
-        onkeydown={onAddKey}
-      />
-      <button class="btn-primary" onclick={addWord} disabled={!draft.trim()}>Añadir</button>
-    </div>
+    <div class="card">
+      <!-- Inline add row (always visible at the top of the card) -->
+      <div class="add-row">
+        <input
+          bind:this={wordInputEl}
+          class="ipt add-ipt"
+          type="text"
+          placeholder="Agregar palabra…"
+          bind:value={draft}
+          onkeydown={onAddKeyRefocus}
+        />
+        <button class="btn-primary" onclick={addWordAndRefocus} disabled={!draft.trim()}>
+          Agregar
+        </button>
+      </div>
 
-    <!-- ── Item list / empty state ── -->
-    {#if settings.dictionary.length === 0}
-      <div class="empty">
-        <p>Tu diccionario está vacío</p>
-        <span>Agrega palabras o nombres propios para que Whisper los reconozca mejor.</span>
-      </div>
-    {:else}
-      <div class="chips">
-        {#each settings.dictionary as word, idx (idx)}
-          {#if editingIdx === idx}
-            <input
-              class="ipt chip-edit"
-              type="text"
-              bind:value={editValue}
-              onkeydown={(e) => onEditKey(e, idx)}
-              onblur={() => commitEdit(idx)}
-            />
-          {:else}
-            <span class="chip">
-              <button class="chip-word" onclick={() => startEdit(idx)} title="Editar">{word}</button>
-              <button class="icon-btn del" onclick={() => removeWord(idx)} title="Eliminar">
-                <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                  <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
-                </svg>
-              </button>
-            </span>
-          {/if}
-        {/each}
-      </div>
-    {/if}
+      <!-- Table or empty state -->
+      {#if settings.dictionary.length === 0}
+        <div class="empty-row">Sin palabras aún</div>
+      {:else}
+        <table class="words-table">
+          <tbody>
+            {#each settings.dictionary as word, idx (idx)}
+              <tr class="word-row">
+                <td class="word-cell">
+                  {#if editingIdx === idx}
+                    <input
+                      class="ipt inline-edit"
+                      type="text"
+                      bind:value={editValue}
+                      onkeydown={(e) => onEditKey(e, idx)}
+                      onblur={() => commitEdit(idx)}
+                    />
+                  {:else}
+                    <button class="word-btn" onclick={() => startEdit(idx)} title="Editar">
+                      {word}
+                    </button>
+                  {/if}
+                </td>
+                <td class="action-cell">
+                  <button class="icon-btn" onclick={() => removeWord(idx)} title="Eliminar">
+                    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                      <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      {/if}
+    </div>
   </section>
 
   <!-- ── Replacements section ── -->
@@ -160,43 +190,81 @@
       Ej: «air table» → «Airtable», o «mi correo» → tu email. No distingue mayúsculas.
     </p>
 
-    <div class="repl-add">
-      <input class="ipt" type="text" placeholder="Buscar (lo que se dice)" bind:value={rFrom} onkeydown={onReplKey} />
-      <span class="arrow">→</span>
-      <input class="ipt" type="text" placeholder="Reemplazar por" bind:value={rTo} onkeydown={onReplKey} />
-      <label class="rx-toggle" title="Tratar «Buscar» como expresión regular">
-        <input type="checkbox" bind:checked={rRegex} /> regex
-      </label>
-      <button class="btn-primary" onclick={addReplacement} disabled={!rFrom.trim()}>Añadir</button>
-    </div>
-
-    {#if (settings.replacements ?? []).length === 0}
-      <div class="empty">
-        <p>Sin reemplazos</p>
-        <span>Agrega reglas para corregir nombres o expandir atajos al dictar.</span>
+    <div class="card">
+      <!-- Inline add row -->
+      <div class="repl-add-row">
+        <input
+          bind:this={rFromEl}
+          class="ipt repl-ipt"
+          type="text"
+          placeholder="De…"
+          bind:value={rFrom}
+          onkeydown={onReplKeyRefocus}
+        />
+        <span class="arrow" aria-hidden="true">→</span>
+        <input
+          class="ipt repl-ipt"
+          type="text"
+          placeholder="A…"
+          bind:value={rTo}
+          onkeydown={onReplKeyRefocus}
+        />
+        <label class="rx-toggle" title="Tratar «De» como expresión regular">
+          <input type="checkbox" bind:checked={rRegex} />
+          <span>regex</span>
+        </label>
+        <button class="btn-primary" onclick={addReplacementAndRefocus} disabled={!rFrom.trim()}>
+          Agregar
+        </button>
       </div>
-    {:else}
-      <ul class="repl-list">
-        {#each settings.replacements as r, idx (idx)}
-          <li class="repl-card">
-            <code class="repl-from">{r.from}</code>
-            <span class="arrow">→</span>
-            <code class="repl-to">{r.to || "(vacío)"}</code>
-            {#if r.regex}<span class="rx-badge">regex</span>{/if}
-            <button class="icon-btn del" onclick={() => removeReplacement(idx)} title="Eliminar">
-              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
-              </svg>
-            </button>
-          </li>
-        {/each}
-      </ul>
-    {/if}
+
+      <!-- Replacements table or empty state -->
+      {#if (settings.replacements ?? []).length === 0}
+        <div class="empty-row">Sin reemplazos aún</div>
+      {:else}
+        <table class="repl-table">
+          <thead>
+            <tr>
+              <th class="col-from">De</th>
+              <th class="col-arrow"></th>
+              <th class="col-to">A</th>
+              <th class="col-badge"></th>
+              <th class="col-del"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each settings.replacements as r, idx (idx)}
+              <tr class="repl-row">
+                <td class="col-from">
+                  <span class="code-cell">{r.from}</span>
+                </td>
+                <td class="col-arrow">
+                  <span class="arrow" aria-hidden="true">→</span>
+                </td>
+                <td class="col-to">
+                  <span class="code-cell muted">{r.to || "(vacío)"}</span>
+                </td>
+                <td class="col-badge">
+                  {#if r.regex}<span class="rx-badge">regex</span>{/if}
+                </td>
+                <td class="col-del">
+                  <button class="icon-btn" onclick={() => removeReplacement(idx)} title="Eliminar">
+                    <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                      <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
+                    </svg>
+                  </button>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      {/if}
+    </div>
   </section>
 </div>
 
 <style>
-  /* ── Root container: 81px top offset matches Home / Transcripciones ── */
+  /* ── Root container ── */
   .screen {
     padding: 81px var(--s10) var(--s10);
     display: flex;
@@ -204,7 +272,7 @@
     gap: var(--s8);
   }
 
-  /* ── Page title: serif, matches system ── */
+  /* ── Page title ── */
   .page-title {
     font-family: var(--font-serif);
     font-size: 24px;
@@ -218,17 +286,40 @@
     flex-direction: column;
     gap: var(--s3);
   }
+
   .section-hint {
     font-size: 12px;
     color: var(--text-muted);
     line-height: 1.5;
   }
 
-  /* ── Add row ── */
+  /* ── Card wrapper ── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--r-card);
+    padding: var(--s4);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Inline add rows ── */
   .add-row {
     display: flex;
     align-items: center;
-    gap: var(--s3);
+    gap: var(--s2);
+    padding-bottom: var(--s3);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: var(--s2);
+  }
+
+  .repl-add-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding-bottom: var(--s3);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: var(--s2);
+    flex-wrap: wrap;
   }
 
   /* ── Inputs ── */
@@ -236,16 +327,26 @@
     font-size: 14px;
     font-family: var(--font-sans);
     color: var(--text);
-    background: var(--surface);
+    background: var(--bg);
     border: 1px solid var(--line);
     border-radius: var(--r-nav);
     padding: 8px 12px;
     outline: none;
-    flex: 1;
-    transition: border-color .15s;
+    transition: border-color 0.15s;
   }
   .ipt::placeholder { color: var(--text-muted); }
   .ipt:focus { border-color: var(--text-muted); }
+
+  .add-ipt { flex: 1; }
+  .repl-ipt { flex: 1; min-width: 80px; }
+
+  /* Inline edit inside a table row */
+  .inline-edit {
+    width: 100%;
+    min-width: 100px;
+    padding: 4px 8px;
+    font-size: 14px;
+  }
 
   /* ── Primary button ── */
   .btn-primary {
@@ -259,77 +360,123 @@
     font-family: var(--font-sans);
     cursor: pointer;
     white-space: nowrap;
-    transition: opacity .15s;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
   }
-  .btn-primary:hover:not(:disabled) { opacity: .9; }
-  .btn-primary:disabled { opacity: .35; cursor: default; }
+  .btn-primary:hover:not(:disabled) { opacity: 0.85; }
+  .btn-primary:disabled { opacity: 0.35; cursor: default; }
 
-  /* ── Chips (dictionary words) ── */
-  .chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: var(--s2);
+  /* ── Empty state row ── */
+  .empty-row {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: var(--s4) 0 var(--s2);
+    text-align: center;
+    border-top: none;
   }
-  .chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    background: transparent;
-    border: 1px solid var(--line);
-    border-radius: var(--r-nav);
-    padding: 1px 4px 1px 10px;
+
+  /* ── Words table ── */
+  .words-table {
+    width: 100%;
+    border-collapse: collapse;
   }
-  .chip-word {
+
+  .word-row {
+    border-top: 1px solid var(--line);
+  }
+
+  .word-cell {
+    padding: 10px 8px 10px 0;
+    width: 100%;
+  }
+
+  .action-cell {
+    padding: 10px 0;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  .word-btn {
     background: none;
     border: none;
     padding: 0;
-    font-size: 12px;
-    color: var(--text-muted);
-    cursor: pointer;
+    font-size: 14px;
     font-family: var(--font-sans);
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+    line-height: 1.4;
   }
-  .chip-word:hover { color: var(--text); }
-  .chip-edit {
+  .word-btn:hover { color: var(--text-muted); }
+
+  /* ── Replacements table ── */
+  .repl-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .repl-table thead tr {
+    border-top: 1px solid var(--line);
+  }
+
+  .repl-table th {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 8px 8px 8px 0;
+    white-space: nowrap;
+  }
+
+  .repl-row {
+    border-top: 1px solid var(--line);
+  }
+
+  .repl-row td {
+    padding: 10px 8px 10px 0;
+    vertical-align: middle;
+  }
+
+  .col-from  { width: 36%; }
+  .col-arrow { width: 24px; text-align: center; padding-left: 0; padding-right: 0; }
+  .col-to    { width: 36%; }
+  .col-badge { width: 52px; }
+  .col-del   { width: 32px; text-align: right; padding-right: 0; }
+
+  .code-cell {
+    font-size: 13px;
+    font-family: var(--font-sans);
+    color: var(--text);
+    background: var(--bg);
     border-radius: var(--r-nav);
-    padding: 4px 12px;
-    flex: 0 1 auto;
-    min-width: 120px;
+    padding: 2px 8px;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .code-cell.muted { color: var(--text-muted); }
+
+  /* ── Arrow separator ── */
+  .arrow {
+    color: var(--text-muted);
+    font-size: 14px;
+    flex-shrink: 0;
   }
 
-  /* ── Icon buttons (delete inside chips / replacement rows) ── */
-  .icon-btn {
-    width: 18px; height: 18px; background: none; border: none;
-    border-radius: 50%; color: var(--text-muted); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background .12s, color .12s;
+  /* ── Regex badge ── */
+  .rx-badge {
+    font-size: 11px;
+    color: var(--text-muted);
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 1px 6px;
+    font-family: var(--font-sans);
+    white-space: nowrap;
   }
-  .icon-btn svg { width: 8px; height: 8px; }
-  /* Destructive: monochrome, no red */
-  .icon-btn.del:hover { background: rgba(127,127,127,0.10); color: var(--text); }
 
-  /* ── Empty state ── */
-  .empty {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    padding: 48px var(--s6);
-    gap: 6px;
-    text-align: center;
-    background: var(--surface);
-    border-radius: var(--r-card);
-  }
-  .empty p { font-size: 14px; font-weight: 400; color: var(--text); }
-  .empty span { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
-
-  /* ── Replacements ── */
-  .repl-add {
-    display: flex;
-    align-items: center;
-    gap: var(--s2);
-    flex-wrap: wrap;
-  }
-  .arrow { color: var(--text-muted); font-size: 14px; }
+  /* ── Regex toggle (in add row) ── */
   .rx-toggle {
     display: inline-flex;
     align-items: center;
@@ -339,43 +486,31 @@
     cursor: pointer;
     white-space: nowrap;
     font-family: var(--font-sans);
+    flex-shrink: 0;
   }
-  .repl-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: var(--s3);
+  .rx-toggle input[type="checkbox"] {
+    accent-color: var(--nav-active-bg);
+    cursor: pointer;
   }
-  .repl-card {
-    display: flex;
-    align-items: center;
-    gap: var(--s2);
-    background: var(--surface);
-    border-radius: var(--r-card);
-    padding: var(--s4);
-  }
-  .repl-from, .repl-to {
-    font-size: 12px;
-    color: var(--text);
-    background: var(--bg);
+
+  /* ── Icon delete button ── */
+  .icon-btn {
+    width: 24px;
+    height: 24px;
+    background: none;
+    border: none;
     border-radius: var(--r-nav);
-    padding: 2px 7px;
-    max-width: 38%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    font-family: var(--font-sans);
-  }
-  .repl-to { color: var(--text-muted); }
-  .rx-badge {
-    font-size: 11px;
     color: var(--text-muted);
-    border: 1px solid var(--line);
-    border-radius: var(--r-nav);
-    padding: 1px 6px;
-    font-family: var(--font-sans);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, color 0.12s;
+    flex-shrink: 0;
   }
-  .repl-card .icon-btn { margin-left: auto; }
+  .icon-btn svg { width: 8px; height: 8px; }
+  .icon-btn:hover {
+    background: var(--line);
+    color: var(--text);
+  }
 </style>
