@@ -14,11 +14,17 @@ fn data_dir<R: Runtime>(app: &AppHandle<R>) -> Option<std::path::PathBuf> {
 }
 
 /// Open the app data directory in Finder (macOS).
+///
+/// NOTE: the app identifier is `com.vozlocal.app`, so `app_data_dir()` ends in
+/// `.app`. Plain `open <dir>` treats a `.app`-suffixed path as an application
+/// bundle and fails with "executable is missing". `open -a Finder <dir>` forces
+/// Finder to open it as a folder.
 #[tauri::command]
 pub fn reveal_data_dir<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     let dir = data_dir(&app).ok_or("sin directorio de datos")?;
     #[cfg(target_os = "macos")]
     std::process::Command::new("open")
+        .args(["-a", "Finder"])
         .arg(&dir)
         .spawn()
         .map_err(|e| e.to_string())?;

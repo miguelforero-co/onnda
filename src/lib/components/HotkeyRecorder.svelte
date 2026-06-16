@@ -129,9 +129,9 @@
 
   kbd {
     display: inline-block;
-    background: var(--surface);
-    border: 1px solid var(--line); border-radius: var(--r-nav); padding: 1px 6px;
-    font-size: 12px; font-family: inherit; color: var(--text-muted);
+    background: var(--bg);
+    border: 1px solid var(--line); border-radius: var(--r-nav); padding: 2px 8px;
+    font-size: 13px; font-family: inherit; color: var(--text);
   }
 
   .hk-hint {

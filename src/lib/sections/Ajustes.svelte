@@ -348,16 +348,22 @@
     font-size: 14px;
     font-family: var(--font-sans);
     color: var(--text);
-    background: var(--surface);
+    background-color: var(--bg);
+    /* chevron so it reads as a dropdown, not an input */
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 12px;
     border: 1px solid var(--line);
     border-radius: var(--r-nav);
-    padding: 8px 12px;
+    padding: 8px 34px 8px 12px;
     outline: none;
     appearance: none;
     -webkit-appearance: none;
     cursor: pointer;
     transition: border-color .15s;
   }
+  .sel:hover { border-color: var(--line-strong); }
   .sel:focus { border-color: var(--text-muted); }
 
   /* ── Permisos ── */

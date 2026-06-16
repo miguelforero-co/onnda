@@ -87,7 +87,7 @@
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 81px var(--s10) var(--s10);  /* top 81, sides/bottom 40 */
+    padding: 51px var(--s10) var(--s10);  /* top aligns with the sidebar wordmark (51px) */
     overflow: hidden;
   }
   .content { display: flex; flex-direction: column; gap: var(--s8); } /* 32 */

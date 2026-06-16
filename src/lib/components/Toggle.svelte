@@ -24,7 +24,7 @@
 <style>
   .row {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 14px; gap: 12px; min-height: 42px;
+    padding: 0; gap: 12px; min-height: 42px;
     cursor: pointer;
   }
   .row-label { font-size: 14px; font-weight: 450; color: var(--text); }
