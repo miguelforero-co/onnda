@@ -33,6 +33,9 @@
   --dot-off:   #c4c6c5;      /* empty day                                     */
   --dot-today: #2b2b2b;      /* today ring                                    */
 
+  /* Feedback colors */
+  --danger:    #c0473e;      /* destructive actions (delete / clear)          */
+
   /* Legacy hairlines (shim — see back-compat block below) */
   --line:        rgba(0,0,0,0.10);
   --line-strong: rgba(0,0,0,0.18);
@@ -61,6 +64,9 @@
   --dot-on:    #6fe6ce;
   --dot-off:   #3a3a3a;
   --dot-today: #e5e5e5;
+
+  /* Feedback colors */
+  --danger:    #e0796f;
 
   /* Legacy hairlines (shim) */
   --line:        rgba(255,255,255,0.10);

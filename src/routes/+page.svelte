@@ -253,6 +253,14 @@
     <Sidebar bind:view />
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <main class="content" onmousedown={contentDrag} ondblclick={contentDblClick}>
+      {#if !a11yGranted}
+        <!-- Accessibility missing: dictation copies to clipboard but can't auto-paste
+             (Cmd+V via CGEvent needs Accessibility). Prompt the user to grant it. -->
+        <div class="a11y-banner">
+          <span>onnda necesita permiso de <strong>Accesibilidad</strong> para pegar el dictado en otras apps. Mientras tanto el texto se copia al portapapeles, pero no se pega solo.</span>
+          <button onclick={() => invoke("open_accessibility_settings")}>Activar</button>
+        </div>
+      {/if}
       {#if !modelReady}
         <!-- HARDEN-04: actionable banner when no model is downloaded -->
         <div class="model-banner">
@@ -297,7 +305,6 @@
   .shell {
     display: flex;
     gap: var(--seam);
-    padding: var(--seam);
     height: 100vh;
     background: var(--shell);
     border-radius: var(--r-window);
@@ -354,6 +361,26 @@
   .ob-step-dot.active { background: var(--accent); box-shadow: 0 0 8px -1px rgba(255,106,61,.7); }
 
   /* HARDEN-04: no-model banner */
+  /* Accessibility-missing banner (onnda) — shows on any screen until granted. */
+  .a11y-banner {
+    display: flex; align-items: center; gap: var(--s3);
+    margin: var(--s4) var(--s10) 0;
+    padding: var(--s3) var(--s4);
+    border-radius: var(--r-card);
+    background: var(--surface);
+    border: 1px solid var(--danger);
+  }
+  .a11y-banner span { flex: 1; font-size: 14px; color: var(--text); line-height: 1.4; }
+  .a11y-banner strong { font-weight: 600; }
+  .a11y-banner button {
+    flex-shrink: 0;
+    background: var(--nav-active-bg); color: var(--nav-active-ink); border: none;
+    border-radius: var(--r-nav); padding: 8px 16px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: opacity .15s;
+  }
+  .a11y-banner button:hover { opacity: .9; }
+
   .model-banner {
     display: flex; align-items: center; gap: 12px;
     padding: 10px 14px;
