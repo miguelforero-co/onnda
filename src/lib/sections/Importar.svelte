@@ -3,6 +3,7 @@
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
   import { open } from "@tauri-apps/plugin-dialog";
+  import { getCurrentWebview } from "@tauri-apps/api/webview";
   import { onMount, onDestroy } from "svelte";
   import SectionLabel from "$lib/components/ui/SectionLabel.svelte";
 
@@ -48,12 +49,8 @@
   // Auto-clear the "Listo ✓" flash after a moment.
   let doneTimeout: ReturnType<typeof setTimeout> | null = null;
 
-  async function uploadAudio() {
-    const path = await open({
-      multiple: false,
-      filters: [{ name: "Audio", extensions: ["wav", "mp3", "m4a"] }],
-    });
-    if (!path || Array.isArray(path)) return;
+  // ── Core transcription by path (shared by click-to-pick and drag-drop) ──
+  async function transcribeFromPath(path: string) {
     if (doneTimeout) { clearTimeout(doneTimeout); doneTimeout = null; }
     errorMsg = "";
     phase = "decoding";
@@ -67,6 +64,18 @@
       errorMsg = "No se pudo transcribir el archivo. Formatos admitidos: WAV, MP3, M4A.";
     }
   }
+
+  async function uploadAudio() {
+    const path = await open({
+      multiple: false,
+      filters: [{ name: "Audio", extensions: ["wav", "mp3", "m4a"] }],
+    });
+    if (!path || Array.isArray(path)) return;
+    await transcribeFromPath(path);
+  }
+
+  // ── Drag-over state (for dropzone styling) ──
+  let dragOver = $state(false);
 
   // ── File-transcribe events ──
   const unlisten: (() => void)[] = [];
@@ -88,6 +97,30 @@
         errorMsg = "No se pudo transcribir el archivo. Formatos admitidos: WAV, MP3, M4A.";
       }),
     );
+
+    // ── Tauri webview drag-drop ──
+    try {
+      const webview = getCurrentWebview();
+      const unlistenDragDrop = await webview.onDragDropEvent((event) => {
+        const t = event.payload.type;
+        if (t === "enter" || t === "over") {
+          dragOver = true;
+        } else if (t === "leave") {
+          dragOver = false;
+        } else if (t === "drop") {
+          dragOver = false;
+          const audioExts = ["wav", "mp3", "m4a"];
+          const audioPath = event.payload.paths.find((p) => {
+            const ext = p.split(".").pop()?.toLowerCase() ?? "";
+            return audioExts.includes(ext);
+          });
+          if (audioPath) transcribeFromPath(audioPath);
+        }
+      });
+      unlisten.push(unlistenDragDrop);
+    } catch {
+      // drag-drop API unavailable; click-to-pick still works
+    }
   });
 
   // ── Playback (lifted from Transcripciones) ──
@@ -113,6 +146,10 @@
     onRefresh();
   }
 
+  async function copyEntry(text: string) {
+    try { await navigator.clipboard.writeText(text); } catch { /* ignore */ }
+  }
+
   function fmtTime(ms: number) {
     const d = new Date(ms), now = new Date();
     return now.toDateString() === d.toDateString()
@@ -129,40 +166,68 @@
 </script>
 
 <div class="screen">
-  <div class="head">
-    <h1 class="page-title">Importar</h1>
-    <button class="btn-primary" onclick={uploadAudio} disabled={busy}>
-      Subir audio
-    </button>
+  <h1 class="page-title">Importar</h1>
+
+  <!-- ── Dropzone ── -->
+  <!-- svelte-ignore a11y_click_events_have_key_events -->
+  <!-- svelte-ignore a11y_no_static_element_interactions -->
+  <div
+    class="dropzone"
+    class:drag-over={dragOver}
+    class:busy
+    onclick={!busy ? uploadAudio : undefined}
+    role="button"
+    tabindex="0"
+    aria-label="Subir archivo de audio"
+    onkeydown={(e) => { if (!busy && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); uploadAudio(); } }}
+  >
+    {#if busy}
+      <!-- Processing state inside the dropzone -->
+      <div class="dz-processing" role="status" aria-live="polite">
+        <div class="loader" aria-hidden="true"><span></span></div>
+        <div class="dz-process-text">
+          <span class="stage">{stageLabel}</span>
+          <span class="sub">El tiempo depende del tamaño del archivo y del modelo. {elapsed}s</span>
+        </div>
+      </div>
+    {:else if phase === "done"}
+      <div class="dz-done">
+        <svg class="dz-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="6 17 13 24 26 10"/>
+        </svg>
+        <span class="dz-label done-label">Transcripción lista</span>
+      </div>
+    {:else if phase === "error"}
+      <div class="dz-idle">
+        <svg class="dz-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="16" cy="16" r="13"/><line x1="16" y1="10" x2="16" y2="18"/><circle cx="16" cy="22" r="1" fill="currentColor" stroke="none"/>
+        </svg>
+        <span class="dz-label">{errorMsg}</span>
+        <span class="dz-sub">Haz clic para intentar con otro archivo</span>
+      </div>
+    {:else}
+      <div class="dz-idle">
+        <!-- Upload icon — inline SVG, monochrome currentColor -->
+        <svg class="dz-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10 22 C6 22 4 19 4 16 C4 13 6 11 9 11 C9 11 9 11 9 10.5 C9 7.5 11.5 5 14.5 5 C17 5 19 6.5 19.5 8.5 C20 8.2 20.5 8 21 8 C23.5 8 25.5 10 25.5 12.5 C25.5 12.7 25.5 12.9 25.5 13 C27 14 28 15.5 28 17 C28 19.5 26 22 23 22"/>
+          <line x1="16" y1="14" x2="16" y2="27"/>
+          <polyline points="12 18 16 14 20 18"/>
+        </svg>
+        <span class="dz-label">Arrastra un archivo de audio o haz clic para elegir</span>
+        <span class="dz-sub">WAV · MP3 · M4A</span>
+      </div>
+    {/if}
   </div>
 
-  {#if busy}
-    <div class="processing" role="status" aria-live="polite">
-      <div class="loader" aria-hidden="true"><span></span></div>
-      <div class="processing-text">
-        <span class="stage">{stageLabel}</span>
-        <span class="hint">El tiempo depende del tamaño del archivo y del modelo.</span>
-      </div>
-      <span class="elapsed">{elapsed} s</span>
-    </div>
-  {:else if phase === "done"}
-    <div class="status-bar">
-      <span class="done-status">Listo ✓</span>
-    </div>
-  {:else if phase === "error"}
-    <div class="status-bar">
-      <span class="error-status">{errorMsg}</span>
-    </div>
-  {/if}
-
+  <!-- ── History section ── -->
   {#if files.length === 0}
     <div class="empty">
-      <p>Sube un archivo de audio para transcribirlo.</p>
-      <button class="btn-primary" onclick={uploadAudio} disabled={busy}>Subir audio</button>
+      <p class="empty-title">Aún no has transcrito archivos</p>
+      <span class="empty-hint">Los archivos importados aparecerán aquí después de transcribirlos.</span>
     </div>
   {:else}
     <div class="section-header">
-      <SectionLabel text="Archivos" />
+      <SectionLabel text="Historial" />
     </div>
     <div class="hist-list">
       {#each files as e (e.id)}
@@ -171,6 +236,11 @@
             <span class="hist-time">{fmtTime(e.timestamp_ms)}</span>
             {#if e.original_filename}<span class="hist-chip hist-file">{e.original_filename}</span>{/if}
             <div class="hist-actions">
+              <button class="icon-btn" onclick={() => copyEntry(e.text)} title="Copiar">
+                <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2.5" y="2.5" width="5.5" height="5.5" rx="1"/><path d="M5.5 2.5V1.5a1 1 0 0 0-1-1H1.5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1"/>
+                </svg>
+              </button>
               {#if e.audio_filename}
                 <button class="icon-btn" class:active={playingId === e.id} onclick={() => playAudio(e)} title="Reproducir">
                   {#if playingId === e.id}
@@ -203,89 +273,100 @@
   }
 
   /* ── Page title: serif, matches system ── */
-  .head {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--s3);
-  }
   .page-title {
     font-family: var(--font-serif);
     font-size: 24px;
     font-weight: 400;
     color: var(--text);
+    margin: 0 0 var(--s6) 0;
   }
 
-  /* ── Primary action button ── */
-  .btn-primary {
-    background: var(--nav-active-bg);
-    color: var(--nav-active-ink);
-    border: none;
-    border-radius: var(--r-nav);
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: var(--font-sans);
+  /* ── Dropzone ── */
+  .dropzone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--s8);
+    border: 1px dashed var(--line);
+    border-radius: var(--r-card);
+    background: transparent;
     cursor: pointer;
-    transition: opacity .15s;
+    transition: border-color .15s, background .15s;
+    min-height: 160px;
+    margin-bottom: var(--s6);
+    user-select: none;
   }
-  .btn-primary:hover:not(:disabled) { opacity: .9; }
-  .btn-primary:disabled {
-    opacity: .35;
+  .dropzone:hover:not(.busy),
+  .dropzone:focus-visible:not(.busy) {
+    border-color: var(--text-muted);
+    outline: none;
+  }
+  .dropzone.drag-over:not(.busy) {
+    border-color: var(--text-muted);
+    background: var(--surface);
+  }
+  .dropzone.busy {
     cursor: default;
   }
 
-  /* ── Status bar (done / error) ── */
-  .status-bar {
+  /* ── Idle / error dropzone content ── */
+  .dz-idle,
+  .dz-done {
     display: flex;
+    flex-direction: column;
     align-items: center;
     gap: var(--s3);
-    margin-top: var(--s4);
+    text-align: center;
   }
-  .done-status {
-    font-size: 12px;
+  .dz-icon {
+    width: 32px;
+    height: 32px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+  .dz-label {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text);
+    font-family: var(--font-sans);
+    max-width: 280px;
+    line-height: 1.4;
+  }
+  .done-label {
     color: var(--dot-on);
-    animation: fade-out 1.8s ease-out forwards;
   }
-  @keyframes fade-out { 0%, 55% { opacity: 1; } 100% { opacity: 0; } }
-  .error-status {
+  .dz-sub {
     font-size: 12px;
     color: var(--text-muted);
-    line-height: 1.5;
+    font-family: var(--font-sans);
   }
 
-  /* ── Processing indicator ── */
-  .processing {
+  /* ── Processing state inside dropzone ── */
+  .dz-processing {
     display: flex;
     align-items: center;
     gap: var(--s3);
-    margin-top: var(--s4);
-    padding: var(--s4);
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--r-card);
+    width: 100%;
+    max-width: 320px;
   }
-  .processing-text {
+  .dz-process-text {
     display: flex;
     flex-direction: column;
     gap: 3px;
     flex: 1;
     min-width: 0;
   }
-  .processing-text .stage {
+  .stage {
     font-size: 14px;
     font-weight: 400;
     color: var(--text);
+    font-family: var(--font-sans);
   }
-  .processing-text .hint {
+  .sub {
     font-size: 12px;
     color: var(--text-muted);
     line-height: 1.4;
-  }
-  .elapsed {
-    font-size: 12px;
-    color: var(--text-muted);
-    flex-shrink: 0;
+    font-family: var(--font-sans);
     font-variant-numeric: tabular-nums;
   }
 
@@ -318,7 +399,6 @@
 
   /* ── Section header ── */
   .section-header {
-    margin-top: var(--s6);
     margin-bottom: var(--s3);
   }
 
@@ -328,14 +408,22 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 60px var(--s6);
-    gap: var(--s3);
+    padding: 48px var(--s6);
+    gap: 6px;
     text-align: center;
   }
-  .empty p {
+  .empty-title {
     font-size: 14px;
     font-weight: 400;
+    color: var(--text);
+    font-family: var(--font-sans);
+  }
+  .empty-hint {
+    font-size: 12px;
     color: var(--text-muted);
+    line-height: 1.5;
+    font-family: var(--font-sans);
+    max-width: 260px;
   }
 
   /* ── History list: cards ── */
