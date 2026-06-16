@@ -30,6 +30,10 @@
   --dot-on:    #4f7d5f;      /* active day (muted green)                       */
   --dot-off:   #c4c6c5;      /* empty day                                     */
   --dot-today: #2b2b2b;      /* today ring                                    */
+
+  /* Legacy hairlines (shim — see back-compat block below) */
+  --line:        rgba(0,0,0,0.10);
+  --line-strong: rgba(0,0,0,0.18);
 }
 
 :root[data-theme="dark"] {
@@ -53,6 +57,10 @@
   --dot-on:    #6fe6ce;
   --dot-off:   #3a3a3a;
   --dot-today: #e5e5e5;
+
+  /* Legacy hairlines (shim) */
+  --line:        rgba(255,255,255,0.10);
+  --line-strong: rgba(255,255,255,0.16);
 }
 
 :root {
@@ -69,6 +77,39 @@
 
   /* Layout constants (Figma) */
   --sidebar-w: 245px;
+
+  /* ── BACK-COMPAT SHIM (TEMPORARY) ──────────────────────────────────────
+     Maps legacy dark-glass tokens to the flat onnda system so the not-yet-
+     migrated screens (Transcripciones, Diccionario, Importar, the legacy parts
+     of Ajustes) and shared components (ModelCard, PermissionRow, Rows, Toggle,
+     HotkeyRecorder) render coherently instead of unstyled. These resolve via
+     the per-theme semantic vars above. REMOVE each alias as its screen is
+     migrated to the atomic components (follow-up plan). Color aliases that
+     reference --surface/--bg/--text-muted/--dot-on already theme-switch; only
+     --line/--line-strong needed raw per-theme values (set in the theme blocks). */
+  --glass-fill:    var(--surface);
+  --glass-fill-hi: var(--surface);
+  --elev-1:        var(--surface);
+  --elev-2:        var(--surface);
+  --bg-2:          var(--bg);
+  --muted:         var(--text-muted);
+  --faint:         var(--text-muted);
+  --accent:        var(--dot-on);
+  --coral:         var(--dot-on);
+  --amber:         var(--dot-on);
+  --blue:          var(--dot-on);
+  --iris-4:        var(--dot-on);
+  --accent-glow:   0 0 0 1px var(--dot-on);
+  --iris-ramp:     linear-gradient(105deg, var(--dot-on), var(--text-section));
+  --iris-ring:     var(--dot-on);
+  --r:             var(--r-nav);
+  --r-sm:          var(--r-nav);
+  --glass-blur:    none;
+  --glass-edge:    0 0 transparent;
+  --sh-2:          0 4px 12px rgba(0,0,0,0.10);
+  --sh-3:          0 8px 24px rgba(0,0,0,0.14);
+  --ease-soft:     cubic-bezier(0.32, 0.72, 0, 1);
+  --ring-dur:      18s;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
