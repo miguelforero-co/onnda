@@ -1,115 +1,104 @@
-# Voz Local
+<div align="center">
 
-**100% local speech-to-text for your Mac. No cloud, no subscription, no internet.**
+# onnda
 
-Press a keyboard shortcut, speak, and the text appears wherever your cursor is — in any app.
+**voice to text — 100% local on your Mac. No cloud, no subscription, no internet.**
 
-[![Release](https://img.shields.io/github/v/release/emeforero/voz-local?style=flat-square)](https://github.com/emeforero/voz-local/releases/latest)
-[![macOS](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple)](https://github.com/emeforero/voz-local/releases/latest)
-[![Apple Silicon](https://img.shields.io/badge/Apple_Silicon-M1%2FM2%2FM3%2FM4-black?style=flat-square)](https://github.com/emeforero/voz-local/releases/latest)
+Press a shortcut, speak, and the text appears wherever your cursor is — in any app.
+
+[![Release](https://img.shields.io/github/v/release/miguelforero-co/voz-local?style=flat-square)](https://github.com/miguelforero-co/voz-local/releases/latest)
+[![macOS](https://img.shields.io/badge/macOS-14%2B-black?style=flat-square&logo=apple)](https://github.com/miguelforero-co/voz-local/releases/latest)
+[![Apple Silicon + Intel](https://img.shields.io/badge/Apple_Silicon-%2B_Intel-black?style=flat-square)](https://github.com/miguelforero-co/voz-local/releases/latest)
 [![License: MIT](https://img.shields.io/badge/License-MIT-black?style=flat-square)](LICENSE)
+
+</div>
 
 ---
 
 ## Download
 
-**[⬇ Download Voz Local for macOS](https://github.com/emeforero/voz-local/releases/latest)**
+**[⬇ Download onnda for macOS](https://github.com/miguelforero-co/voz-local/releases/latest)**
 
-> Requires macOS 14 (Sonoma) or later · Apple Silicon (M1/M2/M3/M4)
+> macOS 14 (Sonoma) or later · Apple Silicon or Intel
 
 ---
+
+## How it works
+
+onnda lives in your menu bar. Hold (or tap) your shortcut, speak, and release — the audio is transcribed **entirely on your Mac** and the text is pasted right where you were typing. A small wave animation in the notch shows it's listening. Nothing is uploaded; there's no account to sign up for.
 
 ## Features
 
-- **Local transcription** using [Whisper](https://github.com/openai/whisper) (ggml) accelerated by Metal — the model runs entirely on your Mac, nothing leaves your device
-- **Global shortcut** (default `Alt+Space`) — works even when the window is closed
-- **Push-to-talk** or toggle mode
-- **Auto-paste** wherever your cursor is
-- **Floating widget** with real-time audio visualization
-- **Transcription history** with audio playback
-- **Custom vocabulary** to improve recognition of technical terms
-- **Launch at login** support
+- **Local transcription** — [Whisper](https://github.com/ggerganov/whisper.cpp) accelerated by Metal, or Apple's on-device Speech engine. The model runs entirely on your Mac.
+- **Global shortcut** (default `Alt+Space`) — works even when the window is closed. Push-to-talk or toggle mode.
+- **Auto-paste** wherever your cursor is — without stealing keyboard focus.
+- **Transcribe files** — drop an audio file and get its transcript.
+- **History** — review, copy, play back, and **edit** transcriptions. onnda learns from your corrections.
+- **Dictionary & replacements** — custom vocabulary plus `from → to` rules for names, brands, and jargon.
+- **Light / dark / auto themes.**
+- **Notch widget** with a live voice animation and adjustable sensitivity.
+- **Model management** from Settings.
+- **Apple Silicon and Intel**, launch-at-login support.
 
----
+## Privacy
+
+All speech processing is **local**. onnda never sends your audio or transcripts to any server. The only optional network calls are downloading voice models and checking for updates.
 
 ## Installation
 
-1. Download the `.dmg` from [Releases](https://github.com/emeforero/voz-local/releases/latest)
-2. Open the `.dmg` and drag **Voz Local** to Applications
-3. Open the app — it lives in the menu bar (not the Dock)
-4. Grant **Microphone** and **Accessibility** permissions when prompted
-5. Download a Whisper model from the welcome screen
-6. Press `Alt+Space` to start dictating
+1. Download the `.dmg` from [Releases](https://github.com/miguelforero-co/voz-local/releases/latest).
+2. Open it and drag **onnda** to Applications.
+3. Launch it — it lives in the menu bar (not the Dock).
+4. Grant **Microphone** and **Accessibility** when prompted.
+5. Download a voice model from the welcome screen.
+6. Press `Alt+Space` and start dictating.
 
-> **If macOS says the app is damaged:** open Terminal and run `sudo xattr -cr /Applications/Voz\ Local.app`
-
----
+> **If macOS says the app is damaged:** run `sudo xattr -cr /Applications/onnda.app`
 
 ## Permissions
 
 | Permission | Why |
 |---|---|
-| **Microphone** | Capture audio input |
-| **Accessibility** | Auto-paste transcribed text at your cursor position |
+| **Microphone** | Capture your voice. |
+| **Accessibility** | Paste the transcribed text at your cursor (simulated `Cmd+V`). |
 
-> Without Accessibility permission the text is still copied to the clipboard — you can paste it manually with `Cmd+V`.
-
----
+> Without Accessibility, the text is still copied to your clipboard — paste it manually with `Cmd+V`.
 
 ## Models
 
-| Model | Size | Speed | Accuracy |
-|---|---|---|---|
-| Whisper Large v3 Turbo | 809 MB | ★★★★☆ | ★★★★★ |
-| Whisper Base | 141 MB | ★★★★★ | ★★★☆☆ |
-
-Models are not bundled with the installer. On first launch, choose and download your preferred model directly from the welcome screen. Models are stored in `~/Library/Application Support/com.vozlocal.app/models/` and work offline once downloaded.
-
----
+Models aren't bundled with the installer — pick and download one on first launch. They're stored under `~/Library/Application Support/com.vozlocal.app/models/` and work fully offline once downloaded. Apple's on-device Speech engine needs no download on supported Macs.
 
 ## Building from source
 
-### Requirements
-
-- [Rust](https://rustup.rs) (stable)
-- [Node.js](https://nodejs.org) 18+
-- macOS 12+
+**Requirements:** [Rust](https://rustup.rs) (stable), [Node.js](https://nodejs.org) ≥ 20, and Xcode Command Line Tools (`xcode-select --install`).
 
 ```bash
-git clone https://github.com/emeforero/voz-local
+git clone git@github.com:miguelforero-co/voz-local.git
 cd voz-local
 npm install
-npm run tauri dev        # development
-npm run tauri build      # production
+npm run tauri dev      # first run compiles the Rust backend (takes a while)
+npm run tauri build    # production bundle → src-tauri/target/release/bundle/
 ```
 
----
+> **Dev note:** in development, macOS attributes the **Accessibility** permission to the terminal that launches the app (e.g. Ghostty/Terminal), not to the dev binary. Grant it to that terminal in *System Settings → Privacy & Security → Accessibility* for auto-paste to work. Signed release builds don't have this quirk.
+
+Checks:
+
+```bash
+npm run check                                    # types + Svelte
+cargo test --manifest-path src-tauri/Cargo.toml  # backend tests
+```
 
 ## Tech stack
 
 | Layer | Technology |
 |---|---|
-| Frontend | SvelteKit + TypeScript (adapter-static) |
-| Backend | Rust + Tauri v2 |
-| Transcription | [whisper-rs](https://github.com/tazz4843/whisper-rs) + Metal (Apple Silicon GPU) |
-| Audio capture | cpal |
+| Frontend | SvelteKit + Svelte 5 + TypeScript (adapter-static) |
+| Backend | Rust + Tauri 2 |
+| Transcription | [whisper-rs](https://github.com/tazz4843/whisper-rs) + Metal, and Apple Speech (Swift sidecar) |
+| Audio capture | cpal + energy-based VAD |
 | Word correction | [strsim](https://github.com/dguo/strsim-rs) (Jaro-Winkler) |
-| Widget | NSVisualEffectView (native macOS vibrancy) |
-
----
-
-## Changelog
-
-### v1.5.0
-- **Faster transcription**: energy-based VAD trims leading/trailing silence before Whisper inference, reducing processed audio by 20–70% on typical recordings
-- **Custom vocabulary**: user-defined word list passed to Whisper as `initial_prompt` to bias recognition toward technical terms (GitHub, Claude Code, Node.js, TypeScript, etc.)
-- **Post-transcription word correction**: Jaro-Winkler fuzzy matching between the transcript and the custom vocabulary — corrects typos like "tyepscript" → "TypeScript"
-- **Configurable correction threshold**: slider in Settings to control how aggressively corrections are applied (default 0.85)
-
-### v0.1.0
-- Initial release: local Whisper transcription, global shortcut, push-to-talk, floating widget, transcription history, auto-paste
-
----
+| Design | onnda design system · [Iconoir](https://iconoir.com) icons · Goudy Bookletter 1911 |
 
 ## License
 
