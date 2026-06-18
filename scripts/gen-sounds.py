@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate the three Voz Local feedback cues as mono 44.1kHz 16-bit PCM WAVs.
+"""Generate the three onnda feedback cues as mono 44.1kHz 16-bit PCM WAVs.
 
 Design goals (per product feedback): cooler and more dynamic than the macOS
 system cues, but still subtle/premium — never loud or harsh. Every tone gets a

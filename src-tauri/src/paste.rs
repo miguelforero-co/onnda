@@ -2,7 +2,7 @@
 //!
 //! `paste_text` writes a UTF-8 string to the macOS clipboard via NSPasteboard
 //! and then simulates Cmd+V through CoreGraphics so the foreground app receives
-//! the paste without Voz Local holding keyboard focus.
+//! the paste without onnda holding keyboard focus.
 
 /// Check whether Accessibility permission is granted (macOS only).
 /// Exposed as `pub(crate)` so `commands.rs` (test_paste, check_accessibility_permission)

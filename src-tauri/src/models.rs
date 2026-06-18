@@ -165,7 +165,7 @@ pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> 
     let _ = tokio::fs::remove_file(&tmp).await;
 
     let client = reqwest::Client::builder()
-        .user_agent("voz-local/0.1")
+        .user_agent("onnda/0.1")
         .build()
         .map_err(|e| e.to_string())?;
 

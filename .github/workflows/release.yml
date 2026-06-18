@@ -71,17 +71,17 @@ jobs:
         run: |
           codesign --deep --force --sign - \
             --entitlements src-tauri/entitlements.plist \
-            "src-tauri/target/release/bundle/macos/Voz Local.app"
+            "src-tauri/target/release/bundle/macos/onnda.app"
 
       - name: Create arm64 DMG
         run: |
           VERSION=$(grep '^version' src-tauri/Cargo.toml | head -1 | cut -d'"' -f2)
           mkdir -p dist
           hdiutil create \
-            -volname "Voz Local" \
-            -srcfolder "src-tauri/target/release/bundle/macos/Voz Local.app" \
+            -volname "onnda" \
+            -srcfolder "src-tauri/target/release/bundle/macos/onnda.app" \
             -ov -format UDZO \
-            "dist/Voz Local_${VERSION}_aarch64.dmg"
+            "dist/onnda_${VERSION}_aarch64.dmg"
 
       # ── x86_64 (cross-compiled from arm64) ─────────────────────────────────
 
@@ -95,39 +95,39 @@ jobs:
         run: |
           codesign --deep --force --sign - \
             --entitlements src-tauri/entitlements.plist \
-            "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Voz Local.app"
+            "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/onnda.app"
 
       - name: Create x86_64 DMG
         run: |
           VERSION=$(grep '^version' src-tauri/Cargo.toml | head -1 | cut -d'"' -f2)
           hdiutil create \
-            -volname "Voz Local" \
-            -srcfolder "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Voz Local.app" \
+            -volname "onnda" \
+            -srcfolder "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/onnda.app" \
             -ov -format UDZO \
-            "dist/Voz Local_${VERSION}_x86_64.dmg"
+            "dist/onnda_${VERSION}_x86_64.dmg"
 
       # ── Publish release ─────────────────────────────────────────────────────
 
       - name: Upload DMGs to Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Voz Local ${{ github.ref_name }}"
+          name: "onnda ${{ github.ref_name }}"
           body: |
             ## Descarga
 
             Elige el DMG para tu Mac:
-            - **Apple Silicon (M1/M2/M3/M4):** `Voz Local_*_aarch64.dmg`
-            - **Intel Mac:** `Voz Local_*_x86_64.dmg`
+            - **Apple Silicon (M1/M2/M3/M4):** `onnda_*_aarch64.dmg`
+            - **Intel Mac:** `onnda_*_x86_64.dmg`
 
             ## Instalación
 
-            1. Abre el `.dmg` y arrastra **Voz Local** a Aplicaciones
+            1. Abre el `.dmg` y arrastra **onnda** a Aplicaciones
             2. **Primer arranque:** clic derecho → Abrir (la app no está notarizada)
             3. Concede permisos de **Micrófono** y **Accesibilidad**
             4. Descarga un modelo Whisper desde la pantalla de bienvenida
             5. Pulsa `Alt+Espacio` para empezar a dictar
 
-            > Si macOS dice que la app está dañada: `sudo xattr -cr /Applications/Voz\ Local.app`
+            > Si macOS dice que la app está dañada: `sudo xattr -cr /Applications/onnda.app`
 
             > Requiere macOS 11 (Big Sur) o superior · Apple Silicon e Intel
           files: dist/*.dmg

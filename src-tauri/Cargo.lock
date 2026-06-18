@@ -3035,6 +3035,44 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "9f7c3e4beb33f85d45ae3e3a1792185706c8e16d043238c593331cc7cd313b50"
 
 [[package]]
+name = "onnda"
+version = "1.7.0"
+dependencies = [
+ "anyhow",
+ "block2",
+ "cpal",
+ "futures-util",
+ "log",
+ "objc2",
+ "objc2-app-kit",
+ "objc2-foundation",
+ "parking_lot",
+ "regex",
+ "reqwest 0.12.28",
+ "rustfft",
+ "serde",
+ "serde_json",
+ "sha2 0.11.0",
+ "strsim",
+ "symphonia",
+ "tauri",
+ "tauri-build",
+ "tauri-plugin-autostart",
+ "tauri-plugin-dialog",
+ "tauri-plugin-fs",
+ "tauri-plugin-global-shortcut",
+ "tauri-plugin-log",
+ "tauri-plugin-notification",
+ "tauri-plugin-opener",
+ "tauri-plugin-process",
+ "tauri-plugin-shell",
+ "tokio",
+ "webrtc-vad",
+ "whisper-rs",
+ "window-vibrancy",
+]
+
+[[package]]
 name = "open"
 version = "5.3.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -5937,44 +5975,6 @@ name = "version_check"
 version = "0.9.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0b928f33d975fc6ad9f86c8f283853ad26bdd5b10b7f1542aa2fa15e2289105a"
-
-[[package]]
-name = "voz-local"
-version = "1.7.0"
-dependencies = [
- "anyhow",
- "block2",
- "cpal",
- "futures-util",
- "log",
- "objc2",
- "objc2-app-kit",
- "objc2-foundation",
- "parking_lot",
- "regex",
- "reqwest 0.12.28",
- "rustfft",
- "serde",
- "serde_json",
- "sha2 0.11.0",
- "strsim",
- "symphonia",
- "tauri",
- "tauri-build",
- "tauri-plugin-autostart",
- "tauri-plugin-dialog",
- "tauri-plugin-fs",
- "tauri-plugin-global-shortcut",
- "tauri-plugin-log",
- "tauri-plugin-notification",
- "tauri-plugin-opener",
- "tauri-plugin-process",
- "tauri-plugin-shell",
- "tokio",
- "webrtc-vad",
- "whisper-rs",
- "window-vibrancy",
-]
 
 [[package]]
 name = "vswhom"

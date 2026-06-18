@@ -127,7 +127,7 @@ fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let version_label = MenuItem::with_id(
         app,
         "version",
-        format!("Voz Local v{}", app.package_info().version),
+        format!("onnda v{}", app.package_info().version),
         false,
         None::<&str>,
     )?;
@@ -146,7 +146,7 @@ fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         .icon_as_template(true)
         .menu(&menu)
         .show_menu_on_left_click(false)
-        .tooltip("Voz Local")
+        .tooltip("onnda")
         .on_menu_event(|app, event| match event.id.as_ref() {
             "settings" => open_main_window(app),
             "quit" => app.exit(0),
@@ -177,7 +177,7 @@ fn open_main_window<R: Runtime>(app: &AppHandle<R>) {
             "main",
             tauri::WebviewUrl::App("/".into()),
         )
-        .title("Voz Local")
+        .title("onnda")
         .inner_size(880.0, 640.0)
         .resizable(true)
         .center()

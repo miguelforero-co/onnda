@@ -243,7 +243,7 @@
         onchange={() => onSave()}
       />
     </div>
-    <p class="section-hint">Cuando corriges una transcripción y repites la misma corrección, Voz Local crea una regla para aplicarla sola. Edita una transcripción en "Transcripciones".</p>
+    <p class="section-hint">Cuando corriges una transcripción y repites la misma corrección, onnda crea una regla para aplicarla sola. Edita una transcripción en "Transcripciones".</p>
   </section>
 
   <!-- ── Sistema (D-10 launch-at-login) ── -->

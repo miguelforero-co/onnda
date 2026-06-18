@@ -1,12 +1,12 @@
 [package]
-name = "voz-local"
+name = "onnda"
 version = "1.7.0"
-description = "Voz Local - transcripción de voz a texto 100% local"
+description = "onnda - transcripción de voz a texto 100% local"
 authors = ["you"]
 edition = "2021"
 
 [lib]
-name = "voz_local_lib"
+name = "onnda_lib"
 crate-type = ["staticlib", "cdylib", "rlib"]
 
 [build-dependencies]
