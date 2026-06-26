@@ -246,6 +246,20 @@
     <p class="section-hint">Cuando corriges una transcripción y repites la misma corrección, onnda crea una regla para aplicarla sola. Edita una transcripción en "Transcripciones".</p>
   </section>
 
+  <!-- ── Privacidad (Task 6 analytics opt-in) ── -->
+  <section class="section">
+    <SectionLabel text="Privacidad" />
+    <div class="card">
+      <Toggle
+        id="analytics-enabled"
+        label="Estadísticas anónimas de uso"
+        bind:checked={settings.analytics_enabled}
+        onchange={() => onSave()}
+      />
+    </div>
+    <p class="section-hint">Nunca enviamos lo que dictas. Solo eventos anónimos como "transcripción completada".</p>
+  </section>
+
   <!-- ── Sistema (D-10 launch-at-login) ── -->
   <section class="section">
     <SectionLabel text="Sistema" />

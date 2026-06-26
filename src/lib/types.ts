@@ -20,6 +20,7 @@ export interface Settings {
   auto_learn: boolean;
   learned_corrections: LearnedCorrection[];
   mic_sensitivity: number;
+  analytics_enabled: boolean;
 }
 
 export interface Replacement {

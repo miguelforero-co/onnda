@@ -46,10 +46,11 @@
     pause_media: false, dictionary: [], replacements: [],
     auto_learn: true, learned_corrections: [],
     mic_sensitivity: 1.0,
+    analytics_enabled: false,
   });
   let view = $state<View>("home");
-  // onboarding has two steps: "perms" then "models"
-  let obStep = $state<"perms" | "models">("perms");
+  // onboarding has three steps: "perms" → "models" → "analytics"
+  let obStep = $state<"perms" | "models" | "analytics">("perms");
   let models = $state<ModelInfo[]>([]);
   let history = $state<HistoryEntry[]>([]);
   let micGranted = $state(false);
@@ -201,6 +202,7 @@
     <div class="ob-steps">
       <div class="ob-step-dot" class:active={obStep === "perms"}></div>
       <div class="ob-step-dot" class:active={obStep === "models"}></div>
+      <div class="ob-step-dot" class:active={obStep === "analytics"}></div>
     </div>
 
     {#if obStep === "perms"}
@@ -234,7 +236,7 @@
         </button>
       </div>
 
-    {:else}
+    {:else if obStep === "models"}
       <!-- Step 2: download a model -->
       <div class="ob-intro">
         <h1>Descargar modelo</h1>
@@ -254,8 +256,28 @@
 
       <div class="ob-foot">
         <p class="hint">Puedes descargar más modelos desde Ajustes en cualquier momento.</p>
-        <button class="btn-primary" disabled={!models.some(m => m.downloaded)} onclick={finishOnboarding}>
-          {models.some(m => m.downloaded) ? "Empezar" : "Descarga al menos un modelo…"}
+        <button class="btn-primary" disabled={!models.some(m => m.downloaded)} onclick={() => { obStep = "analytics"; }}>
+          {models.some(m => m.downloaded) ? "Continuar" : "Descarga al menos un modelo…"}
+        </button>
+      </div>
+
+    {:else}
+      <!-- Step 3: analytics consent -->
+      <div class="ob-intro">
+        <h1>Estadísticas anónimas</h1>
+        <p>¿Permitir que onnda envíe estadísticas anónimas de uso?<br>Nunca enviamos lo que dictas.</p>
+      </div>
+
+      <div class="ob-analytics">
+        <p class="analytics-detail">Solo registramos eventos como "transcripción completada" sin ningún texto. Puedes cambiar esto en Ajustes en cualquier momento.</p>
+      </div>
+
+      <div class="ob-foot">
+        <button class="btn-primary" onclick={() => { settings.analytics_enabled = true; finishOnboarding(); }}>
+          Permitir
+        </button>
+        <button class="btn-secondary" onclick={() => { settings.analytics_enabled = false; finishOnboarding(); }}>
+          No, gracias
         </button>
       </div>
     {/if}
@@ -346,6 +368,25 @@
 
   .perm-list { display: flex; flex-direction: column; }
   .model-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .ob-analytics {
+    background: var(--surface, rgba(255,255,255,.05));
+    border-radius: var(--r-card, 12px);
+    padding: 16px;
+  }
+  .analytics-detail {
+    font-size: 12.5px;
+    color: var(--muted);
+    line-height: 1.65;
+  }
+
+  .btn-secondary {
+    width: 100%; background: transparent; color: var(--muted); border: none;
+    border-radius: var(--r); padding: 10px; font-size: 13px; font-weight: 500;
+    cursor: pointer; letter-spacing: -.01em;
+    transition: color .15s;
+  }
+  .btn-secondary:hover { color: var(--text); }
 
   .ob-foot { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
   .hint { font-size: 11.5px; color: var(--faint); line-height: 1.55; }
