@@ -207,3 +207,13 @@ pub fn correct_history_entry<R: Runtime>(
 pub fn get_recording_audio<R: Runtime>(app: AppHandle<R>, filename: String) -> Option<String> {
     history::get_audio_base64(&app, &filename)
 }
+
+// ── Analytics ──────────────────────────────────────────────────────────────
+
+/// Fire-and-forget analytics event. The opt-in guard lives in `analytics::track`;
+/// this command is a thin bridge from the frontend. Uses the concrete AppHandle
+/// because EventTracker is only implemented for the concrete (Wry) runtime.
+#[tauri::command]
+pub fn track_event(app: tauri::AppHandle, event: String, props: Option<serde_json::Value>) {
+    crate::analytics::track(&app, &event, props);
+}

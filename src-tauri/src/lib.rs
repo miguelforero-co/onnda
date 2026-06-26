@@ -90,6 +90,7 @@ pub fn run() {
             data_mgmt::clear_models,
             data_mgmt::get_storage_usage,
             updater_check::check_for_updates,
+            commands::track_event,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
