@@ -5,6 +5,7 @@ use tauri::{
 };
 use tauri_plugin_log::{Target, TargetKind, RotationStrategy};
 
+mod accounts;
 mod analytics;
 mod audio;
 mod backend;
