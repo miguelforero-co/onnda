@@ -57,6 +57,10 @@ pub struct AppSettings {
     /// reacts to the audio spectrum. 1.0 = default; lower = calmer, higher = more reactive.
     #[serde(default = "default_mic_sensitivity")]
     pub mic_sensitivity: f32,
+    /// Opt-in anonymous usage analytics (Aptabase). Default false — no events
+    /// are sent until the user consents. Never includes transcribed content.
+    #[serde(default)]
+    pub analytics_enabled: bool,
 }
 
 /// A correction observed from user edits, with how many times it's been seen.
@@ -107,6 +111,7 @@ impl Default for AppSettings {
             auto_learn: true,
             learned_corrections: Vec::new(),
             mic_sensitivity: default_mic_sensitivity(),
+            analytics_enabled: false,
         }
     }
 }
@@ -214,5 +219,15 @@ mod tests {
     fn dictionary_join_for_prompt() {
         let dict = vec!["GitHub".to_string(), "Claude Code".to_string()];
         assert_eq!(dict.join(", "), "GitHub, Claude Code");
+    }
+
+    #[test]
+    fn analytics_disabled_by_default_and_for_old_settings() {
+        // New default
+        assert!(!AppSettings::default().analytics_enabled);
+        // Old settings.json without the field must deserialize to false
+        let old = r#"{"shortcut":"Alt+Space","push_to_talk":true,"selected_language":"auto","selected_model":"base","autostart":false,"onboarding_done":true,"widget_position":"center"}"#;
+        let s: AppSettings = serde_json::from_str(old).expect("old settings.json must deserialize");
+        assert!(!s.analytics_enabled);
     }
 }
