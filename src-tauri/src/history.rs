@@ -25,11 +25,11 @@ fn default_source() -> String {
 }
 
 fn history_path<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
-    app.path().app_data_dir().unwrap().join("history.json")
+    crate::accounts::profile_dir(app).join("history.json")
 }
 
 fn recordings_dir<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
-    app.path().app_data_dir().unwrap().join("recordings")
+    crate::accounts::profile_dir(app).join("recordings")
 }
 
 pub fn init<R: Runtime>(app: &AppHandle<R>) {

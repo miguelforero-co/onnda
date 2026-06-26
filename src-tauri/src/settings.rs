@@ -134,10 +134,13 @@ pub fn migrate_dictionary(dictionary: &[String], custom_words: &str) -> Vec<Stri
 static CACHE: Mutex<Option<AppSettings>> = Mutex::new(None);
 
 fn settings_path<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
-    app.path()
-        .app_data_dir()
-        .expect("no app data dir")
-        .join("settings.json")
+    crate::accounts::profile_dir(app).join("settings.json")
+}
+
+/// Drop the cached settings — call on login/logout/signup so the next load
+/// reads the newly-active profile.
+pub fn clear_cache() {
+    *CACHE.lock().unwrap() = None;
 }
 
 pub fn init<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {

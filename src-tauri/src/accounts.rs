@@ -2,6 +2,7 @@ use argon2::password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, Pass
 use argon2::Argon2;
 use serde::{Deserialize, Serialize};
 use std::path::{Path, PathBuf};
+use tauri::{AppHandle, Manager, Runtime};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Account {
@@ -69,6 +70,21 @@ impl AccountStore {
         std::fs::rename(&tmp, path)?;
         Ok(())
     }
+}
+
+pub fn store_path<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
+    app.path().app_data_dir().expect("no app data dir").join("accounts.json")
+}
+
+pub fn current_id<R: Runtime>(app: &AppHandle<R>) -> Option<String> {
+    AccountStore::load_from(&store_path(app)).current_account_id
+}
+
+pub fn profile_dir<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
+    let base = app.path().app_data_dir().expect("no app data dir");
+    let dir = profile_subdir(&base, current_id(app).as_deref());
+    std::fs::create_dir_all(&dir).ok();
+    dir
 }
 
 pub fn profile_subdir(base: &Path, current: Option<&str>) -> PathBuf {
