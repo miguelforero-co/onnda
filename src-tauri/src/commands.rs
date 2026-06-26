@@ -75,8 +75,11 @@ pub fn save_settings<R: Runtime>(
     settings::save(&app, &new_settings).map_err(|e| e.to_string())?;
 
     if new_settings.selected_model != prev_model {
-        let engine = if new_settings.selected_model == crate::speech_backend::APPLE_MODEL_ID { "apple" } else { "whisper" };
-        app.emit("analytics-event", serde_json::json!({ "event": "engine_changed", "props": { "engine": engine, "model": new_settings.selected_model } })).ok();
+        let engine_of = |m: &str| if m == crate::speech_backend::APPLE_MODEL_ID { "apple" } else { "whisper" };
+        let new_engine = engine_of(&new_settings.selected_model);
+        if engine_of(&prev_model) != new_engine {
+            app.emit("analytics-event", serde_json::json!({ "event": "engine_changed", "props": { "engine": new_engine } })).ok();
+        }
     }
 
     if shortcut_changed {
@@ -207,7 +210,7 @@ pub fn correct_history_entry<R: Runtime>(
     let outcome = crate::learn::record_corrections(&mut settings, &pairs);
     let _ = settings::save(&app, &settings);
     if !outcome.promoted.is_empty() {
-        app.emit("analytics-event", serde_json::json!({ "event": "correction_learned" })).ok();
+        app.emit("analytics-event", serde_json::json!({ "event": "correction_learned", "props": {} })).ok();
     }
     outcome
 }
