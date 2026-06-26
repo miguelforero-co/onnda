@@ -1,3 +1,5 @@
+use argon2::password_hash::{rand_core::OsRng, PasswordHash, PasswordHasher, PasswordVerifier, SaltString};
+use argon2::Argon2;
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 
@@ -25,6 +27,21 @@ pub struct AccountPublic {
 impl From<&Account> for AccountPublic {
     fn from(a: &Account) -> Self {
         AccountPublic { id: a.id.clone(), email: a.email.clone(), name: a.name.clone(), created_at: a.created_at }
+    }
+}
+
+pub fn hash_password(pw: &str) -> Result<String, String> {
+    let salt = SaltString::generate(&mut OsRng);
+    Argon2::default()
+        .hash_password(pw.as_bytes(), &salt)
+        .map(|h| h.to_string())
+        .map_err(|e| e.to_string())
+}
+
+pub fn verify_password(pw: &str, hash: &str) -> bool {
+    match PasswordHash::new(hash) {
+        Ok(parsed) => Argon2::default().verify_password(pw.as_bytes(), &parsed).is_ok(),
+        Err(_) => false,
     }
 }
 
@@ -80,5 +97,13 @@ mod tests {
         assert_eq!(loaded.accounts.len(), 1);
         assert_eq!(loaded.current_account_id.as_deref(), Some("id1"));
         std::fs::remove_file(&path).ok();
+    }
+
+    #[test]
+    fn hash_then_verify() {
+        let h = hash_password("s3cret-pw").unwrap();
+        assert!(h.starts_with("$argon2id$"));
+        assert!(verify_password("s3cret-pw", &h));
+        assert!(!verify_password("wrong", &h));
     }
 }
