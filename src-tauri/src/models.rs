@@ -218,6 +218,7 @@ pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> 
 
     tokio::fs::rename(&tmp, &dest).await.map_err(|e| e.to_string())?;
     app.emit("download-complete", &model_id).ok();
+    app.emit("analytics-event", serde_json::json!({ "event": "model_downloaded", "props": { "model": model_id } })).ok();
     Ok(())
 }
 

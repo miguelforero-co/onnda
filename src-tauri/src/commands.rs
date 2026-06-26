@@ -8,7 +8,7 @@
 //! This file only contains commands that don't belong to any of those modules,
 //! plus thin wrappers that delegate to recording::* / models::*.
 
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Emitter, Manager, Runtime};
 use crate::history::{self, HistoryEntry};
 use crate::settings::{self, AppSettings};
 
@@ -71,7 +71,13 @@ pub fn save_settings<R: Runtime>(
     new_settings: AppSettings,
     shortcut_changed: bool,
 ) -> Result<(), String> {
+    let prev_model = settings::load(&app).selected_model.clone();
     settings::save(&app, &new_settings).map_err(|e| e.to_string())?;
+
+    if new_settings.selected_model != prev_model {
+        let engine = if new_settings.selected_model == crate::speech_backend::APPLE_MODEL_ID { "apple" } else { "whisper" };
+        app.emit("analytics-event", serde_json::json!({ "event": "engine_changed", "props": { "engine": engine, "model": new_settings.selected_model } })).ok();
+    }
 
     if shortcut_changed {
         crate::shortcut::re_register(&app, &new_settings.shortcut)
@@ -200,6 +206,9 @@ pub fn correct_history_entry<R: Runtime>(
     }
     let outcome = crate::learn::record_corrections(&mut settings, &pairs);
     let _ = settings::save(&app, &settings);
+    if !outcome.promoted.is_empty() {
+        app.emit("analytics-event", serde_json::json!({ "event": "correction_learned" })).ok();
+    }
     outcome
 }
 
