@@ -1,6 +1,7 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
+  import { track } from "$lib/analytics";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, onDestroy } from "svelte";
   import "$lib/styles/tokens.css";
@@ -109,6 +110,9 @@
         if (warnTimer) clearTimeout(warnTimer);
         warnMsg = payload;
         warnTimer = setTimeout(() => { warnMsg = ""; warnTimer = null; }, 4000);
+      }),
+      await listen<{ event: string; props: Record<string, unknown> }>("analytics-event", (e) => {
+        void track(e.payload.event, e.payload.props);
       }),
       await listen<string>("download-complete", async ({ payload: modelId }) => {
         delete downloadProgress[modelId];

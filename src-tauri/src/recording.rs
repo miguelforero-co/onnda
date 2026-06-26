@@ -368,6 +368,10 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
     crate::history::save_entry(&app_clone, text.clone(), &samples, sample_rate, "dictation".to_string(), None);
     // Notify the widget FIRST so it starts its close countdown.
     app.emit("transcription-done", &text).ok();
+    let engine = if is_apple { "apple" } else { "whisper" };
+    let duration_ms = (duration_secs * 1000.0) as i64;
+    let props = crate::analytics::transcription_props(engine, &model_name, &language, "dictation", &text, duration_ms);
+    app.emit("analytics-event", serde_json::json!({ "event": "transcription_completed", "props": props })).ok();
     // 300ms: time for the previously-active app to regain keyboard focus before Cmd+V.
     let text_for_paste = text.clone();
     tokio::spawn(async move {
@@ -536,5 +540,9 @@ pub async fn transcribe_file<R: Runtime>(app: AppHandle<R>, path: String) -> Res
 
     // 7. Done — no paste (file transcription is not a dictation).
     app.emit("file-transcribe-done", &text).ok();
+    let engine = if is_apple { "apple" } else { "whisper" };
+    let duration_ms = (samples.len() as f32 / 16000.0 * 1000.0) as i64;
+    let props = crate::analytics::transcription_props(engine, &model_name, &language, "file", &text, duration_ms);
+    app.emit("analytics-event", serde_json::json!({ "event": "transcription_completed", "props": props })).ok();
     Ok(text)
 }
