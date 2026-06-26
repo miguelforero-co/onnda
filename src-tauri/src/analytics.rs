@@ -1,4 +1,26 @@
 use serde_json::json;
+use tauri::AppHandle;
+use tauri_plugin_aptabase::EventTracker;
+
+/// Aptabase App Key. Not secret (ships in client apps). Read from the
+/// APTABASE_APP_KEY env at build time; falls back to empty (analytics no-op).
+pub fn app_key() -> &'static str {
+    option_env!("APTABASE_APP_KEY").unwrap_or("")
+}
+
+/// Fire-and-forget event. No-op unless the user opted in. Never panics.
+/// Note: EventTracker is implemented for the concrete AppHandle (Wry runtime),
+/// not the generic AppHandle<R>, so this function is non-generic.
+pub fn track(app: &AppHandle, event: &str, props: Option<serde_json::Value>) {
+    if app_key().is_empty() {
+        return;
+    }
+    let enabled = crate::settings::load(app).analytics_enabled;
+    if !enabled {
+        return;
+    }
+    let _ = app.track_event(event, props);
+}
 
 pub fn transcription_props(
     engine: &str,

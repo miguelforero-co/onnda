@@ -59,6 +59,9 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(
+            tauri_plugin_aptabase::Builder::new(analytics::app_key()).build(),
+        )
         .invoke_handler(tauri::generate_handler![
             commands::get_settings,
             commands::save_settings,
@@ -105,6 +108,7 @@ pub fn run() {
             escape::install(app.handle()); // Escape cancels an in-progress recording
 
             mic_permission::request_if_needed();
+            analytics::track(app.handle(), "app_launched", None);
 
             #[cfg(target_os = "macos")]
             {
