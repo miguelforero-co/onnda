@@ -38,6 +38,18 @@ mod updater_check;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // tauri-plugin-aptabase's setup spawns its flush loop with a bare
+    // `tokio::spawn`, which panics ("there is no reactor running") because Tauri
+    // runs plugin setup on the main thread, outside any Tokio runtime context.
+    // Enter a multi-threaded Tokio runtime for the whole app lifetime so that
+    // spawn finds a reactor. Tauri's own async_runtime is unaffected (it manages
+    // its own handle); command-context spawns keep running on Tauri's workers.
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("failed to build Tokio runtime");
+    let _runtime_guard = runtime.enter();
+
     tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
