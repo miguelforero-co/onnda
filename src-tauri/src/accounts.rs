@@ -99,12 +99,12 @@ pub fn validate_email(email: &str) -> Result<(), String> {
     if e.len() >= 3 && e.contains('@') && e.split('@').nth(1).map_or(false, |d| d.contains('.')) {
         Ok(())
     } else {
-        Err("Email inválido".into())
+        Err("Invalid email".into())
     }
 }
 
 pub fn validate_password(pw: &str) -> Result<(), String> {
-    if pw.chars().count() >= 8 { Ok(()) } else { Err("La contraseña debe tener al menos 8 caracteres".into()) }
+    if pw.chars().count() >= 8 { Ok(()) } else { Err("Password must be at least 8 characters".into()) }
 }
 
 pub fn signup<R: Runtime>(app: &AppHandle<R>, name: String, email: String, password: String) -> Result<AccountPublic, String> {
@@ -114,7 +114,7 @@ pub fn signup<R: Runtime>(app: &AppHandle<R>, name: String, email: String, passw
     let mut store = AccountStore::load_from(&path);
     let email_norm = email.trim().to_lowercase();
     if store.accounts.iter().any(|a| a.email.to_lowercase() == email_norm) {
-        return Err("Ya existe una cuenta con ese email".into());
+        return Err("An account with that email already exists".into());
     }
     let now = app_now_ms(app);
     let acct = Account {
@@ -144,9 +144,9 @@ pub fn login<R: Runtime>(app: &AppHandle<R>, email: String, password: String) ->
     let mut store = AccountStore::load_from(&path);
     let email_norm = email.trim().to_lowercase();
     let acct = store.accounts.iter().find(|a| a.email.to_lowercase() == email_norm)
-        .ok_or_else(|| "Email o contraseña incorrectos".to_string())?;
+        .ok_or_else(|| "Incorrect email or password".to_string())?;
     if !verify_password(&password, &acct.password_hash) {
-        return Err("Email o contraseña incorrectos".into());
+        return Err("Incorrect email or password".into());
     }
     let pubacct = AccountPublic::from(acct);
     store.current_account_id = Some(pubacct.id.clone());
@@ -181,7 +181,7 @@ pub fn reset_password<R: Runtime>(app: &AppHandle<R>, email: String, new_passwor
     let mut store = AccountStore::load_from(&path);
     let email_norm = email.trim().to_lowercase();
     let acct = store.accounts.iter_mut().find(|a| a.email.to_lowercase() == email_norm)
-        .ok_or_else(|| "No hay una cuenta con ese email en este Mac".to_string())?;
+        .ok_or_else(|| "No account with that email on this Mac".to_string())?;
     acct.password_hash = hash_password(&new_password)?;
     store.save_to(&path).map_err(|e| e.to_string())?;
     Ok(())
