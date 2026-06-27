@@ -420,11 +420,10 @@
   .hint { font-size: 11.5px; color: var(--faint); line-height: 1.55; }
 
   .btn-primary {
-    width: 100%; background: var(--accent); color: #fff; border: none;
+    width: 100%; background: var(--nav-active-bg); color: var(--nav-active-ink); border: none;
     border-radius: var(--r); padding: 11px; font-size: 13.5px; font-weight: 600;
     cursor: pointer; letter-spacing: -.01em;
-    box-shadow: var(--accent-glow);
-    transition: opacity .15s, transform .1s, box-shadow .15s;
+    transition: opacity .15s, transform .1s;
   }
   .btn-primary:hover:not(:disabled) { opacity: .92; transform: translateY(-1px); }
   .btn-primary:active:not(:disabled) { transform: scale(.98); }
@@ -441,7 +440,7 @@
     background: rgba(255,255,255,.18);
     transition: background .2s;
   }
-  .ob-step-dot.active { background: var(--accent); box-shadow: 0 0 8px -1px rgba(255,106,61,.7); }
+  .ob-step-dot.active { background: var(--text); }
 
   /* HARDEN-04: no-model banner */
   /* Accessibility-missing banner (onnda) — shows on any screen until granted. */
@@ -469,15 +468,15 @@
     padding: 10px 14px;
     margin-bottom: 16px;
     border-radius: var(--r);
-    background: rgba(255, 106, 61, 0.12);
-    border: 1px solid rgba(255, 106, 61, 0.30);
+    background: var(--surface);
+    border: 1px solid var(--danger);
   }
   .model-banner span {
     flex: 1; font-size: 12.5px; color: var(--text); line-height: 1.5;
   }
   .model-banner button {
     flex-shrink: 0;
-    background: var(--accent); color: #fff; border: none;
+    background: var(--nav-active-bg); color: var(--nav-active-ink); border: none;
     border-radius: var(--r); padding: 6px 12px;
     font-size: 12px; font-weight: 600; cursor: pointer;
     transition: opacity .15s;
