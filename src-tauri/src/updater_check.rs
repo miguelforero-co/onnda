@@ -115,7 +115,7 @@ pub async fn check_for_updates<R: Runtime>(app: AppHandle<R>) -> Result<UpdateSt
             error: None,
         }),
         Some(_) => Ok(up_to_date_with(None)),
-        None => Ok(up_to_date_with(Some("respuesta inesperada de GitHub".into()))),
+        None => Ok(up_to_date_with(Some("unexpected response from GitHub".into()))),
     }
 }
 

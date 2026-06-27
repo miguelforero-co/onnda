@@ -28,8 +28,8 @@
   let errorMsg = $state("");
   const busy = $derived(phase === "decoding" || phase === "transcribing");
   const stageLabel = $derived(
-    phase === "decoding" ? "Decodificando audio…"
-      : phase === "transcribing" ? "Transcribiendo…"
+    phase === "decoding" ? "Decoding audio…"
+      : phase === "transcribing" ? "Transcribing…"
       : ""
   );
 
@@ -61,7 +61,7 @@
       console.error(e);
       stopTimer();
       phase = "error";
-      errorMsg = "No se pudo transcribir el archivo. Formatos admitidos: WAV, MP3, M4A.";
+      errorMsg = "Could not transcribe the file. Supported formats: WAV, MP3, M4A.";
     }
   }
 
@@ -94,7 +94,7 @@
       await listen("file-transcribe-error", () => {
         stopTimer();
         phase = "error";
-        errorMsg = "No se pudo transcribir el archivo. Formatos admitidos: WAV, MP3, M4A.";
+        errorMsg = "Could not transcribe the file. Supported formats: WAV, MP3, M4A.";
       }),
     );
 
@@ -166,7 +166,7 @@
 </script>
 
 <div class="screen">
-  <h1 class="page-title">Importar</h1>
+  <h1 class="page-title">Import</h1>
 
   <!-- ── Dropzone ── -->
   <!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -178,7 +178,7 @@
     onclick={!busy ? uploadAudio : undefined}
     role="button"
     tabindex="0"
-    aria-label="Subir archivo de audio"
+    aria-label="Upload audio file"
     onkeydown={(e) => { if (!busy && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); uploadAudio(); } }}
   >
     {#if busy}
@@ -187,7 +187,7 @@
         <div class="loader" aria-hidden="true"><span></span></div>
         <div class="dz-process-text">
           <span class="stage">{stageLabel}</span>
-          <span class="sub">El tiempo depende del tamaño del archivo y del modelo. {elapsed}s</span>
+          <span class="sub">Time depends on file size and model. {elapsed}s</span>
         </div>
       </div>
     {:else if phase === "done"}
@@ -195,7 +195,7 @@
         <svg class="dz-icon" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <polyline points="6 17 13 24 26 10"/>
         </svg>
-        <span class="dz-label done-label">Transcripción lista</span>
+        <span class="dz-label done-label">Transcription ready</span>
       </div>
     {:else if phase === "error"}
       <div class="dz-idle">
@@ -203,7 +203,7 @@
           <circle cx="16" cy="16" r="13"/><line x1="16" y1="10" x2="16" y2="18"/><circle cx="16" cy="22" r="1" fill="currentColor" stroke="none"/>
         </svg>
         <span class="dz-label">{errorMsg}</span>
-        <span class="dz-sub">Haz clic para intentar con otro archivo</span>
+        <span class="dz-sub">Click to try another file</span>
       </div>
     {:else}
       <div class="dz-idle">
@@ -213,7 +213,7 @@
           <line x1="16" y1="14" x2="16" y2="27"/>
           <polyline points="12 18 16 14 20 18"/>
         </svg>
-        <span class="dz-label">Arrastra un archivo de audio o haz clic para elegir</span>
+        <span class="dz-label">Drag an audio file here or click to choose</span>
         <span class="dz-sub">WAV · MP3 · M4A</span>
       </div>
     {/if}
@@ -222,12 +222,12 @@
   <!-- ── History section ── -->
   {#if files.length === 0}
     <div class="empty">
-      <p class="empty-title">Aún no has transcrito archivos</p>
-      <span class="empty-hint">Los archivos importados aparecerán aquí después de transcribirlos.</span>
+      <p class="empty-title">No files transcribed yet</p>
+      <span class="empty-hint">Imported files will appear here after transcription.</span>
     </div>
   {:else}
     <div class="section-header">
-      <SectionLabel text="Historial" />
+      <SectionLabel text="History" />
     </div>
     <div class="hist-list">
       {#each files as e (e.id)}
@@ -236,13 +236,13 @@
             <span class="hist-time">{fmtTime(e.timestamp_ms)}</span>
             {#if e.original_filename}<span class="hist-chip hist-file">{e.original_filename}</span>{/if}
             <div class="hist-actions">
-              <button class="icon-btn" onclick={() => copyEntry(e.text)} title="Copiar">
+              <button class="icon-btn" onclick={() => copyEntry(e.text)} title="Copy">
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="2.5" y="2.5" width="5.5" height="5.5" rx="1"/><path d="M5.5 2.5V1.5a1 1 0 0 0-1-1H1.5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1"/>
                 </svg>
               </button>
               {#if e.audio_filename}
-                <button class="icon-btn" class:active={playingId === e.id} onclick={() => playAudio(e)} title="Reproducir">
+                <button class="icon-btn" class:active={playingId === e.id} onclick={() => playAudio(e)} title="Play">
                   {#if playingId === e.id}
                     <svg viewBox="0 0 10 10" fill="currentColor"><rect x="0" y="0" width="3.5" height="10" rx="1"/><rect x="5.5" y="0" width="3.5" height="10" rx="1"/></svg>
                   {:else}
@@ -250,7 +250,7 @@
                   {/if}
                 </button>
               {/if}
-              <button class="icon-btn del" onclick={() => deleteEntry(e.id)} title="Eliminar">
+              <button class="icon-btn del" onclick={() => deleteEntry(e.id)} title="Delete">
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                   <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
                 </svg>

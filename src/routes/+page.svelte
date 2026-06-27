@@ -232,20 +232,20 @@
 
     {#if obStep === "perms"}
       <div class="ob-intro">
-        <h1>Bienvenido</h1>
-        <p>Voz a texto local en tu Mac.<br>Necesitamos dos permisos para funcionar.</p>
+        <h1>Welcome</h1>
+        <p>Local voice-to-text on your Mac.<br>We need two permissions to get started.</p>
       </div>
 
       <div class="perm-list">
         <PermissionRow
-          label="Micrófono"
-          description="Para capturar tu voz"
+          label="Microphone"
+          description="To capture your voice"
           granted={micGranted}
           onOpen={() => invoke("open_microphone_settings")}
         />
         <PermissionRow
-          label="Accesibilidad"
-          description="Para pegar donde escribes"
+          label="Accessibility"
+          description="To paste where you type"
           granted={a11yGranted}
           onOpen={requestA11y}
         />
@@ -253,19 +253,19 @@
 
       <div class="ob-foot">
         {#if !a11yGranted && micGranted}
-          <p class="hint">Sin accesibilidad, el texto se copia al portapapeles automáticamente.</p>
+          <p class="hint">Without accessibility, text is copied to the clipboard automatically.</p>
         {/if}
         <button class="btn-primary" disabled={!micGranted}
                 onclick={() => { if (pollInterval) { clearInterval(pollInterval); pollInterval = null; } obStep = "models"; }}>
-          {micGranted ? "Continuar" : "Esperando permiso de micrófono…"}
+          {micGranted ? "Continue" : "Waiting for microphone permission…"}
         </button>
       </div>
 
     {:else if obStep === "models"}
       <!-- Step 2: download a model -->
       <div class="ob-intro">
-        <h1>Descargar modelo</h1>
-        <p>Elige el modelo de reconocimiento.<br>Se guarda en tu Mac y funciona sin internet.</p>
+        <h1>Download a model</h1>
+        <p>Choose a recognition model.<br>It's saved on your Mac and works offline.</p>
       </div>
 
       <div class="model-list">
@@ -280,29 +280,29 @@
       </div>
 
       <div class="ob-foot">
-        <p class="hint">Puedes descargar más modelos desde Ajustes en cualquier momento.</p>
+        <p class="hint">You can download more models from Settings at any time.</p>
         <button class="btn-primary" disabled={!models.some(m => m.downloaded)} onclick={() => { obStep = "analytics"; }}>
-          {models.some(m => m.downloaded) ? "Continuar" : "Descarga al menos un modelo…"}
+          {models.some(m => m.downloaded) ? "Continue" : "Download at least one model…"}
         </button>
       </div>
 
     {:else}
       <!-- Step 3: analytics consent -->
       <div class="ob-intro">
-        <h1>Estadísticas anónimas</h1>
-        <p>¿Permitir que onnda envíe estadísticas anónimas de uso?<br>Nunca enviamos lo que dictas.</p>
+        <h1>Anonymous usage stats</h1>
+        <p>Allow onnda to send anonymous usage stats?<br>We never send what you dictate.</p>
       </div>
 
       <div class="ob-analytics">
-        <p class="analytics-detail">Solo registramos eventos como "transcripción completada" sin ningún texto. Puedes cambiar esto en Ajustes en cualquier momento.</p>
+        <p class="analytics-detail">We only record events like "transcription completed" without any text. You can change this in Settings at any time.</p>
       </div>
 
       <div class="ob-foot">
         <button class="btn-primary" onclick={() => { settings.analytics_enabled = true; finishOnboarding(); }}>
-          Permitir
+          Allow
         </button>
         <button class="btn-secondary" onclick={() => { settings.analytics_enabled = false; finishOnboarding(); }}>
-          No, gracias
+          No thanks
         </button>
       </div>
     {/if}
@@ -318,15 +318,15 @@
         <!-- Accessibility missing: dictation copies to clipboard but can't auto-paste
              (Cmd+V via CGEvent needs Accessibility). Prompt the user to grant it. -->
         <div class="a11y-banner">
-          <span>onnda necesita permiso de <strong>Accesibilidad</strong> para pegar el dictado en otras apps. Mientras tanto el texto se copia al portapapeles, pero no se pega solo.</span>
-          <button onclick={requestA11y}>Activar</button>
+          <span>onnda needs <strong>Accessibility</strong> permission to paste dictation into other apps. Until then, text is copied to the clipboard but won't paste automatically.</span>
+          <button onclick={requestA11y}>Enable</button>
         </div>
       {/if}
       {#if !modelReady}
         <!-- HARDEN-04: actionable banner when no model is downloaded -->
         <div class="model-banner">
-          <span>No hay un modelo de voz descargado. Descarga uno para empezar a dictar.</span>
-          <button onclick={() => { view = "ajustes"; }}>Descargar modelo</button>
+          <span>No voice model downloaded. Download one to start dictating.</span>
+          <button onclick={() => { view = "ajustes"; }}>Download model</button>
         </div>
       {/if}
       {#if view === "home"}

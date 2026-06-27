@@ -89,7 +89,7 @@ pub fn get_storage_usage<R: Runtime>(app: AppHandle<R>) -> u64 {
 #[tauri::command]
 pub fn clear_models<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     let dir = data_dir(&app)
-        .ok_or("sin directorio de datos")?
+        .ok_or("no data directory")?
         .join("models");
     if dir.exists() {
         for entry in fs::read_dir(&dir).map_err(|e| e.to_string())? {

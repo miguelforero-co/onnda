@@ -97,7 +97,7 @@ pub fn decode_file(path: &str) -> Result<(Vec<f32>, u32), String> {
     }
 
     if out.is_empty() {
-        return Err("no se decodificó audio".to_string());
+        return Err("no audio decoded".to_string());
     }
     Ok((out, sample_rate))
 }

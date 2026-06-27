@@ -21,9 +21,9 @@
     {#if description}<span>{description}</span>{/if}
   </div>
   {#if granted}
-    <span class="perm-status ok">Concedido</span>
+    <span class="perm-status ok">Granted</span>
   {:else}
-    <button class="link-btn" onclick={() => onOpen?.()}>Abrir ajustes</button>
+    <button class="link-btn" onclick={() => onOpen?.()}>Open settings</button>
   {/if}
 </div>
 

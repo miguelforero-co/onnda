@@ -37,25 +37,25 @@
 >
   <div class="model-info">
     <strong>{model.name}</strong>
-    <span>{model.size_mb > 0 ? `${model.size_mb} MB` : "En el dispositivo · sin descarga · más rápido"}</span>
-    {#if comingSoon}<span class="sub">Disponible en una próxima versión.</span>{/if}
+    <span>{model.size_mb > 0 ? `${model.size_mb} MB` : "On device · no download · fastest"}</span>
+    {#if comingSoon}<span class="sub">Available in a future version.</span>{/if}
     {#if hardwareDisabled}<span class="sub" title={model.disabled_reason}>{model.disabled_reason}</span>{/if}
   </div>
 
   <div class="model-action">
     {#if hardwareDisabled}
-      <span class="badge soon">No disponible</span>
+      <span class="badge soon">Not available</span>
     {:else if comingSoon}
-      <span class="badge soon">Próximamente</span>
+      <span class="badge soon">Coming soon</span>
     {:else if model.downloaded && selected}
-      <span class="badge active">Activo</span>
+      <span class="badge active">Active</span>
     {:else if model.downloaded}
-      <span class="badge installed">{model.size_mb > 0 ? "Instalado" : "Nativo"}</span>
+      <span class="badge installed">{model.size_mb > 0 ? "Installed" : "Native"}</span>
     {:else if progress}
       <div class="dl-bar-wrap"><div class="dl-bar" style="width:{progress.percent}%"></div></div>
       <span class="dl-pct">{Math.round(progress.percent)}%</span>
     {:else}
-      <button class="download-btn" onclick={(e) => { e.stopPropagation(); onDownload?.(model.id); }}>Descargar</button>
+      <button class="download-btn" onclick={(e) => { e.stopPropagation(); onDownload?.(model.id); }}>Download</button>
     {/if}
   </div>
 

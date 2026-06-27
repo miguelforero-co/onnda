@@ -173,11 +173,11 @@ pub(crate) fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result
                 }
                 Ok(Err(e)) => {
                     log::warn!("[voz-local] streaming segment failed: {e}");
-                    app_for_stream.emit("transcribe-warning", "Parte del dictado no pudo procesarse").ok();
+                    app_for_stream.emit("transcribe-warning", "Part of the dictation could not be processed").ok();
                 }
                 Err(e) => {
                     log::warn!("[voz-local] streaming segment JoinError: {e}");
-                    app_for_stream.emit("transcribe-warning", "Parte del dictado no pudo procesarse").ok();
+                    app_for_stream.emit("transcribe-warning", "Part of the dictation could not be processed").ok();
                 }
             }
         }
@@ -209,7 +209,7 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
     // cap.stop() returns a snapshot of the captured samples; the streaming loop
     // holds its own Arc to the (now-frozen) buffer, so it can still finish below.
     let Some(cap) = capture else {
-        app.emit("transcribe-error", "No hay grabación activa").ok();
+        app.emit("transcribe-error", "No active recording").ok();
         return;
     };
     let (samples, sample_rate) = cap.stop();
@@ -228,7 +228,7 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
 
     if samples.is_empty() {
         app.emit("transcribing", false).ok();
-        app.emit("transcribe-error", "No se capturó audio").ok();
+        app.emit("transcribe-error", "No audio captured").ok();
         return;
     }
 
@@ -236,13 +236,13 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
     let duration_secs = samples.len() as f32 / sample_rate as f32;
     if duration_secs < 0.5 {
         app.emit("transcribing", false).ok();
-        app.emit("transcribe-error", "Grabación muy corta — mantén presionado para hablar").ok();
+        app.emit("transcribe-error", "Recording too short — hold to talk").ok();
         return;
     }
 
     if rms < 0.0001 {
         app.emit("transcribing", false).ok();
-        app.emit("transcribe-error", "Audio silencioso — verifica permisos de micrófono").ok();
+        app.emit("transcribe-error", "Silent audio — check microphone permissions").ok();
         return;
     }
 
@@ -264,17 +264,17 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
     } else {
         let Some(dir) = crate::models::models_dir(&app) else {
             app.emit("transcribing", false).ok();
-            app.emit("transcribe-error", "Modelo no encontrado. Descárgalo en Ajustes → Modelos.").ok();
+            app.emit("transcribe-error", "Model not found. Download it in Settings → Models.").ok();
             return;
         };
         let Some(model_path) = crate::models::resolve_model_path(&dir, &model_name) else {
             app.emit("transcribing", false).ok();
-            app.emit("transcribe-error", "Modelo no encontrado. Descárgalo en Ajustes → Modelos.").ok();
+            app.emit("transcribe-error", "Model not found. Download it in Settings → Models.").ok();
             return;
         };
         let Some(s) = model_path.to_str().map(str::to_owned) else {
             app.emit("transcribing", false).ok();
-            app.emit("transcribe-error", "Ruta del modelo contiene caracteres inválidos").ok();
+            app.emit("transcribe-error", "Model path contains invalid characters").ok();
             return;
         };
         s
@@ -335,7 +335,7 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
                 app.emit("transcribe-error", e.to_string()).ok();
                 return;
             }
-            app.emit("transcribe-warning", "El cierre del dictado tuvo un error parcial").ok();
+            app.emit("transcribe-warning", "Dictation ending had a partial error").ok();
             String::new()
         }
         Err(e) => {
@@ -344,7 +344,7 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
                 app.emit("transcribe-error", e.to_string()).ok();
                 return;
             }
-            app.emit("transcribe-warning", "El cierre del dictado tuvo un error parcial").ok();
+            app.emit("transcribe-warning", "Dictation ending had a partial error").ok();
             String::new()
         }
     };
@@ -361,7 +361,7 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
     let text = crate::replacements::apply_replacements(&corrected, &settings.replacements);
 
     if text.is_empty() {
-        app.emit("transcribe-error", "No se detectó voz").ok();
+        app.emit("transcribe-error", "No speech detected").ok();
         return;
     }
 
@@ -438,7 +438,7 @@ pub async fn transcribe_file<R: Runtime>(app: AppHandle<R>, path: String) -> Res
     {
         Ok(Ok(decoded)) => decoded,
         Ok(Err(_)) | Err(_) => {
-            let msg = "No se pudo transcribir el archivo. Formatos admitidos: WAV, MP3, M4A.";
+            let msg = "Could not transcribe the file. Supported formats: WAV, MP3, M4A.";
             app.emit("file-transcribe-error", msg).ok();
             return Err(msg.to_string());
         }
@@ -463,17 +463,17 @@ pub async fn transcribe_file<R: Runtime>(app: AppHandle<R>, path: String) -> Res
         String::new()
     } else {
         let Some(dir) = crate::models::models_dir(&app) else {
-            let msg = "Modelo no encontrado. Descárgalo en Ajustes → Modelos.";
+            let msg = "Model not found. Download it in Settings → Models.";
             app.emit("file-transcribe-error", msg).ok();
             return Err(msg.to_string());
         };
         let Some(model_path) = crate::models::resolve_model_path(&dir, &model_name) else {
-            let msg = "Modelo no encontrado. Descárgalo en Ajustes → Modelos.";
+            let msg = "Model not found. Download it in Settings → Models.";
             app.emit("file-transcribe-error", msg).ok();
             return Err(msg.to_string());
         };
         let Some(s) = model_path.to_str().map(str::to_owned) else {
-            let msg = "Ruta del modelo contiene caracteres inválidos";
+            let msg = "Model path contains invalid characters";
             app.emit("file-transcribe-error", msg).ok();
             return Err(msg.to_string());
         };
@@ -523,7 +523,7 @@ pub async fn transcribe_file<R: Runtime>(app: AppHandle<R>, path: String) -> Res
     let corrected = crate::transcription::correct_words(raw.trim(), &custom_words, word_correction_threshold);
     let text = crate::replacements::apply_replacements(&corrected, &settings.replacements);
     if text.is_empty() {
-        let msg = "No se detectó voz";
+        let msg = "No speech detected";
         app.emit("file-transcribe-error", msg).ok();
         return Err(msg.to_string());
     }

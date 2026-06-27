@@ -18,7 +18,7 @@ impl AudioCapture {
         let host = cpal::default_host();
         let device = host
             .default_input_device()
-            .ok_or_else(|| anyhow!("No se encontró micrófono"))?;
+            .ok_or_else(|| anyhow!("No microphone found"))?;
 
         let config = device.default_input_config()?;
         let sample_rate = config.sample_rate().0;
@@ -76,10 +76,10 @@ impl AudioCapture {
                 Err(e) => {
                     let msg = match e {
                         cpal::BuildStreamError::DeviceNotAvailable =>
-                            "El micrófono dejó de estar disponible. Revisa que no esté en uso por otra app.".to_string(),
+                            "Microphone is no longer available. Make sure it is not in use by another app.".to_string(),
                         cpal::BuildStreamError::StreamConfigNotSupported =>
-                            "El micrófono no admite la configuración solicitada.".to_string(),
-                        e => format!("Error al configurar el micrófono: {e}"),
+                            "Microphone does not support the requested configuration.".to_string(),
+                        e => format!("Error configuring microphone: {e}"),
                     };
                     tx.send(Err(msg)).ok();
                     return;
@@ -96,7 +96,7 @@ impl AudioCapture {
         });
 
         rx.recv()
-            .map_err(|_| anyhow!("El thread de audio terminó inesperadamente"))?
+            .map_err(|_| anyhow!("Audio thread terminated unexpectedly"))?
             .map_err(|e| anyhow!("{e}"))?;
 
         Ok(Self { sample_rate, samples, stop, thread: Some(thread) })

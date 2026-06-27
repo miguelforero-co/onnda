@@ -26,21 +26,21 @@
   async function refreshStorage() {
     storageBytes = await invoke<number>("get_storage_usage").catch(() => 0);
   }
-  // Format: < 1 MB → "734 KB en uso", else "1,2 MB en uso" (one decimal, es locale).
+  // Format: < 1 MB → "734 KB in use", else "1.2 MB in use" (one decimal).
   function formatBytes(b: number): string {
     if (b < 1024 * 1024) {
       const kb = Math.round(b / 1024);
-      return `${kb.toLocaleString("es")} KB en uso`;
+      return `${kb.toLocaleString("es")} KB in use`;
     }
     const mb = (b / (1024 * 1024)).toLocaleString("es", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
-    return `${mb} MB en uso`;
+    return `${mb} MB in use`;
   }
 
   // Re-pull history + storage on mount so both are current when navigated to.
   onMount(() => { onRefresh(); refreshStorage(); });
 
   async function clearAll() {
-    if (!window.confirm("¿Borrar todas las transcripciones y sus audios? Se eliminan del computador y no se puede deshacer.")) return;
+    if (!window.confirm("Delete all transcriptions and their audio? This removes them from your computer and cannot be undone.")) return;
     await invoke("clear_history");
     onRefresh();
     refreshStorage();
@@ -103,7 +103,7 @@
     onSettingsChanged?.();
     if (outcome && outcome.promoted.length > 0) {
       const [from, to] = outcome.promoted[0];
-      showNote(`Aprendido: «${from}» → «${to}». Se corregirá solo de ahora en adelante.`);
+      showNote(`Learned: "${from}" → "${to}". It will be corrected automatically from now on.`);
     }
   }
 
@@ -125,19 +125,19 @@
 
 <div class="screen">
   <div class="head">
-    <h1 class="page-title">Transcripciones</h1>
+    <h1 class="page-title">Transcriptions</h1>
   </div>
 
   <div class="toolbar">
     <div class="seg" role="tablist">
-      <button class="seg-btn" class:on={filter === "all"} onclick={() => (filter = "all")}>Todas</button>
-      <button class="seg-btn" class:on={filter === "dictation"} onclick={() => (filter = "dictation")}>Dictado</button>
-      <button class="seg-btn" class:on={filter === "file"} onclick={() => (filter = "file")}>Archivo</button>
+      <button class="seg-btn" class:on={filter === "all"} onclick={() => (filter = "all")}>All</button>
+      <button class="seg-btn" class:on={filter === "dictation"} onclick={() => (filter = "dictation")}>Dictation</button>
+      <button class="seg-btn" class:on={filter === "file"} onclick={() => (filter = "file")}>File</button>
     </div>
     <div class="storage-row">
       <span class="storage-metric">{formatBytes(storageBytes)}</span>
       {#if history.length > 0}
-        <button class="clear-btn" onclick={clearAll}>Borrar todo</button>
+        <button class="clear-btn" onclick={clearAll}>Clear all</button>
       {/if}
     </div>
   </div>
@@ -148,8 +148,8 @@
 
   {#if filtered.length === 0}
     <div class="empty">
-      <p>Sin transcripciones aún</p>
-      <span>Presiona tu atajo para dictar, o sube un archivo de audio.</span>
+      <p>No transcriptions yet</p>
+      <span>Press your shortcut to dictate, or import an audio file.</span>
     </div>
   {:else}
     <div class="hist-list">
@@ -160,18 +160,18 @@
             {#if e.duration_secs >= 1}<span class="hist-chip">{fmtDur(e.duration_secs)}</span>{/if}
             {#if e.source === "file" && e.original_filename}<span class="hist-chip hist-file">{e.original_filename}</span>{/if}
             <div class="hist-actions">
-              <button class="icon-btn" onclick={() => startEdit(e)} title="Editar / corregir">
+              <button class="icon-btn" onclick={() => startEdit(e)} title="Edit / correct">
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
                   <path d="M6.8 1.4l1.8 1.8-5 5L1.4 8.6 1.8 6.4z"/>
                 </svg>
               </button>
-              <button class="icon-btn" onclick={() => copyEntry(e.text)} title="Copiar">
+              <button class="icon-btn" onclick={() => copyEntry(e.text)} title="Copy">
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round">
                   <rect x="2.5" y="2.5" width="5.5" height="5.5" rx="1"/><path d="M5.5 2.5V1.5a1 1 0 0 0-1-1H1.5a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h1"/>
                 </svg>
               </button>
               {#if e.audio_filename}
-                <button class="icon-btn" class:active={playingId === e.id} onclick={() => playAudio(e)} title="Reproducir">
+                <button class="icon-btn" class:active={playingId === e.id} onclick={() => playAudio(e)} title="Play">
                   {#if playingId === e.id}
                     <svg viewBox="0 0 10 10" fill="currentColor"><rect x="0" y="0" width="3.5" height="10" rx="1"/><rect x="5.5" y="0" width="3.5" height="10" rx="1"/></svg>
                   {:else}
@@ -179,7 +179,7 @@
                   {/if}
                 </button>
               {/if}
-              <button class="icon-btn del" onclick={() => deleteEntry(e.id)} title="Eliminar">
+              <button class="icon-btn del" onclick={() => deleteEntry(e.id)} title="Delete">
                 <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
                   <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
                 </svg>
@@ -196,9 +196,9 @@
                 autofocus
               ></textarea>
               <div class="edit-actions">
-                <button class="link-btn" onclick={() => saveEdit(e.id)}>Guardar</button>
-                <button class="link-btn text-muted" onclick={cancelEdit}>Cancelar</button>
-                <span class="edit-hint">⌘↵ guardar · Esc cancelar</span>
+                <button class="link-btn" onclick={() => saveEdit(e.id)}>Save</button>
+                <button class="link-btn text-muted" onclick={cancelEdit}>Cancel</button>
+                <span class="edit-hint">⌘↵ save · Esc cancel</span>
               </div>
             </div>
           {:else}

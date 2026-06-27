@@ -80,7 +80,7 @@
     if (lone) return; // keep waiting for the real key
     if (!combo) {
       // Validating → rejected: no modifier
-      hint = "Usa al menos un modificador (⌘/⌥/⌃)";
+      hint = "Use at least one modifier (⌘/⌥/⌃)";
       return;
     }
 
@@ -98,7 +98,7 @@
 <div class="hk">
   {#if capturing}
     <button class="field capturing" onclick={cancel} type="button">
-      Presiona la combinación…
+      Press a shortcut…
     </button>
   {:else}
     <button class="field" onclick={start} type="button">

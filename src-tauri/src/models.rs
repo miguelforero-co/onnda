@@ -75,14 +75,14 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
             if crate::compat::macos_major_version() >= 26 && crate::compat::sidecar_available(&app) {
                 None
             } else if crate::compat::macos_major_version() >= 26 {
-                Some("Sidecar ASR no encontrado en este bundle".to_string())
+                Some("ASR sidecar not found in this bundle".to_string())
             } else {
-                Some("Requiere macOS 26 (Tahoe) o superior".to_string())
+                Some("Requires macOS 26 (Tahoe) or later".to_string())
             }
         }
         #[cfg(not(target_arch = "aarch64"))]
         {
-            Some("Requiere Apple Silicon + macOS 26".to_string())
+            Some("Requires Apple Silicon + macOS 26".to_string())
         }
     };
 
@@ -152,10 +152,10 @@ pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> 
             "https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/ggml-medium.bin",
             "6c14d5adee5f86394037b4e4e8b59f1673b6cee10e3cf0b11bbdbee79c156208",
         ),
-        other => return Err(format!("Modelo desconocido: {}", other)),
+        other => return Err(format!("Unknown model: {}", other)),
     };
 
-    let dir = models_dir(&app).ok_or("No se pudo obtener el directorio de datos")?;
+    let dir = models_dir(&app).ok_or("Could not get data directory")?;
     std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
 
     let dest = dir.join(format!("ggml-{}.bin", model_id));
@@ -171,7 +171,7 @@ pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> 
 
     let resp = client.get(url).send().await.map_err(|e| e.to_string())?;
     if !resp.status().is_success() {
-        return Err(format!("HTTP {} al descargar el modelo", resp.status()));
+        return Err(format!("HTTP {} downloading model", resp.status()));
     }
 
     let total = resp.content_length().unwrap_or(0);
@@ -211,7 +211,7 @@ pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> 
     if computed != expected_sha256 {
         let _ = tokio::fs::remove_file(&tmp).await;
         return Err(format!(
-            "La descarga de '{}' está corrupta (hash incorrecto). Inténtalo de nuevo.",
+            "Download of '{}' is corrupt (hash mismatch). Please try again.",
             model_id
         ));
     }

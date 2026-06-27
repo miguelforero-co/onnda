@@ -10,9 +10,9 @@
   import { auth } from "$lib/auth.svelte";
 
   const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
-    { value: "light", label: "Claro" },
-    { value: "dark",  label: "Oscuro" },
-    { value: "auto",  label: "Automático" },
+    { value: "light", label: "Light" },
+    { value: "dark",  label: "Dark" },
+    { value: "auto",  label: "Auto" },
   ];
 
   // Prop contract from 01-03 (Ajustes stub).
@@ -46,7 +46,7 @@
 
   // Supported recognition languages.
   const LANGUAGES = [
-    { value: "auto", label: "Automático" },
+    { value: "auto", label: "Auto" },
     { value: "es",   label: "Español" },
     { value: "en",   label: "English" },
     { value: "pt",   label: "Português" },
@@ -75,10 +75,10 @@
     try {
       const st = await invoke<UpdateStatus>("check_for_updates");
       updateMsg = st.up_to_date
-        ? "Estás al día"
-        : `Hay una versión nueva disponible (v${st.available_version})`;
+        ? "You're up to date"
+        : `A new version is available (v${st.available_version})`;
     } catch (e) {
-      updateMsg = "No se pudo comprobar. Revisa tu conexión e inténtalo de nuevo.";
+      updateMsg = "Could not check. Check your connection and try again.";
       console.error(e);
     } finally {
       checkingUpdates = false;
@@ -91,12 +91,12 @@
   }
 
   async function clearHistory() {
-    if (!window.confirm("¿Borrar todo el historial y los audios guardados? Esta acción no se puede deshacer.")) return;
+    if (!window.confirm("Delete all history and saved audio? This cannot be undone.")) return;
     await invoke("clear_history");
   }
 
   async function clearModels() {
-    if (!window.confirm("¿Borrar los modelos descargados? Tendrás que volver a descargarlos para dictar.")) return;
+    if (!window.confirm("Delete downloaded models? You'll need to re-download them to dictate.")) return;
     await invoke("clear_models");
     // Refresh model state after deletion (local copy; parent re-syncs on download).
     modelList = await invoke<ModelInfo[]>("get_models");
@@ -126,10 +126,10 @@
     pwError = false;
     try {
       await auth.resetPassword(auth.account!.email, newPassword.trim());
-      pwMsg = "Contraseña actualizada.";
+      pwMsg = "Password updated.";
       newPassword = "";
     } catch (e) {
-      pwMsg = "No se pudo actualizar. Intenta de nuevo.";
+      pwMsg = "Could not update. Please try again.";
       pwError = true;
       console.error(e);
     } finally {
@@ -139,34 +139,34 @@
 </script>
 
 <div class="screen">
-  <h1 class="page-title">Ajustes</h1>
+  <h1 class="page-title">Settings</h1>
 
   <!-- ── Cuenta (Task 8 — account info, logout, change password) ── -->
   <section class="section">
-    <SectionLabel text="Cuenta" />
+    <SectionLabel text="Account" />
     <div class="card">
       <div class="row">
-        <span class="row-label">Nombre</span>
+        <span class="row-label">Name</span>
         <span class="account-value">{auth.account?.name ?? ""}</span>
       </div>
       <div class="sep"></div>
       <div class="row">
-        <span class="row-label">Correo</span>
+        <span class="row-label">Email</span>
         <span class="account-value">{auth.account?.email ?? ""}</span>
       </div>
       <div class="sep"></div>
       <div class="row">
-        <span class="row-label">Cambiar contraseña</span>
+        <span class="row-label">Change password</span>
         <div class="pw-row">
           <input
             class="pw-input"
             type="password"
-            placeholder="Nueva contraseña"
+            placeholder="New password"
             bind:value={newPassword}
             onkeydown={(e) => { if (e.key === "Enter") handleChangePassword(); }}
           />
           <button class="btn-primary" onclick={handleChangePassword} disabled={pwSaving || !newPassword.trim()}>
-            {pwSaving ? "Guardando…" : "Guardar"}
+            {pwSaving ? "Saving…" : "Save"}
           </button>
         </div>
       </div>
@@ -175,9 +175,9 @@
       {/if}
       <div class="sep"></div>
       <div class="row">
-        <span class="row-label">Sesión</span>
+        <span class="row-label">Session</span>
         <button class="destruct-btn" onclick={handleLogout} disabled={loggingOut}>
-          {loggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
+          {loggingOut ? "Signing out…" : "Sign out"}
         </button>
       </div>
     </div>
@@ -185,10 +185,10 @@
 
   <!-- ── Apariencia (onnda theme selector) ── -->
   <section class="section">
-    <SectionLabel text="Apariencia" />
+    <SectionLabel text="Appearance" />
     <div class="card">
       <div class="theme-row">
-        <span class="row-label">Apariencia</span>
+        <span class="row-label">Appearance</span>
         <div class="seg">
           {#each THEME_OPTIONS as opt}
             <button
@@ -204,10 +204,10 @@
 
   <!-- ── Grabación (D-11 hotkey, D-12 push-to-talk, idioma) ── -->
   <section class="section">
-    <SectionLabel text="Grabación" />
+    <SectionLabel text="Recording" />
     <div class="card">
       <div class="row">
-        <span class="row-label">Atajo de teclado</span>
+        <span class="row-label">Keyboard shortcut</span>
         <HotkeyRecorder bind:shortcut={settings.shortcut} onCommitted={() => onSave(true)} />
       </div>
       <div class="sep"></div>
@@ -219,7 +219,7 @@
       />
       <div class="sep"></div>
       <div class="row">
-        <span class="row-label">Sensibilidad de la animación</span>
+        <span class="row-label">Animation sensitivity</span>
         <div class="slider-wrap">
           <input
             class="slider"
@@ -232,7 +232,7 @@
       </div>
       <div class="sep"></div>
       <div class="row">
-        <span class="row-label">Idioma</span>
+        <span class="row-label">Language</span>
         <select class="sel" bind:value={settings.selected_language} onchange={() => onSave()}>
           {#each LANGUAGES as l}<option value={l.value}>{l.label}</option>{/each}
         </select>
@@ -240,17 +240,17 @@
     </div>
     <p class="section-hint">
       {settings.push_to_talk
-        ? "Mantén presionado para grabar, suelta para transcribir."
-        : "Presiona una vez para iniciar, otra para detener."}
+        ? "Hold to record, release to transcribe."
+        : "Press once to start, again to stop."}
     </p>
   </section>
 
   <!-- ── Modelos (D-13) — compact dropdown + single download control ── -->
   <section class="section">
-    <SectionLabel text="Modelos" />
+    <SectionLabel text="Models" />
     <div class="card">
       <div class="row">
-        <span class="row-label">Modelo activo</span>
+        <span class="row-label">Active model</span>
         <select
           class="sel"
           bind:value={settings.selected_model}
@@ -258,7 +258,7 @@
         >
           {#each modelList as m (m.id)}
             <option value={m.id} disabled={m.coming_soon || !!m.disabled_reason}>
-              {m.name}{m.size_mb > 0 ? ` · ${(m.size_mb / 1024).toFixed(1)} GB` : " · Nativo"}
+              {m.name}{m.size_mb > 0 ? ` · ${(m.size_mb / 1024).toFixed(1)} GB` : " · Native"}
             </option>
           {/each}
         </select>
@@ -276,11 +276,11 @@
           {:else if selectedModel.downloaded}
             <!-- Already downloaded: subtle dot + label -->
             <span class="dot-on-indicator"></span>
-            <span class="dl-status">Descargado</span>
+            <span class="dl-status">Downloaded</span>
           {:else}
             <!-- Not downloaded: primary download button -->
             <button class="btn-primary" onclick={() => onDownload(settings.selected_model)}>
-              Descargar
+              Download
             </button>
           {/if}
           {#if downloadErrors[settings.selected_model]}
@@ -293,60 +293,60 @@
 
   <!-- ── Sonidos (D-07) + Pausar multimedia (D-08) ── -->
   <section class="section">
-    <SectionLabel text="Sonidos" />
+    <SectionLabel text="Sounds" />
     <div class="card">
       <Toggle
         id="sounds-enabled"
-        label="Sonidos"
+        label="Sounds"
         bind:checked={settings.sounds_enabled}
         onchange={() => onSave()}
       />
       <div class="sep"></div>
       <Toggle
         id="pause-media"
-        label="Pausar multimedia al grabar"
+        label="Pause media while recording"
         bind:checked={settings.pause_media}
         onchange={() => onSave()}
       />
     </div>
-    <p class="section-hint">Reproduce un sonido al iniciar, terminar y cancelar el dictado.</p>
+    <p class="section-hint">Plays a sound when dictation starts, stops, or is cancelled.</p>
   </section>
 
   <!-- ── Aprendizaje (Phase 3 — auto-learn from corrections) ── -->
   <section class="section">
-    <SectionLabel text="Aprendizaje" />
+    <SectionLabel text="Learning" />
     <div class="card">
       <Toggle
         id="auto-learn"
-        label="Aprender de mis correcciones"
+        label="Learn from my corrections"
         bind:checked={settings.auto_learn}
         onchange={() => onSave()}
       />
     </div>
-    <p class="section-hint">Cuando corriges una transcripción y repites la misma corrección, onnda crea una regla para aplicarla sola. Edita una transcripción en "Transcripciones".</p>
+    <p class="section-hint">When you correct a transcription and repeat the same fix, onnda creates a rule to apply it automatically. Edit a transcription in Transcriptions.</p>
   </section>
 
   <!-- ── Privacidad (Task 6 analytics opt-in) ── -->
   <section class="section">
-    <SectionLabel text="Privacidad" />
+    <SectionLabel text="Privacy" />
     <div class="card">
       <Toggle
         id="analytics-enabled"
-        label="Estadísticas anónimas de uso"
+        label="Anonymous usage stats"
         bind:checked={settings.analytics_enabled}
         onchange={() => onSave()}
       />
     </div>
-    <p class="section-hint">Nunca enviamos lo que dictas. Solo eventos anónimos como "transcripción completada".</p>
+    <p class="section-hint">We never send what you dictate. Only anonymous events like "transcription completed".</p>
   </section>
 
   <!-- ── Sistema (D-10 launch-at-login) ── -->
   <section class="section">
-    <SectionLabel text="Sistema" />
+    <SectionLabel text="System" />
     <div class="card">
       <Toggle
         id="autostart"
-        label="Iniciar con el sistema"
+        label="Launch at login"
         bind:checked={settings.autostart}
         onchange={() => onSave()}
       />
@@ -355,17 +355,17 @@
 
   <!-- ── Permisos (D-09) — live, reuses parent polling ── -->
   <section class="section">
-    <SectionLabel text="Permisos" />
+    <SectionLabel text="Permissions" />
     <div class="perm-list">
       <PermissionRow
-        label="Micrófono"
-        description="Necesario para grabar tu voz."
+        label="Microphone"
+        description="Required to record your voice."
         granted={micGranted}
         onOpen={() => invoke("open_microphone_settings")}
       />
       <PermissionRow
-        label="Accesibilidad"
-        description="Necesario para pegar el texto dictado."
+        label="Accessibility"
+        description="Required to paste dictated text."
         granted={a11yGranted}
         onOpen={() => invoke("open_accessibility_settings")}
       />
@@ -374,19 +374,19 @@
 
   <!-- ── Actualizaciones (D-14) ── -->
   <section class="section">
-    <SectionLabel text="Actualizaciones" />
+    <SectionLabel text="Updates" />
     <div class="card">
       <div class="row">
-        <span class="row-label">Versión</span>
+        <span class="row-label">Version</span>
         <span class="version-value">v{appVersion}{#if buildHash} · {buildHash}{/if}</span>
       </div>
       <div class="sep"></div>
       <div class="row">
-        <span class="row-label">Buscar actualizaciones</span>
+        <span class="row-label">Check for updates</span>
         <div class="update-action">
           {#if updateMsg}<span class="update-msg">{updateMsg}</span>{/if}
           <button class="btn-primary" onclick={checkUpdates} disabled={checkingUpdates}>
-            {checkingUpdates ? "Comprobando…" : "Buscar actualizaciones"}
+            {checkingUpdates ? "Checking…" : "Check for updates"}
           </button>
         </div>
       </div>
@@ -395,24 +395,24 @@
 
   <!-- ── Datos (D-15) — destructive actions confirm-gated ── -->
   <section class="section">
-    <SectionLabel text="Datos" />
+    <SectionLabel text="Data" />
     <div class="card">
       <div class="row">
-        <span class="row-label">Carpeta de datos</span>
-        <button class="link-btn" onclick={revealData}>Abrir carpeta de datos</button>
+        <span class="row-label">Data folder</span>
+        <button class="link-btn" onclick={revealData}>Open data folder</button>
       </div>
       <div class="sep"></div>
       <div class="row">
-        <span class="row-label">Historial y audios</span>
-        <button class="destruct-btn" onclick={clearHistory}>Borrar historial y audios</button>
+        <span class="row-label">History and audio</span>
+        <button class="destruct-btn" onclick={clearHistory}>Clear history and audio</button>
       </div>
       <div class="sep"></div>
       <div class="row">
-        <span class="row-label">Modelos descargados</span>
-        <button class="destruct-btn" onclick={clearModels}>Borrar modelos descargados</button>
+        <span class="row-label">Downloaded models</span>
+        <button class="destruct-btn" onclick={clearModels}>Delete downloaded models</button>
       </div>
     </div>
-    <p class="section-hint">Las acciones de borrado son permanentes y piden confirmación.</p>
+    <p class="section-hint">Delete actions are permanent and will ask for confirmation.</p>
   </section>
 </div>
 

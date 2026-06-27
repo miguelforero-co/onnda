@@ -156,10 +156,10 @@ fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         false,
         None::<&str>,
     )?;
-    let show_settings = MenuItem::with_id(app, "settings", "Configuración...", true, None::<&str>)?;
+    let show_settings = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
     let sep = PredefinedMenuItem::separator(app)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
     let menu = Menu::with_items(app, &[&version_label, &sep, &show_settings, &sep2, &quit])?;
 

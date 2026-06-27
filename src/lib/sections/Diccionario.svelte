@@ -119,13 +119,13 @@
 </script>
 
 <div class="screen">
-  <h1 class="page-title">Diccionario</h1>
+  <h1 class="page-title">Dictionary</h1>
 
   <!-- ── Words section ── -->
   <section class="section">
-    <SectionLabel text="Palabras" />
+    <SectionLabel text="Words" />
     <p class="section-hint">
-      Agrega palabras o nombres propios para que Whisper los reconozca mejor.
+      Add words or proper nouns to help Whisper recognize them better.
     </p>
 
     <div class="card">
@@ -135,18 +135,18 @@
           bind:this={wordInputEl}
           class="ipt add-ipt"
           type="text"
-          placeholder="Agregar palabra…"
+          placeholder="Add word…"
           bind:value={draft}
           onkeydown={onAddKeyRefocus}
         />
         <button class="btn-primary" onclick={addWordAndRefocus} disabled={!draft.trim()}>
-          Agregar
+          Add
         </button>
       </div>
 
       <!-- Table or empty state -->
       {#if settings.dictionary.length === 0}
-        <div class="empty-row">Sin palabras aún</div>
+        <div class="empty-row">No words yet</div>
       {:else}
         <table class="words-table">
           <tbody>
@@ -170,7 +170,7 @@
                     <button
                       class="icon-btn"
                       onclick={() => startEdit(idx)}
-                      title="Editar"
+                      title="Edit"
                       tabindex="0"
                     >
                       <!-- Pencil icon -->
@@ -181,7 +181,7 @@
                     <button
                       class="icon-btn"
                       onclick={() => removeWord(idx)}
-                      title="Eliminar"
+                      title="Delete"
                       tabindex="0"
                     >
                       <!-- X icon -->
@@ -201,10 +201,10 @@
 
   <!-- ── Replacements section ── -->
   <section class="section">
-    <SectionLabel text="Reemplazos" />
+    <SectionLabel text="Replacements" />
     <p class="section-hint">
-      Corrige términos o expande atajos en cada transcripción (ambos motores).
-      Ej: «air table» → «Airtable», o «mi correo» → tu email. No distingue mayúsculas.
+      Fix terms or expand shortcuts in every transcription (both engines).
+      E.g. "air table" → "Airtable", or "my email" → your address. Case-insensitive.
     </p>
 
     <div class="card">
@@ -214,7 +214,7 @@
           bind:this={rFromEl}
           class="ipt repl-ipt"
           type="text"
-          placeholder="De…"
+          placeholder="From…"
           bind:value={rFrom}
           onkeydown={onReplKeyRefocus}
         />
@@ -222,29 +222,29 @@
         <input
           class="ipt repl-ipt"
           type="text"
-          placeholder="A…"
+          placeholder="To…"
           bind:value={rTo}
           onkeydown={onReplKeyRefocus}
         />
-        <label class="rx-toggle" title="Tratar «De» como expresión regular">
+        <label class="rx-toggle" title="Treat From as a regular expression">
           <input type="checkbox" bind:checked={rRegex} />
           <span>regex</span>
         </label>
         <button class="btn-primary" onclick={addReplacementAndRefocus} disabled={!rFrom.trim()}>
-          Agregar
+          Add
         </button>
       </div>
 
       <!-- Replacements table or empty state -->
       {#if (settings.replacements ?? []).length === 0}
-        <div class="empty-row">Sin reemplazos aún</div>
+        <div class="empty-row">No replacements yet</div>
       {:else}
         <table class="repl-table">
           <thead>
             <tr class="repl-head-row">
-              <th class="col-from">De</th>
+              <th class="col-from">From</th>
               <th class="col-arrow"></th>
-              <th class="col-to">A</th>
+              <th class="col-to">To</th>
               <th class="col-badge"></th>
               <th class="col-actions"></th>
             </tr>
@@ -259,7 +259,7 @@
                   <span class="arrow" aria-hidden="true">→</span>
                 </td>
                 <td class="col-to">
-                  <span class="code-cell muted">{r.to || "(vacío)"}</span>
+                  <span class="code-cell muted">{r.to || "(empty)"}</span>
                 </td>
                 <td class="col-badge">
                   {#if r.regex}<span class="rx-badge">regex</span>{/if}
@@ -269,7 +269,7 @@
                     <button
                       class="icon-btn"
                       onclick={() => removeReplacement(idx)}
-                      title="Eliminar"
+                      title="Delete"
                       tabindex="0"
                     >
                       <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
