@@ -94,6 +94,103 @@ pub fn profile_subdir(base: &Path, current: Option<&str>) -> PathBuf {
     }
 }
 
+pub fn validate_email(email: &str) -> Result<(), String> {
+    let e = email.trim();
+    if e.len() >= 3 && e.contains('@') && e.split('@').nth(1).map_or(false, |d| d.contains('.')) {
+        Ok(())
+    } else {
+        Err("Email inválido".into())
+    }
+}
+
+pub fn validate_password(pw: &str) -> Result<(), String> {
+    if pw.chars().count() >= 8 { Ok(()) } else { Err("La contraseña debe tener al menos 8 caracteres".into()) }
+}
+
+pub fn signup<R: Runtime>(app: &AppHandle<R>, name: String, email: String, password: String) -> Result<AccountPublic, String> {
+    validate_email(&email)?;
+    validate_password(&password)?;
+    let path = store_path(app);
+    let mut store = AccountStore::load_from(&path);
+    let email_norm = email.trim().to_lowercase();
+    if store.accounts.iter().any(|a| a.email.to_lowercase() == email_norm) {
+        return Err("Ya existe una cuenta con ese email".into());
+    }
+    let now = app_now_ms(app);
+    let acct = Account {
+        id: uuid::Uuid::new_v4().to_string(),
+        email: email.trim().to_string(),
+        name: name.trim().to_string(),
+        password_hash: hash_password(&password)?,
+        created_at: now,
+        provider: "local".into(),
+    };
+    // Claim legacy root data into this new profile (first account only — the
+    // helper is a no-op when the destination already has the files).
+    let base = app.path().app_data_dir().expect("no app data dir");
+    let profile = profile_subdir(&base, Some(&acct.id));
+    claim_legacy(&base, &profile).map_err(|e| e.to_string())?;
+
+    let pubacct = AccountPublic::from(&acct);
+    store.accounts.push(acct);
+    store.current_account_id = Some(pubacct.id.clone());
+    store.save_to(&path).map_err(|e| e.to_string())?;
+    crate::settings::clear_cache();
+    Ok(pubacct)
+}
+
+pub fn login<R: Runtime>(app: &AppHandle<R>, email: String, password: String) -> Result<AccountPublic, String> {
+    let path = store_path(app);
+    let mut store = AccountStore::load_from(&path);
+    let email_norm = email.trim().to_lowercase();
+    let acct = store.accounts.iter().find(|a| a.email.to_lowercase() == email_norm)
+        .ok_or_else(|| "Email o contraseña incorrectos".to_string())?;
+    if !verify_password(&password, &acct.password_hash) {
+        return Err("Email o contraseña incorrectos".into());
+    }
+    let pubacct = AccountPublic::from(acct);
+    store.current_account_id = Some(pubacct.id.clone());
+    store.save_to(&path).map_err(|e| e.to_string())?;
+    crate::settings::clear_cache();
+    Ok(pubacct)
+}
+
+pub fn logout<R: Runtime>(app: &AppHandle<R>) -> Result<(), String> {
+    let path = store_path(app);
+    let mut store = AccountStore::load_from(&path);
+    store.current_account_id = None;
+    store.save_to(&path).map_err(|e| e.to_string())?;
+    crate::settings::clear_cache();
+    Ok(())
+}
+
+pub fn current<R: Runtime>(app: &AppHandle<R>) -> Option<AccountPublic> {
+    let store = AccountStore::load_from(&store_path(app));
+    let id = store.current_account_id.as_ref()?;
+    store.accounts.iter().find(|a| &a.id == id).map(AccountPublic::from)
+}
+
+pub fn list<R: Runtime>(app: &AppHandle<R>) -> Vec<AccountPublic> {
+    AccountStore::load_from(&store_path(app)).accounts.iter().map(AccountPublic::from).collect()
+}
+
+pub fn reset_password<R: Runtime>(app: &AppHandle<R>, email: String, new_password: String) -> Result<(), String> {
+    validate_password(&new_password)?;
+    let path = store_path(app);
+    let mut store = AccountStore::load_from(&path);
+    let email_norm = email.trim().to_lowercase();
+    let acct = store.accounts.iter_mut().find(|a| a.email.to_lowercase() == email_norm)
+        .ok_or_else(|| "No hay una cuenta con ese email en este Mac".to_string())?;
+    acct.password_hash = hash_password(&new_password)?;
+    store.save_to(&path).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+fn app_now_ms<R: Runtime>(_app: &AppHandle<R>) -> i64 {
+    use std::time::{SystemTime, UNIX_EPOCH};
+    SystemTime::now().duration_since(UNIX_EPOCH).map(|d| d.as_millis() as i64).unwrap_or(0)
+}
+
 pub fn claim_legacy(base: &Path, profile: &Path) -> std::io::Result<()> {
     std::fs::create_dir_all(profile)?;
     for name in ["settings.json", "history.json", "recordings"] {
@@ -121,6 +218,14 @@ mod tests {
         p.push(format!("onnda-dir-{}-{}", tag, uuid::Uuid::new_v4()));
         std::fs::create_dir_all(&p).unwrap();
         p
+    }
+
+    #[test]
+    fn email_and_password_validation() {
+        assert!(validate_email("a@b.com").is_ok());
+        assert!(validate_email("nope").is_err());
+        assert!(validate_password("longenough").is_ok());
+        assert!(validate_password("short").is_err());
     }
 
     #[test]
