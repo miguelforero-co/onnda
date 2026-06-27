@@ -18,6 +18,7 @@
   import Ajustes from "$lib/sections/Ajustes.svelte";
   import Auth from "$lib/sections/Auth.svelte";
   import { auth } from "$lib/auth.svelte";
+  import { userName } from "$lib/stores/userName.svelte";
 
   // Window drag from the content's top header band (the title bar is hidden, so
   // the top ~56px acts as the drag handle — like Wispr Flow). Uses the same
@@ -72,6 +73,9 @@
   const unlisten: (() => void)[] = [];
 
   async function initAfterAuth() {
+    // Sync the display name from the authenticated account so Home shows "Hey {name},".
+    userName.value = auth.account?.name ?? "";
+
     settings = await invoke("get_settings");
     models = await invoke("get_models");
     await checkPerms();
@@ -341,6 +345,7 @@
           onSave={(sc) => schedSave(sc)}
           onDownload={startDownload}
           onCheckPerms={checkPerms}
+          onLogout={() => { userName.value = ""; view = "auth"; }}
         />
       {/if}
     </main>

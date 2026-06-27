@@ -7,6 +7,7 @@
   import PermissionRow from "$lib/components/PermissionRow.svelte";
   import SectionLabel from "$lib/components/ui/SectionLabel.svelte";
   import { theme, type ThemeMode } from "$lib/stores/theme.svelte";
+  import { auth } from "$lib/auth.svelte";
 
   const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
     { value: "light", label: "Claro" },
@@ -27,6 +28,7 @@
     onSave,
     onDownload,
     onCheckPerms,
+    onLogout,
   }: {
     settings: Settings;
     models: ModelInfo[];
@@ -39,6 +41,7 @@
     onSave: (shortcutChanged?: boolean) => void;
     onDownload: (modelId: string) => void;
     onCheckPerms: () => void;
+    onLogout: () => void;
   } = $props();
 
   // Supported recognition languages.
@@ -98,10 +101,87 @@
     // Refresh model state after deletion (local copy; parent re-syncs on download).
     modelList = await invoke<ModelInfo[]>("get_models");
   }
+
+  // ── Cuenta ──
+  let loggingOut = $state(false);
+  let newPassword = $state("");
+  let pwSaving = $state(false);
+  let pwMsg = $state("");
+  let pwError = $state(false);
+
+  async function handleLogout() {
+    loggingOut = true;
+    try {
+      await auth.logout();
+      onLogout();
+    } finally {
+      loggingOut = false;
+    }
+  }
+
+  async function handleChangePassword() {
+    if (!newPassword.trim()) return;
+    pwSaving = true;
+    pwMsg = "";
+    pwError = false;
+    try {
+      await auth.resetPassword(auth.account!.email, newPassword.trim());
+      pwMsg = "Contraseña actualizada.";
+      newPassword = "";
+    } catch (e) {
+      pwMsg = "No se pudo actualizar. Intenta de nuevo.";
+      pwError = true;
+      console.error(e);
+    } finally {
+      pwSaving = false;
+    }
+  }
 </script>
 
 <div class="screen">
   <h1 class="page-title">Ajustes</h1>
+
+  <!-- ── Cuenta (Task 8 — account info, logout, change password) ── -->
+  <section class="section">
+    <SectionLabel text="Cuenta" />
+    <div class="card">
+      <div class="row">
+        <span class="row-label">Nombre</span>
+        <span class="account-value">{auth.account?.name ?? ""}</span>
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <span class="row-label">Correo</span>
+        <span class="account-value">{auth.account?.email ?? ""}</span>
+      </div>
+      <div class="sep"></div>
+      <div class="row">
+        <span class="row-label">Cambiar contraseña</span>
+        <div class="pw-row">
+          <input
+            class="pw-input"
+            type="password"
+            placeholder="Nueva contraseña"
+            bind:value={newPassword}
+            onkeydown={(e) => { if (e.key === "Enter") handleChangePassword(); }}
+          />
+          <button class="btn-primary" onclick={handleChangePassword} disabled={pwSaving || !newPassword.trim()}>
+            {pwSaving ? "Guardando…" : "Guardar"}
+          </button>
+        </div>
+      </div>
+      {#if pwMsg}
+        <p class="pw-msg" class:pw-msg-error={pwError}>{pwMsg}</p>
+      {/if}
+      <div class="sep"></div>
+      <div class="row">
+        <span class="row-label">Sesión</span>
+        <button class="destruct-btn" onclick={handleLogout} disabled={loggingOut}>
+          {loggingOut ? "Cerrando sesión…" : "Cerrar sesión"}
+        </button>
+      </div>
+    </div>
+  </section>
 
   <!-- ── Apariencia (onnda theme selector) ── -->
   <section class="section">
@@ -544,6 +624,36 @@
     background: var(--surface);
     color: var(--text);
   }
+
+  /* ── Cuenta ── */
+  .account-value {
+    font-size: 14px;
+    color: var(--text-muted);
+  }
+  .pw-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+  }
+  .pw-input {
+    font-size: 14px;
+    font-family: var(--font-sans);
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 6px 10px;
+    outline: none;
+    width: 160px;
+    transition: border-color .15s;
+  }
+  .pw-input:focus { border-color: var(--text-muted); }
+  .pw-msg {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0;
+  }
+  .pw-msg-error { color: var(--text-muted); opacity: .75; }
 
   /* ── Apariencia (onnda theme selector) ── */
   .theme-row {
