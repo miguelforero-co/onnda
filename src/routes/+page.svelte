@@ -69,6 +69,7 @@
   let modelReady = $state(true); // assume ready until checked; avoids flash
   let warnMsg = $state(""); // HARDEN-05: transcribe-warning toast (auto-clears)
   let warnTimer: ReturnType<typeof setTimeout> | null = null;
+  let ready = $state(false); // auth-gate flash guard: nothing renders until auth resolves
 
   const unlisten: (() => void)[] = [];
 
@@ -151,6 +152,7 @@
     }
 
     initialized = true;
+    ready = true;
   });
 
   onDestroy(() => {
@@ -215,6 +217,7 @@
   }
 </script>
 
+{#if ready}
 {#if view === "auth"}
   <!-- ── AUTH (precedes onboarding and shell) ── -->
   <Auth onsuccess={async () => { await auth.load(); await initAfterAuth(); }} />
@@ -350,6 +353,8 @@
       {/if}
     </main>
   </div>
+{/if}
+
 {/if}
 
 {#if warnMsg}

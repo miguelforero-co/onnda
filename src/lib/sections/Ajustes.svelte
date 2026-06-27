@@ -653,7 +653,7 @@
     color: var(--text-muted);
     margin: 0;
   }
-  .pw-msg-error { color: var(--text-muted); opacity: .75; }
+  .pw-msg-error { color: var(--danger); opacity: 1; }
 
   /* ── Apariencia (onnda theme selector) ── */
   .theme-row {

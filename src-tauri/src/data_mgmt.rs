@@ -5,6 +5,11 @@
 //! deletion is possible. `clear_models` only removes `*.bin` files so it cannot
 //! nuke unrelated files. The user-facing confirmation dialog (UI-SPEC) gates the
 //! call in the UI; the commands are safe on their own regardless.
+//!
+//! NOTE: `clear_history`, `get_storage_usage`, and `reveal_data_dir` are scoped
+//! to the **active profile directory** (`profiles/<id>/`), not the raw app data
+//! root. `clear_models` still uses the global root because `models/` is shared
+//! across all profiles.
 
 use std::fs;
 use tauri::{AppHandle, Manager, Runtime};
@@ -13,15 +18,16 @@ fn data_dir<R: Runtime>(app: &AppHandle<R>) -> Option<std::path::PathBuf> {
     app.path().app_data_dir().ok()
 }
 
-/// Open the app data directory in Finder (macOS).
+/// Open the active-profile data directory in Finder (macOS).
 ///
 /// NOTE: the app identifier is `com.vozlocal.app`, so `app_data_dir()` ends in
 /// `.app`. Plain `open <dir>` treats a `.app`-suffixed path as an application
 /// bundle and fails with "executable is missing". `open -a Finder <dir>` forces
-/// Finder to open it as a folder.
+/// Finder to open it as a folder. The directory shown is the active profile dir
+/// (`profiles/<id>/`) so the user sees their actual history and recordings.
 #[tauri::command]
 pub fn reveal_data_dir<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
-    let dir = data_dir(&app).ok_or("sin directorio de datos")?;
+    let dir = crate::accounts::profile_dir(&app);
     #[cfg(target_os = "macos")]
     std::process::Command::new("open")
         .args(["-a", "Finder"])
@@ -32,11 +38,11 @@ pub fn reveal_data_dir<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
 }
 
 /// Delete all transcription history (history.json) and all stored audio recordings.
-/// Scoped to `app_data_dir`; recreates an empty recordings dir so history::init's
-/// invariant holds.
+/// Scoped to the active profile directory (`profiles/<id>/`); recreates an empty
+/// recordings dir so history::init's invariant holds.
 #[tauri::command]
 pub fn clear_history<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
-    let dir = data_dir(&app).ok_or("sin directorio de datos")?;
+    let dir = crate::accounts::profile_dir(&app);
     let hist = dir.join("history.json");
     if hist.exists() {
         fs::remove_file(&hist).map_err(|e| e.to_string())?;
@@ -50,15 +56,13 @@ pub fn clear_history<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
 }
 
 /// Total disk used by saved transcriptions, in bytes: the sum of every file in
-/// the `recordings` directory plus `history.json` if present. Reuses the same
-/// `app_data_dir` + recordings path logic as `clear_history` / `history.rs`, so
-/// the figure matches exactly what `clear_history` would delete. Feeds the
-/// "X MB en uso" metric in the frontend. Missing dir/file → counts as 0.
+/// the `recordings` directory plus `history.json` if present. Scoped to the
+/// active profile directory (`profiles/<id>/`), matching what `clear_history`
+/// would delete. Feeds the "X MB en uso" metric in the frontend.
+/// Missing dir/file → counts as 0.
 #[tauri::command]
 pub fn get_storage_usage<R: Runtime>(app: AppHandle<R>) -> u64 {
-    let Some(dir) = data_dir(&app) else {
-        return 0;
-    };
+    let dir = crate::accounts::profile_dir(&app);
     let mut total: u64 = 0;
 
     let rec = dir.join("recordings");

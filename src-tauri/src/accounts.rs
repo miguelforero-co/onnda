@@ -175,6 +175,7 @@ pub fn list<R: Runtime>(app: &AppHandle<R>) -> Vec<AccountPublic> {
 }
 
 pub fn reset_password<R: Runtime>(app: &AppHandle<R>, email: String, new_password: String) -> Result<(), String> {
+    validate_email(&email)?;
     validate_password(&new_password)?;
     let path = store_path(app);
     let mut store = AccountStore::load_from(&path);
@@ -259,6 +260,23 @@ mod tests {
         let base = std::path::Path::new("/data");
         assert_eq!(profile_subdir(base, Some("abc")), std::path::Path::new("/data/profiles/abc"));
         assert_eq!(profile_subdir(base, None), base.to_path_buf());
+    }
+
+    #[test]
+    fn claim_does_not_clobber_existing_destination() {
+        let base = tmp_dir("noclobber");
+        // Legacy file at root
+        std::fs::write(base.join("settings.json"), "LEGACY").unwrap();
+        // Existing file at destination profile
+        let profile = base.join("profiles/acc1");
+        std::fs::create_dir_all(&profile).unwrap();
+        std::fs::write(profile.join("settings.json"), "EXISTING").unwrap();
+
+        claim_legacy(&base, &profile).unwrap();
+
+        let content = std::fs::read_to_string(profile.join("settings.json")).unwrap();
+        assert_eq!(content, "EXISTING", "claim_legacy must not overwrite an existing destination file");
+        std::fs::remove_dir_all(&base).ok();
     }
 
     #[test]
