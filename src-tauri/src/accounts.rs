@@ -281,3 +281,34 @@ mod tests {
         std::fs::remove_dir_all(&base).ok();
     }
 }
+
+// Tauri command wrappers
+#[tauri::command]
+pub fn account_signup<R: Runtime>(app: AppHandle<R>, name: String, email: String, password: String) -> Result<AccountPublic, String> {
+    signup(&app, name, email, password)
+}
+
+#[tauri::command]
+pub fn account_login<R: Runtime>(app: AppHandle<R>, email: String, password: String) -> Result<AccountPublic, String> {
+    login(&app, email, password)
+}
+
+#[tauri::command]
+pub fn account_logout<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
+    logout(&app)
+}
+
+#[tauri::command]
+pub fn account_current<R: Runtime>(app: AppHandle<R>) -> Option<AccountPublic> {
+    current(&app)
+}
+
+#[tauri::command]
+pub fn account_list<R: Runtime>(app: AppHandle<R>) -> Vec<AccountPublic> {
+    list(&app)
+}
+
+#[tauri::command]
+pub fn account_reset_password<R: Runtime>(app: AppHandle<R>, email: String, new_password: String) -> Result<(), String> {
+    reset_password(&app, email, new_password)
+}

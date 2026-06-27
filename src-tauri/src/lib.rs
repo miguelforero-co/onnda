@@ -92,6 +92,12 @@ pub fn run() {
             data_mgmt::get_storage_usage,
             updater_check::check_for_updates,
             commands::track_event,
+            accounts::account_signup,
+            accounts::account_login,
+            accounts::account_logout,
+            accounts::account_current,
+            accounts::account_list,
+            accounts::account_reset_password,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
