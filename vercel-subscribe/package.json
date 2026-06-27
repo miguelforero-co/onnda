@@ -1,0 +1,9 @@
+{
+  "name": "onnda-subscribe",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Standalone Vercel serverless function — onnda launch list email capture",
+  "dependencies": {
+    "@vercel/kv": "^3.0.0"
+  }
+}
