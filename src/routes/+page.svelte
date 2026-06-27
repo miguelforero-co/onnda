@@ -16,6 +16,8 @@
   import Importar from "$lib/sections/Importar.svelte";
   import Diccionario from "$lib/sections/Diccionario.svelte";
   import Ajustes from "$lib/sections/Ajustes.svelte";
+  import Auth from "$lib/sections/Auth.svelte";
+  import { auth } from "$lib/auth.svelte";
 
   // Window drag from the content's top header band (the title bar is hidden, so
   // the top ~56px acts as the drag handle — like Wispr Flow). Uses the same
@@ -69,9 +71,7 @@
 
   const unlisten: (() => void)[] = [];
 
-  onMount(async () => {
-    appVersion = await invoke<string>("get_app_version").catch(() => "");
-    buildHash = await invoke<string>("get_build_hash").catch(() => "");
+  async function initAfterAuth() {
     settings = await invoke("get_settings");
     models = await invoke("get_models");
     await checkPerms();
@@ -90,7 +90,13 @@
         modelReady = st.ready;
       } catch { modelReady = true; } // on invoke error, don't bother the user
     }
+  }
 
+  onMount(async () => {
+    appVersion = await invoke<string>("get_app_version").catch(() => "");
+    buildHash = await invoke<string>("get_build_hash").catch(() => "");
+
+    // Register event listeners immediately — do not gate behind auth.
     unlisten.push(
       // Always re-pull history so the shared store is current regardless of
       // which section is open (real-time refresh, no view-conditional delay).
@@ -130,6 +136,14 @@
         modelReady = true;
       }),
     );
+
+    // Auth gate: load the current session first.
+    await auth.load();
+    if (auth.account === null) {
+      view = "auth";
+    } else {
+      await initAfterAuth();
+    }
 
     initialized = true;
   });
@@ -196,7 +210,10 @@
   }
 </script>
 
-{#if view === "onboarding"}
+{#if view === "auth"}
+  <!-- ── AUTH (precedes onboarding and shell) ── -->
+  <Auth onsuccess={async () => { await auth.load(); await initAfterAuth(); }} />
+{:else if view === "onboarding"}
   <!-- ── ONBOARDING (precedes the shell) ── -->
   <div class="ob">
     <div class="ob-steps">
