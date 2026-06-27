@@ -1,7 +1,7 @@
 <script lang="ts">
   import { auth } from "$lib/auth.svelte";
 
-  let { onsuccess }: { onsuccess: () => void } = $props();
+  let { onsuccess }: { onsuccess: () => void | Promise<void> } = $props();
 
   type Mode = "login" | "signup" | "reset";
   let mode = $state<Mode>("login");

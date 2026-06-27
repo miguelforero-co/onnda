@@ -80,6 +80,7 @@
       view = "onboarding";
       pollInterval = setInterval(checkPerms, 1500);
     } else {
+      view = "home";
       history = await invoke("get_history");
       // Keep checking permissions so the warning banner updates live
       pollInterval = setInterval(checkPerms, 3000);
