@@ -1,5 +1,6 @@
 <script lang="ts">
   import { auth } from "$lib/auth.svelte";
+  import { subscribe } from "$lib/subscribe";
 
   let { onsuccess }: { onsuccess: () => void | Promise<void> } = $props();
 
@@ -50,6 +51,7 @@
     loading = true; error = "";
     try {
       await auth.signup(name.trim(), email.trim(), password);
+      if (wantsNews) void subscribe(email.trim(), name.trim()); // fire-and-forget, never awaited
       onsuccess();
     } catch (e) {
       error = typeof e === "string" ? e : "Error al crear la cuenta.";
