@@ -1,18 +1,23 @@
-// Replace the placeholder below with your deployed Vercel function URL after deploying vercel-subscribe/.
-// See vercel-subscribe/README.md for deploy instructions.
-// Until replaced, subscribe() is a no-op — no requests are fired, no errors thrown.
-const ENDPOINT = "https://REPLACE-WITH-YOUR-VERCEL-APP.vercel.app/api/subscribe";
+// Loops newsletter-form endpoint (public, no API key — safe to ship in the app).
+// Create a Form in Loops (Audience → Forms) and paste its endpoint URL here.
+// It looks like: https://app.loops.so/api/newsletter-form/<formId>
+// Until set, subscribe() is a no-op — no requests are fired, no errors thrown.
+const LOOPS_FORM_ENDPOINT = "https://app.loops.so/api/newsletter-form/cmqzu6a9f00qi0jzdoekx6o67";
 
-/** Best-effort marketing-list capture. Never blocks onboarding, never throws. */
+/** Best-effort launch-list capture. Never blocks onboarding, never throws. */
 export async function subscribe(email: string, name: string): Promise<void> {
-  if (ENDPOINT.includes("REPLACE-WITH-YOUR-VERCEL-APP")) return; // not configured yet
+  if (LOOPS_FORM_ENDPOINT.includes("REPLACE_WITH_FORM_ID")) return; // not configured yet
   try {
-    await fetch(ENDPOINT, {
+    // Loops' form endpoint accepts URL-encoded fields; `email` is required,
+    // `firstName` is the standard Loops contact property.
+    const body = new URLSearchParams({ email });
+    if (name.trim()) body.set("firstName", name.trim());
+    await fetch(LOOPS_FORM_ENDPOINT, {
       method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ email, name }),
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      body,
     });
   } catch {
-    // silent — analytics/marketing must never break the UX
+    // silent — launch-list capture must never break the UX
   }
 }
