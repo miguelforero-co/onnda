@@ -42,7 +42,13 @@ onnda lives in your menu bar. Hold (or tap) your shortcut, speak, and release �
 
 ## Privacy
 
-All speech processing is **local**. onnda never sends your audio or transcripts to any server. The only optional network calls are downloading voice models and checking for updates.
+All speech processing is **local**. onnda never sends your audio or transcripts to any server. Network access is limited to:
+
+- **Downloading voice models** and **checking for updates**.
+- **Anonymous usage stats** — *opt-in*, off by default. Only event counts (e.g. "transcription completed"), never any text. Toggle anytime in Settings.
+- **Your email** — *optional*. Only sent if you type it on the welcome screen, and only to join the launch-updates list. Leave it blank and nothing leaves your Mac.
+
+Your name and settings stay on this Mac; there's no account and no password.
 
 ## Installation
 
