@@ -59,7 +59,7 @@ Your name and settings stay on this Mac; there's no account and no password.
 5. Download a voice model from the welcome screen.
 6. Press `Alt+Space` and start dictating.
 
-> **If macOS says the app is damaged:** run `sudo xattr -cr /Applications/onnda.app`
+The app is signed with an Apple Developer ID and notarized by Apple, so it opens without Gatekeeper warnings.
 
 ## Permissions
 
