@@ -3,7 +3,7 @@
 Instrucciones de proyecto para agentes. El handoff vivo y detallado está en **`.planning/RESUME.md`** (léelo al empezar). El log tarea-a-tarea de la última tanda está en `.superpowers/sdd/progress.md` (gitignored).
 
 ## Qué es
-**onnda** — app macOS de **dictado de voz 100% local**. Stack: **Tauri 2 (Rust) + SvelteKit/Svelte 5 (runes)**. Motores ASR: whisper.cpp (whisper-rs, Metal) y Apple SpeechAnalyzer (sidecar Swift). Alt+Space push-to-talk, auto-paste donde está el cursor. El binario/crate se llama `onnda`/`onnda_lib`; la marca es onnda (tagline "voice to text"). El repo en GitHub sigue llamándose `voz-local`.
+**onnda** — app macOS de **dictado de voz 100% local**. Stack: **Tauri 2 (Rust) + SvelteKit/Svelte 5 (runes)**. Motores ASR: whisper.cpp (whisper-rs, Metal) y Apple SpeechAnalyzer (sidecar Swift). Alt+Space push-to-talk, auto-paste donde está el cursor. El binario/crate se llama `onnda`/`onnda_lib`; la marca es onnda (tagline "voice to text"). El repo en GitHub se llama `onnda` (renombrado desde `voz-local`).
 
 - **Rama de trabajo actual: `feat/accounts-metrics`** (NO mergeada). `main` tiene el milestone previo.
 - La UI de la app está **en inglés**. Login **obligatorio** (cuentas locales).
@@ -40,4 +40,4 @@ Frontend: `src/routes/+page.svelte` (shell + onboarding + gate) · `src/lib/sect
 ## Pendientes externos (los hace el usuario)
 - **Aptabase:** crear cuenta → `APTABASE_APP_KEY` (sin key, métricas = no-op).
 - **Vercel:** deploy `vercel-subscribe/` + KV → pegar URL en `src/lib/subscribe.ts`.
-- **Producto:** decidir bundle identifier (`com.vozlocal.app` → `com.onnda.app` solo CON migración de data). Mergear la rama cuando se apruebe.
+- **Producto:** bundle identifier ya es `com.onnda.app` (data local migrada). Mergear la rama cuando se apruebe.

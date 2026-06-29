@@ -172,11 +172,11 @@ pub(crate) fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result
                     }
                 }
                 Ok(Err(e)) => {
-                    log::warn!("[voz-local] streaming segment failed: {e}");
+                    log::warn!("[onnda] streaming segment failed: {e}");
                     app_for_stream.emit("transcribe-warning", "Part of the dictation could not be processed").ok();
                 }
                 Err(e) => {
-                    log::warn!("[voz-local] streaming segment JoinError: {e}");
+                    log::warn!("[onnda] streaming segment JoinError: {e}");
                     app_for_stream.emit("transcribe-warning", "Part of the dictation could not be processed").ok();
                 }
             }
@@ -224,7 +224,7 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
     }
 
     let rms = crate::transcription::rms_f32(&samples);
-    log::debug!("[voz-local] samples: {}, rate: {}, rms: {:.6}", samples.len(), sample_rate, rms);
+    log::debug!("[onnda] samples: {}, rate: {}, rms: {:.6}", samples.len(), sample_rate, rms);
 
     if samples.is_empty() {
         app.emit("transcribing", false).ok();
@@ -290,7 +290,7 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
     let tail: Vec<f32> = samples[committed..].to_vec();
 
     log::info!(
-        "[voz-local] streaming: {} committed segment(s), tail = {:.1}s of {:.1}s total",
+        "[onnda] streaming: {} committed segment(s), tail = {:.1}s of {:.1}s total",
         committed_text.len(),
         tail.len() as f32 / sample_rate as f32,
         samples.len() as f32 / sample_rate as f32,
@@ -330,7 +330,7 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
     let tail_text = match tail_result {
         Ok(Ok(t)) => t.trim().to_string(),
         Ok(Err(e)) => {
-            log::warn!("[voz-local] tail transcription failed: {e}");
+            log::warn!("[onnda] tail transcription failed: {e}");
             if committed_text.is_empty() {
                 app.emit("transcribe-error", e.to_string()).ok();
                 return;
@@ -339,7 +339,7 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
             String::new()
         }
         Err(e) => {
-            log::warn!("[voz-local] tail transcription JoinError: {e}");
+            log::warn!("[onnda] tail transcription JoinError: {e}");
             if committed_text.is_empty() {
                 app.emit("transcribe-error", e.to_string()).ok();
                 return;

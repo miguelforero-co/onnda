@@ -134,7 +134,7 @@ mod tests {
     fn temp_path(name: &str) -> std::path::PathBuf {
         let mut p = std::env::temp_dir();
         p.push(format!(
-            "voz-local-decode-{}-{}",
+            "onnda-decode-{}-{}",
             std::process::id(),
             name
         ));

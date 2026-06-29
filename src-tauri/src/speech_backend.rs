@@ -39,7 +39,7 @@ static WAV_COUNTER: AtomicU64 = AtomicU64::new(0);
 fn write_temp_wav(samples: &[f32], sample_rate: u32) -> Result<PathBuf> {
     let n = WAV_COUNTER.fetch_add(1, Ordering::Relaxed);
     let pid = std::process::id();
-    let path = std::env::temp_dir().join(format!("vozlocal-asr-{pid}-{n}.wav"));
+    let path = std::env::temp_dir().join(format!("onnda-asr-{pid}-{n}.wav"));
 
     let num_samples = samples.len() as u32;
     let data_len = num_samples * 2; // 16-bit mono

@@ -55,7 +55,7 @@ pub fn run() {
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Info)
                 .target(Target::new(TargetKind::LogDir {
-                    file_name: Some("voz-local".to_string()),
+                    file_name: Some("onnda".to_string()),
                 }))
                 .max_file_size(5_000_000)
                 .rotation_strategy(RotationStrategy::KeepOne)

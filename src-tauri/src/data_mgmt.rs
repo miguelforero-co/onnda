@@ -15,7 +15,7 @@ use tauri::{AppHandle, Runtime};
 
 /// Open the app data directory in Finder (macOS).
 ///
-/// NOTE: the app identifier is `com.vozlocal.app`, so `app_data_dir()` ends in
+/// NOTE: the app identifier is `com.onnda.app`, so `app_data_dir()` ends in
 /// `.app`. Plain `open <dir>` treats a `.app`-suffixed path as an application
 /// bundle and fails with "executable is missing". `open -a Finder <dir>` forces
 /// Finder to open it as a folder, so the user sees their history and recordings.

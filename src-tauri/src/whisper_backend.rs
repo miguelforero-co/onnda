@@ -30,7 +30,7 @@ impl WhisperBackend {
             .unwrap_or(true);
 
         if needs_load {
-            log::info!("[voz-local] loading model: {}", self.model_path);
+            log::info!("[onnda] loading model: {}", self.model_path);
             let mut ctx_params = WhisperContextParameters::default();
             #[cfg(target_arch = "aarch64")]
             {
@@ -87,7 +87,7 @@ impl TranscriptionBackend for WhisperBackend {
         let t_inf = std::time::Instant::now();
         state.full(params, &trimmed)?;
         log::info!(
-            "[voz-local][timing] resample={:?} vad={:?} infer={:?} | in_samples={} trimmed_16k={} ({:.1}s audio)",
+            "[onnda][timing] resample={:?} vad={:?} infer={:?} | in_samples={} trimmed_16k={} ({:.1}s audio)",
             t_resample, t_vad, t_inf.elapsed(),
             samples.len(), trimmed.len(), trimmed.len() as f32 / 16000.0
         );

@@ -10,7 +10,7 @@
 use tauri::{AppHandle, Runtime};
 
 const RELEASES_LATEST_API: &str =
-    "https://api.github.com/repos/miguelforero-co/voz-local/releases/latest";
+    "https://api.github.com/repos/miguelforero-co/onnda/releases/latest";
 
 #[derive(serde::Serialize)]
 pub struct UpdateStatus {
