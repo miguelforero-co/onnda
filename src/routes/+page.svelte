@@ -16,9 +16,9 @@
   import Importar from "$lib/sections/Importar.svelte";
   import Diccionario from "$lib/sections/Diccionario.svelte";
   import Ajustes from "$lib/sections/Ajustes.svelte";
-  import Auth from "$lib/sections/Auth.svelte";
-  import { auth } from "$lib/auth.svelte";
+  import Wordmark from "$lib/components/ui/Wordmark.svelte";
   import { userName } from "$lib/stores/userName.svelte";
+  import { subscribe } from "$lib/subscribe";
 
   // Window drag from the content's top header band (the title bar is hidden, so
   // the top ~56px acts as the drag handle — like Wispr Flow). Uses the same
@@ -52,8 +52,10 @@
     analytics_enabled: false,
   });
   let view = $state<View>("home");
-  // onboarding has three steps: "perms" → "models" → "analytics"
-  let obStep = $state<"perms" | "models" | "analytics">("perms");
+  // onboarding steps: "welcome" (name + optional email) → "perms" → "models" → "analytics"
+  let obStep = $state<"welcome" | "perms" | "models" | "analytics">("welcome");
+  let obName = $state("");   // nombre para el saludo (requerido para continuar)
+  let obEmail = $state("");  // correo opcional → solo se usa para la lista de lanzamiento
   let models = $state<ModelInfo[]>([]);
   let history = $state<HistoryEntry[]>([]);
   let micGranted = $state(false);
@@ -69,21 +71,30 @@
   let modelReady = $state(true); // assume ready until checked; avoids flash
   let warnMsg = $state(""); // HARDEN-05: transcribe-warning toast (auto-clears)
   let warnTimer: ReturnType<typeof setTimeout> | null = null;
-  let ready = $state(false); // auth-gate flash guard: nothing renders until auth resolves
+  let ready = $state(false); // flash guard: nothing renders until init resolves
 
   const unlisten: (() => void)[] = [];
 
-  async function initAfterAuth() {
-    // Sync the display name from the authenticated account so Home shows "Hey {name},".
-    userName.value = auth.account?.name ?? "";
+  // Onboarding step 1: guarda el nombre para el saludo y, si dieron correo,
+  // lo manda (opt-in) a la lista de lanzamiento. El correo NO se guarda local —
+  // su único propósito es la suscripción.
+  function finishWelcome() {
+    userName.value = obName.trim();
+    const email = obEmail.trim();
+    if (email) void subscribe(email, obName.trim());
+    obStep = "perms";
+    pollInterval = setInterval(checkPerms, 1500);
+  }
 
+  async function init() {
     settings = await invoke("get_settings");
     models = await invoke("get_models");
     await checkPerms();
 
     if (!settings.onboarding_done) {
+      // Empieza en el paso "welcome" (nombre + correo). El polling de permisos
+      // arranca al pasar al paso "perms" (finishWelcome).
       view = "onboarding";
-      pollInterval = setInterval(checkPerms, 1500);
     } else {
       view = "home";
       history = await invoke("get_history");
@@ -102,7 +113,7 @@
     appVersion = await invoke<string>("get_app_version").catch(() => "");
     buildHash = await invoke<string>("get_build_hash").catch(() => "");
 
-    // Register event listeners immediately — do not gate behind auth.
+    // Register event listeners immediately, before init resolves.
     unlisten.push(
       // Always re-pull history so the shared store is current regardless of
       // which section is open (real-time refresh, no view-conditional delay).
@@ -143,13 +154,7 @@
       }),
     );
 
-    // Auth gate: load the current session first.
-    await auth.load();
-    if (auth.account === null) {
-      view = "auth";
-    } else {
-      await initAfterAuth();
-    }
+    await init();
 
     initialized = true;
     ready = true;
@@ -218,22 +223,52 @@
 </script>
 
 {#if ready}
-{#if view === "auth"}
-  <!-- ── AUTH (precedes onboarding and shell) ── -->
-  <Auth onsuccess={async () => { await auth.load(); await initAfterAuth(); }} />
-{:else if view === "onboarding"}
+{#if view === "onboarding"}
   <!-- ── ONBOARDING (precedes the shell) ── -->
   <div class="ob">
-    <div class="ob-steps">
-      <div class="ob-step-dot" class:active={obStep === "perms"}></div>
-      <div class="ob-step-dot" class:active={obStep === "models"}></div>
-      <div class="ob-step-dot" class:active={obStep === "analytics"}></div>
-    </div>
+    <div class="ob-brand"><Wordmark /></div>
 
-    {#if obStep === "perms"}
+    {#if obStep === "welcome"}
+      <!-- Step 1: name (for the greeting) + optional email (launch list) -->
       <div class="ob-intro">
-        <h1>Welcome</h1>
-        <p>Local voice-to-text on your Mac.<br>We need two permissions to get started.</p>
+        <h1>Welcome to onnda</h1>
+        <p>Local voice-to-text on your Mac.<br>What should we call you?</p>
+      </div>
+
+      <div class="ob-form">
+        <label class="ob-field">
+          <span class="ob-label">Name</span>
+          <input
+            class="ob-input"
+            type="text"
+            placeholder="Your name"
+            bind:value={obName}
+            onkeydown={(e) => { if (e.key === "Enter" && obName.trim()) finishWelcome(); }}
+          />
+        </label>
+        <label class="ob-field">
+          <span class="ob-label">Email <span class="ob-optional">— optional, for launch updates</span></span>
+          <input
+            class="ob-input"
+            type="email"
+            placeholder="you@example.com"
+            bind:value={obEmail}
+            onkeydown={(e) => { if (e.key === "Enter" && obName.trim()) finishWelcome(); }}
+          />
+        </label>
+      </div>
+
+      <div class="ob-foot">
+        <p class="hint">No account, no password. Your name stays on this Mac; the email is only used to send launch updates if you enter one.</p>
+        <button class="btn-primary" disabled={!obName.trim()} onclick={finishWelcome}>
+          Continue
+        </button>
+      </div>
+
+    {:else if obStep === "perms"}
+      <div class="ob-intro">
+        <h1>Permissions</h1>
+        <p>onnda needs two permissions to get started.</p>
       </div>
 
       <div class="perm-list">
@@ -306,6 +341,13 @@
         </button>
       </div>
     {/if}
+
+    <div class="ob-steps">
+      <div class="ob-step-dot" class:active={obStep === "welcome"}></div>
+      <div class="ob-step-dot" class:active={obStep === "perms"}></div>
+      <div class="ob-step-dot" class:active={obStep === "models"}></div>
+      <div class="ob-step-dot" class:active={obStep === "analytics"}></div>
+    </div>
   </div>
 {:else}
   <!-- ── SHELL (sidebar + content fill to the top; traffic lights float over the
@@ -348,7 +390,6 @@
           onSave={(sc) => schedSave(sc)}
           onDownload={startDownload}
           onCheckPerms={checkPerms}
-          onLogout={() => { userName.value = ""; view = "auth"; }}
         />
       {/if}
     </main>
@@ -385,62 +426,89 @@
     border-radius: var(--r-card);
   }
 
-  /* ── Onboarding (preserved) ── */
+  /* ── Onboarding: columna acotada y centrada, lenguaje onnda (serif + tokens) ── */
   .ob {
-    height: 100vh; display: flex; flex-direction: column;
-    padding: 36px 22px 24px; gap: 28px;
+    min-height: 100vh; display: flex; flex-direction: column;
+    justify-content: center;
+    width: 100%; max-width: 380px; margin: 0 auto;
+    padding: var(--s10) var(--s8); gap: var(--s6); box-sizing: border-box;
   }
-  .ob-intro { display: flex; flex-direction: column; gap: 7px; }
-  .ob-intro h1 { font-size: 22px; font-weight: 600; letter-spacing: -.03em; color: var(--text); }
-  .ob-intro p { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .ob-brand { display: flex; }
+  .ob-brand :global(.wordmark) { height: 32px; }
+
+  .ob-intro { display: flex; flex-direction: column; gap: var(--s2); }
+  .ob-intro h1 {
+    font-family: var(--font-serif);
+    font-size: 30px; font-weight: 400; line-height: 1.1;
+    color: var(--text);
+  }
+  .ob-intro p { font-size: 13.5px; color: var(--text-muted); line-height: 1.65; }
 
   .perm-list { display: flex; flex-direction: column; }
-  .model-list { display: flex; flex-direction: column; gap: 8px; }
+  .model-list { display: flex; flex-direction: column; gap: var(--s2); }
+
+  /* Welcome step: name + optional email */
+  .ob-form { display: flex; flex-direction: column; gap: var(--s4); }
+  .ob-field { display: flex; flex-direction: column; gap: var(--s1); }
+  .ob-label {
+    font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--text-section);
+  }
+  .ob-optional { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-muted); }
+  .ob-input {
+    width: 100%; box-sizing: border-box;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--line); border-radius: var(--r-nav);
+    padding: 11px 13px; font-size: 14px; font-family: var(--font-sans);
+    transition: border-color .15s;
+  }
+  .ob-input::placeholder { color: var(--text-muted); }
+  .ob-input:focus { outline: none; border-color: var(--text); }
 
   .ob-analytics {
-    background: var(--surface, rgba(255,255,255,.05));
-    border-radius: var(--r-card, 12px);
-    padding: 16px;
+    background: var(--surface);
+    border-radius: var(--r-card);
+    padding: var(--s4);
   }
   .analytics-detail {
     font-size: 12.5px;
-    color: var(--muted);
+    color: var(--text-muted);
     line-height: 1.65;
   }
 
   .btn-secondary {
-    width: 100%; background: transparent; color: var(--muted); border: none;
-    border-radius: var(--r); padding: 10px; font-size: 13px; font-weight: 500;
-    cursor: pointer; letter-spacing: -.01em;
+    width: 100%; background: transparent; color: var(--text-muted); border: none;
+    border-radius: var(--r-nav); padding: var(--s3); font-size: 13px; font-weight: 500;
+    cursor: pointer;
     transition: color .15s;
   }
   .btn-secondary:hover { color: var(--text); }
 
-  .ob-foot { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
-  .hint { font-size: 11.5px; color: var(--faint); line-height: 1.55; }
+  .ob-foot { display: flex; flex-direction: column; gap: var(--s3); margin-top: var(--s1); }
+  .hint { font-size: 12px; color: var(--text-muted); line-height: 1.55; }
 
   .btn-primary {
     width: 100%; background: var(--nav-active-bg); color: var(--nav-active-ink); border: none;
-    border-radius: var(--r); padding: 11px; font-size: 13.5px; font-weight: 600;
-    cursor: pointer; letter-spacing: -.01em;
+    border-radius: var(--r-nav); padding: 12px; font-size: 14px; font-weight: 600;
+    cursor: pointer;
     transition: opacity .15s, transform .1s;
   }
-  .btn-primary:hover:not(:disabled) { opacity: .92; transform: translateY(-1px); }
+  .btn-primary:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
   .btn-primary:active:not(:disabled) { transform: scale(.98); }
   .btn-primary:disabled {
-    opacity: 1; cursor: default;
-    background: rgba(255,255,255,0.06); color: var(--faint);
+    cursor: default;
+    background: var(--surface); color: var(--text-muted);
     box-shadow: inset 0 0 0 1px var(--line);
   }
 
-  /* Onboarding step progress dots */
-  .ob-steps { display: flex; gap: 5px; justify-content: center; }
+  /* Onboarding step progress dots — footer indicator */
+  .ob-steps { display: flex; gap: var(--s1); justify-content: flex-start; margin-top: var(--s2); }
   .ob-step-dot {
     width: 5px; height: 5px; border-radius: 50%;
-    background: rgba(255,255,255,.18);
-    transition: background .2s;
+    background: var(--text); opacity: .18;
+    transition: opacity .2s;
   }
-  .ob-step-dot.active { background: var(--text); }
+  .ob-step-dot.active { opacity: 1; }
 
   /* HARDEN-04: no-model banner */
   /* Accessibility-missing banner (onnda) — shows on any screen until granted. */

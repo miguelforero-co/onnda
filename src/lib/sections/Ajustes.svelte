@@ -7,7 +7,7 @@
   import PermissionRow from "$lib/components/PermissionRow.svelte";
   import SectionLabel from "$lib/components/ui/SectionLabel.svelte";
   import { theme, type ThemeMode } from "$lib/stores/theme.svelte";
-  import { auth } from "$lib/auth.svelte";
+  import { userName } from "$lib/stores/userName.svelte";
 
   const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
     { value: "light", label: "Light" },
@@ -28,7 +28,6 @@
     onSave,
     onDownload,
     onCheckPerms,
-    onLogout,
   }: {
     settings: Settings;
     models: ModelInfo[];
@@ -41,7 +40,6 @@
     onSave: (shortcutChanged?: boolean) => void;
     onDownload: (modelId: string) => void;
     onCheckPerms: () => void;
-    onLogout: () => void;
   } = $props();
 
   // Supported recognition languages.
@@ -102,83 +100,41 @@
     modelList = await invoke<ModelInfo[]>("get_models");
   }
 
-  // ── Cuenta ──
-  let loggingOut = $state(false);
-  let newPassword = $state("");
-  let pwSaving = $state(false);
-  let pwMsg = $state("");
-  let pwError = $state(false);
+  // ── Profile (solo el nombre del saludo; sin cuentas ni contraseñas) ──
+  let nameDraft = $state(userName.value);
+  let nameSaved = $state(false);
+  let nameSavedTimer: ReturnType<typeof setTimeout> | null = null;
 
-  async function handleLogout() {
-    loggingOut = true;
-    try {
-      await auth.logout();
-      onLogout();
-    } finally {
-      loggingOut = false;
-    }
-  }
-
-  async function handleChangePassword() {
-    if (!newPassword.trim()) return;
-    pwSaving = true;
-    pwMsg = "";
-    pwError = false;
-    try {
-      await auth.resetPassword(auth.account!.email, newPassword.trim());
-      pwMsg = "Password updated.";
-      newPassword = "";
-    } catch (e) {
-      pwMsg = "Could not update. Please try again.";
-      pwError = true;
-      console.error(e);
-    } finally {
-      pwSaving = false;
-    }
+  function saveName() {
+    userName.set(nameDraft);
+    nameDraft = userName.value; // refleja el trim
+    nameSaved = true;
+    if (nameSavedTimer) clearTimeout(nameSavedTimer);
+    nameSavedTimer = setTimeout(() => { nameSaved = false; }, 1800);
   }
 </script>
 
 <div class="screen">
   <h1 class="page-title">Settings</h1>
 
-  <!-- ── Cuenta (Task 8 — account info, logout, change password) ── -->
+  <!-- ── Profile (solo el nombre del saludo; sin cuentas) ── -->
   <section class="section">
-    <SectionLabel text="Account" />
+    <SectionLabel text="Profile" />
     <div class="card">
       <div class="row">
         <span class="row-label">Name</span>
-        <span class="account-value">{auth.account?.name ?? ""}</span>
-      </div>
-      <div class="sep"></div>
-      <div class="row">
-        <span class="row-label">Email</span>
-        <span class="account-value">{auth.account?.email ?? ""}</span>
-      </div>
-      <div class="sep"></div>
-      <div class="row">
-        <span class="row-label">Change password</span>
         <div class="pw-row">
           <input
             class="pw-input"
-            type="password"
-            placeholder="New password"
-            bind:value={newPassword}
-            onkeydown={(e) => { if (e.key === "Enter") handleChangePassword(); }}
+            type="text"
+            placeholder="Your name"
+            bind:value={nameDraft}
+            onkeydown={(e) => { if (e.key === "Enter") saveName(); }}
           />
-          <button class="btn-primary" onclick={handleChangePassword} disabled={pwSaving || !newPassword.trim()}>
-            {pwSaving ? "Saving…" : "Save"}
+          <button class="btn-primary" onclick={saveName} disabled={nameDraft.trim() === userName.value}>
+            {nameSaved ? "Saved" : "Save"}
           </button>
         </div>
-      </div>
-      {#if pwMsg}
-        <p class="pw-msg" class:pw-msg-error={pwError}>{pwMsg}</p>
-      {/if}
-      <div class="sep"></div>
-      <div class="row">
-        <span class="row-label">Session</span>
-        <button class="destruct-btn" onclick={handleLogout} disabled={loggingOut}>
-          {loggingOut ? "Signing out…" : "Sign out"}
-        </button>
       </div>
     </div>
   </section>
@@ -625,11 +581,7 @@
     color: var(--text);
   }
 
-  /* ── Cuenta ── */
-  .account-value {
-    font-size: 14px;
-    color: var(--text-muted);
-  }
+  /* ── Profile (nombre del saludo) ── */
   .pw-row {
     display: flex;
     align-items: center;
@@ -648,12 +600,6 @@
     transition: border-color .15s;
   }
   .pw-input:focus { border-color: var(--text-muted); }
-  .pw-msg {
-    font-size: 12px;
-    color: var(--text-muted);
-    margin: 0;
-  }
-  .pw-msg-error { color: var(--danger); opacity: 1; }
 
   /* ── Apariencia (onnda theme selector) ── */
   .theme-row {

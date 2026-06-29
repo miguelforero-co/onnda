@@ -5,7 +5,6 @@ use tauri::{
 };
 use tauri_plugin_log::{Target, TargetKind, RotationStrategy};
 
-mod accounts;
 mod analytics;
 mod audio;
 mod backend;
@@ -18,6 +17,7 @@ mod models;
 #[cfg(target_os = "macos")]
 mod notch;
 mod paste;
+mod paths;
 mod recording;
 mod settings;
 mod shortcut;
@@ -104,12 +104,6 @@ pub fn run() {
             data_mgmt::get_storage_usage,
             updater_check::check_for_updates,
             commands::track_event,
-            accounts::account_signup,
-            accounts::account_login,
-            accounts::account_logout,
-            accounts::account_current,
-            accounts::account_list,
-            accounts::account_reset_password,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {

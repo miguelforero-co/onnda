@@ -70,7 +70,6 @@ export interface UpdateStatus {
 }
 
 export type View =
-  | "auth"
   | "onboarding"
   | "home"
   | "transcripciones"
