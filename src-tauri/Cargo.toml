@@ -1,6 +1,6 @@
 [package]
 name = "onnda"
-version = "1.7.1"
+version = "1.7.2"
 description = "onnda - transcripción de voz a texto 100% local"
 authors = ["you"]
 edition = "2021"
