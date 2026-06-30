@@ -3,13 +3,19 @@
 App macOS de dictado 100% local (Tauri 2 + Svelte 5 + Whisper/Apple Speech). Lee esto al retomar.
 
 ## Estado actual
-- **v1.7.1 PUBLICADA** → https://github.com/miguelforero-co/onnda/releases/tag/v1.7.1
-  - Firmada Developer ID + **notarizada + stapled**. DMG bonito (logo + flecha + Applications, vía `create-dmg`).
-  - **Auto-update in-app funcionando** (verificado end-to-end). Assets del release: `onnda_1.7.1_aarch64.dmg`, `onnda.app.tar.gz`, `onnda.app.tar.gz.sig`, `latest.json`.
-- **`main` al día** (commit merge `05a81c5`, PR #3). Rama de trabajo `fix/onboarding-apple-robustness` ya mergeada.
-- Repo: `github.com/miguelforero-co/onnda` (renombrado desde voz-local). Identifier app: `com.onnda.app`.
-- `npm run check` 0/0, `cargo check` limpio, 55 tests Rust.
-- **Solo se construyó arm64** (Apple Silicon). Falta build Intel x86_64.
+- **v1.7.3 PUBLICADA** → https://github.com/miguelforero-co/onnda/releases/tag/v1.7.3
+  - **arm64 + Intel x86_64**, ambos firmados Developer ID + notarizados + stapled. DMG bonito (create-dmg, fondo crema on-brand `src-tauri/icons/dmg-background.png`, script `scripts/make-dmg.sh`).
+  - **Auto-update** con `latest.json` para `darwin-aarch64` + `darwin-x86_64`. Updater endpoint verificado sirviendo 1.7.3.
+  - **Intel con Metal GPU** (no CPU-only) — rápido. Apple Speech deshabilitado en Intel (guard + fallback runtime).
+- **`main` al día** (merge `7feeef5`, rama `feat/v1.7.3` integrada).
+- Repo: `github.com/miguelforero-co/onnda`. Identifier `com.onnda.app`.
+- `npm run check` 0/0, `cargo check` limpio (arm64 y x86_64), 57 tests Rust.
+
+## v1.7.3 — cambios (plan en docs/superpowers/plans/2026-06-30-v1.7.3.md)
+Quitado dark mode (solo claro) · grabación toggle por defecto (PTT opcional) · onboarding rediseñado (paso idioma + dropdown de modelos + paso final "ready" con flecha al menú bar) · build Intel x86_64 con Metal · DMG bonito · componente Select reutilizable · fix "Open data folder" (revelar hijo, no lanzar el bundle .app) · launch at login por defecto (+ `--hidden`) · Dock dinámico (Regular↔Accessory, tray siempre). Extras: fondo gris cohesivo en onboarding, banner feedback→mailto `hello@miguelforero.co`, motion (nav deslizante + cascadeo sutil).
+
+## Verificación GUI pendiente (tester) — no bloqueó el release
+Validado en vivo: Dock dinámico, onboarding nuevo, fondo gris. Falta confirmar en build instalado: toggle de dictado, launch al login `--hidden` (solo en app instalada). En Intel real: confirmar velocidad de transcripción (Metal).
 
 ## Lo que se hizo esta sesión (rebrand + 5 bugfixes + auto-update)
 1. **Rebrand total a onnda** (sesión previa dentro de esta): identifier `com.onnda.app`, repo renombrado, logs/temp, README con punch, LICENSE MIT.
