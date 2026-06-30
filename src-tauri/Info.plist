@@ -6,5 +6,9 @@
   <string>onnda needs the microphone to transcribe audio locally, without sending data to any server.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
   <string>onnda uses Apple's on-device speech recognition to transcribe your dictation. Audio never leaves your Mac.</string>
+  <!-- Icono Liquid Glass (macOS 26 Tahoe): apunta al AppIcon dentro de Assets.car.
+       En macOS < 26 el sistema cae al CFBundleIconFile (icons/icon.icns). -->
+  <key>CFBundleIconName</key>
+  <string>AppIcon</string>
 </dict>
 </plist>
