@@ -6,14 +6,7 @@
   import HotkeyRecorder from "$lib/components/HotkeyRecorder.svelte";
   import PermissionRow from "$lib/components/PermissionRow.svelte";
   import SectionLabel from "$lib/components/ui/SectionLabel.svelte";
-  import { theme, type ThemeMode } from "$lib/stores/theme.svelte";
   import { userName } from "$lib/stores/userName.svelte";
-
-  const THEME_OPTIONS: { value: ThemeMode; label: string }[] = [
-    { value: "light", label: "Light" },
-    { value: "dark",  label: "Dark" },
-    { value: "auto",  label: "Auto" },
-  ];
 
   // Prop contract from 01-03 (Ajustes stub).
   let {
@@ -134,25 +127,6 @@
           <button class="btn-primary" onclick={saveName} disabled={nameDraft.trim() === userName.value}>
             {nameSaved ? "Saved" : "Save"}
           </button>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ── Apariencia (onnda theme selector) ── -->
-  <section class="section">
-    <SectionLabel text="Appearance" />
-    <div class="card">
-      <div class="theme-row">
-        <span class="row-label">Appearance</span>
-        <div class="seg">
-          {#each THEME_OPTIONS as opt}
-            <button
-              class="seg-btn"
-              class:on={theme.mode === opt.value}
-              onclick={() => theme.set(opt.value)}
-            >{opt.label}</button>
-          {/each}
         </div>
       </div>
     </div>
@@ -601,31 +575,4 @@
   }
   .pw-input:focus { border-color: var(--text-muted); }
 
-  /* ── Apariencia (onnda theme selector) ── */
-  .theme-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: var(--s4);
-    min-height: 42px;
-  }
-  .seg {
-    display: inline-flex;
-    background: var(--bg);
-    border-radius: var(--r-nav);
-    padding: 2px;
-    gap: 2px;
-  }
-  .seg-btn {
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    font-family: var(--font-sans);
-    font-size: 13px;
-    color: var(--text-muted);
-    padding: 6px 12px;
-    border-radius: 6px;
-    transition: background .12s, color .12s;
-  }
-  .seg-btn.on { background: var(--nav-active-bg); color: var(--nav-active-ink); }
 </style>

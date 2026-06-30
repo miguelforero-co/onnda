@@ -3,8 +3,7 @@
    43:1914 dark). Semantic vars switch by [data-theme] on <html>. The widget
    (src/routes/widget/+page.svelte) does NOT import this. All spacing base-8. */
 
-:root,
-:root[data-theme="light"] {
+:root {
   color-scheme: light;
 
   /* Surfaces */
@@ -42,41 +41,6 @@
   /* Legacy hairlines (shim — see back-compat block below) */
   --line:        rgba(0,0,0,0.10);
   --line-strong: rgba(0,0,0,0.18);
-}
-
-:root[data-theme="dark"] {
-  color-scheme: dark;
-
-  --shell:        #d6d8d7;   /* light frame/seam behind dark panels (Figma dark) */
-  --bg:           #181818;
-  --surface:      #222222;
-  --surface-ink:  #222222;
-  --dot-grid:     rgba(255,255,255,0.05);
-
-  --text:         #e5e5e5;
-  --text-muted:   #c9c9c9;
-  --text-section: #b4b4b4;
-  --text-on-ink:  #e6e6e6;
-
-  --nav-active-bg:  #e1e1e1;
-  --nav-active-ink: #393939;
-  --nav-ink:        #f1f1f1;
-
-  --wordmark-tag: #ffffff;
-
-  --dot-on:    #6fe6ce;
-  --dot-off:   #3a3a3a;
-  --dot-today: #e5e5e5;
-
-  /* Feedback colors */
-  --danger:    #e0796f;
-
-  /* Subtle inset fill — slightly lighter than --bg on dark */
-  --inset:     rgba(255,255,255,0.05);
-
-  /* Legacy hairlines (shim) */
-  --line:        rgba(255,255,255,0.10);
-  --line-strong: rgba(255,255,255,0.16);
 }
 
 :root {

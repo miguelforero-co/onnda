@@ -1,23 +1,10 @@
 <!doctype html>
-<html lang="es">
+<html lang="en" data-theme="light">
   <head>
     <meta charset="utf-8" />
     <link rel="icon" href="%sveltekit.assets%/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>onnda</title>
-    <script>
-      // Apply persisted theme before paint to avoid a flash. Mirrors theme.svelte.ts.
-      (function () {
-        try {
-          var m = localStorage.getItem("onnda.theme") || "auto";
-          var dark = m === "dark" || (m === "auto" &&
-            window.matchMedia("(prefers-color-scheme: dark)").matches);
-          document.documentElement.setAttribute("data-theme", dark ? "dark" : "light");
-        } catch (e) {
-          document.documentElement.setAttribute("data-theme", "light");
-        }
-      })();
-    </script>
     %sveltekit.head%
   </head>
   <style>html,body{background:transparent!important;margin:0;padding:0}</style>
