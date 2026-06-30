@@ -1,6 +1,6 @@
 {
   "name": "onnda",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "Voice to text, 100% local on your Mac. No cloud, no account.",
   "type": "module",
   "scripts": {

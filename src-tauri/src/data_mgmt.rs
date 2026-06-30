@@ -13,21 +13,30 @@
 use std::fs;
 use tauri::{AppHandle, Runtime};
 
-/// Open the app data directory in Finder (macOS).
+/// Open the app data directory in Finder, showing its contents.
 ///
-/// NOTE: the app identifier is `com.onnda.app`, so `app_data_dir()` ends in
-/// `.app`. Plain `open <dir>` treats a `.app`-suffixed path as an application
-/// bundle and fails with "executable is missing". `open -a Finder <dir>` forces
-/// Finder to open it as a folder, so the user sees their history and recordings.
+/// The app identifier is `com.onnda.app`, so the data dir ends in `.app`.
+/// macOS tipa como application bundle y `open <dir>` lo LANZA en vez de abrir su contenido.
+/// Solución: revelar un ítem HIJO fuerza a Finder a abrir el CONTENIDO del paquete.
 #[tauri::command]
 pub fn reveal_data_dir<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     let dir = crate::paths::data_dir(&app);
-    #[cfg(target_os = "macos")]
-    std::process::Command::new("open")
-        .args(["-a", "Finder"])
-        .arg(&dir)
-        .spawn()
-        .map_err(|e| e.to_string())?;
+    // El data dir termina en ".app" (identifier com.onnda.app) → macOS lo tipa como
+    // application bundle: `open <dir>` lo LANZA y el AppleScript `open folder` falla (-1700).
+    // Revelar un ítem HIJO fuerza a Finder a abrir el CONTENIDO del paquete (con el ítem
+    // seleccionado). Si la carpeta está vacía, revelamos la carpeta misma en el padre.
+    let target = fs::read_dir(&dir)
+        .ok()
+        .and_then(|mut it| it.find_map(|e| e.ok().map(|e| e.path())))
+        .unwrap_or_else(|| dir.clone());
+    let status = std::process::Command::new("open")
+        .arg("-R")
+        .arg(&target)
+        .status()
+        .map_err(|e| format!("open -R failed: {e}"))?;
+    if !status.success() {
+        return Err(format!("open -R exited with status {status}"));
+    }
     Ok(())
 }
 

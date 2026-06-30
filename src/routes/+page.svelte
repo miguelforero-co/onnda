@@ -10,14 +10,15 @@
 
   import Sidebar from "$lib/components/Sidebar.svelte";
   import PermissionRow from "$lib/components/PermissionRow.svelte";
-  import ModelCard from "$lib/components/ModelCard.svelte";
   import Home from "$lib/sections/Home.svelte";
   import Transcripciones from "$lib/sections/Transcripciones.svelte";
   import Importar from "$lib/sections/Importar.svelte";
   import Diccionario from "$lib/sections/Diccionario.svelte";
   import Ajustes from "$lib/sections/Ajustes.svelte";
   import Wordmark from "$lib/components/ui/Wordmark.svelte";
+  import Select from "$lib/components/ui/Select.svelte";
   import { userName } from "$lib/stores/userName.svelte";
+  import { LANGUAGES } from "$lib/constants";
   import { subscribe } from "$lib/subscribe";
   import { check as checkUpdate, type Update } from "@tauri-apps/plugin-updater";
   import { relaunch } from "@tauri-apps/plugin-process";
@@ -42,8 +43,8 @@
   }
 
   let settings = $state<Settings>({
-    shortcut: "Alt+Space", push_to_talk: true, selected_language: "auto",
-    selected_model: "large-v3-turbo", autostart: false,
+    shortcut: "Alt+Space", push_to_talk: false, selected_language: "auto",
+    selected_model: "large-v3-turbo", autostart: true,
     onboarding_done: false, widget_position: "center", custom_words: "",
     word_correction_threshold: 0.85,
     sounds_enabled: true,
@@ -54,8 +55,8 @@
     analytics_enabled: false,
   });
   let view = $state<View>("home");
-  // onboarding steps: "welcome" (name + optional email) → "perms" → "models" → "analytics"
-  let obStep = $state<"welcome" | "perms" | "models" | "analytics">("welcome");
+  // onboarding steps: welcome → perms → language → models → analytics → ready
+  let obStep = $state<"welcome" | "perms" | "language" | "models" | "analytics" | "ready">("welcome");
   let obName = $state("");   // nombre para el saludo (requerido para continuar)
   let obEmail = $state("");  // correo opcional → solo se usa para la lista de lanzamiento
   let models = $state<ModelInfo[]>([]);
@@ -63,6 +64,8 @@
   const selectedModelReady = $derived(
     models.find((m) => m.id === settings.selected_model)?.downloaded ?? false,
   );
+  // ModelInfo del modelo actualmente seleccionado (para la fila de descarga en onboarding).
+  const selectedModelForDl = $derived(models.find((m) => m.id === settings.selected_model));
   let history = $state<HistoryEntry[]>([]);
   let micGranted = $state(false);
   let a11yGranted = $state(false);
@@ -141,6 +144,12 @@
       // Empieza en el paso "welcome" (nombre + correo). El polling de permisos
       // arranca al pasar al paso "perms" (finishWelcome).
       view = "onboarding";
+      // Preseleccionar idioma del sistema solo si el usuario aún no eligió uno (guard para
+      // reinicio a mitad del onboarding: no pisar una selección ya guardada).
+      if (!settings.selected_language || settings.selected_language === "auto") {
+        const sysLang = (navigator.language || "").slice(0, 2);
+        if (LANGUAGES.some((l) => l.value === sysLang)) settings.selected_language = sysLang;
+      }
     } else {
       view = "home";
       history = await invoke("get_history");
@@ -250,6 +259,12 @@
     }
   }
 
+  // Llamado al cambiar modelo en el dropdown del onboarding: guarda y calienta Apple si aplica.
+  function onModelChange() {
+    schedSave();
+    if (settings.selected_model === "apple-speech") invoke("warm_apple_engine").catch(() => {});
+  }
+
   async function finishOnboarding() {
     if (pollInterval) { clearInterval(pollInterval); pollInterval = null; }
     settings.onboarding_done = true;
@@ -341,9 +356,24 @@
           <p class="hint">Without accessibility, text is copied to the clipboard automatically.</p>
         {/if}
         <button class="btn-primary" disabled={!micGranted}
-                onclick={() => { if (pollInterval) { clearInterval(pollInterval); pollInterval = null; } obStep = "models"; }}>
+                onclick={() => { if (pollInterval) { clearInterval(pollInterval); pollInterval = null; } obStep = "language"; }}>
           {micGranted ? "Continue" : "Waiting for microphone permission…"}
         </button>
+      </div>
+
+    {:else if obStep === "language"}
+      <!-- Paso language: el usuario elige el idioma de transcripción. -->
+      <div class="ob-intro">
+        <h1>What language do you speak?</h1>
+        <p>onnda tunes transcription for your language. You can change it later in Settings.</p>
+      </div>
+      <Select
+        bind:value={settings.selected_language}
+        options={LANGUAGES.map((l) => ({ label: l.label, value: l.value }))}
+        ariaLabel="Spoken language"
+      />
+      <div class="ob-foot">
+        <button class="btn-primary" onclick={() => { schedSave(); obStep = "models"; }}>Continue</button>
       </div>
 
     {:else if obStep === "models"}
@@ -353,32 +383,49 @@
         <p>Apple's engine is instant and needs no download.<br>Whisper models run offline once downloaded.</p>
       </div>
 
-      <div class="model-list">
-        {#each models as m}
-          <ModelCard
-            model={m}
-            selected={settings.selected_model === m.id}
-            progress={downloadProgress[m.id]}
-            error={downloadErrors[m.id]}
-            onDownload={startDownload}
-            onSelect={(id) => {
-              settings.selected_model = id;
-              schedSave();
-              if (id === "apple-speech") invoke("warm_apple_engine").catch(() => {});
-            }}
-          />
-        {/each}
-      </div>
+      <!-- Dropdown compacto de modelos (mismo patrón que Ajustes) -->
+      <Select
+        bind:value={settings.selected_model}
+        options={models.map((m) => ({
+          label: m.coming_soon ? `${m.name} · coming soon` : m.name,
+          value: m.id,
+          disabled: m.coming_soon || !!m.disabled_reason,
+        }))}
+        onchange={onModelChange}
+        ariaLabel="Transcription model"
+      />
+
+      <!-- Fila de descarga del modelo seleccionado (mismo patrón que Ajustes .model-dl-row) -->
+      {#if selectedModelForDl}
+        <div class="model-dl-row">
+          {#if downloadProgress[settings.selected_model]}
+            <div class="dl-bar-wrap">
+              <div class="dl-bar" style="width:{downloadProgress[settings.selected_model].percent}%"></div>
+            </div>
+            <span class="dl-pct">{Math.round(downloadProgress[settings.selected_model].percent)}%</span>
+          {:else if selectedModelForDl.downloaded}
+            <span class="dot-on-indicator"></span>
+            <span class="dl-status">Downloaded</span>
+          {:else}
+            <button class="btn-primary btn-dl" onclick={() => startDownload(settings.selected_model)}>
+              Download
+            </button>
+          {/if}
+          {#if downloadErrors[settings.selected_model]}
+            <span class="dl-error">{downloadErrors[settings.selected_model]}</span>
+          {/if}
+        </div>
+      {/if}
 
       <div class="ob-foot">
-        <p class="hint">Tap a model to select it. You can change it anytime in Settings.</p>
+        <p class="hint">You can change the model anytime in Settings.</p>
         <button class="btn-primary" disabled={!selectedModelReady} onclick={() => { schedSave(); obStep = "analytics"; }}>
           {selectedModelReady ? "Continue" : "Select an available model to continue"}
         </button>
       </div>
 
-    {:else}
-      <!-- Step 3: analytics consent -->
+    {:else if obStep === "analytics"}
+      <!-- Paso analytics: consentimiento de estadísticas anónimas -->
       <div class="ob-intro">
         <h1>Anonymous usage stats</h1>
         <p>Allow onnda to send anonymous usage stats?<br>We never send what you dictate.</p>
@@ -389,20 +436,39 @@
       </div>
 
       <div class="ob-foot">
-        <button class="btn-primary" onclick={() => { settings.analytics_enabled = true; finishOnboarding(); }}>
+        <button class="btn-primary" onclick={() => { settings.analytics_enabled = true; schedSave(); obStep = "ready"; }}>
           Allow
         </button>
-        <button class="btn-secondary" onclick={() => { settings.analytics_enabled = false; finishOnboarding(); }}>
+        <button class="btn-secondary" onclick={() => { settings.analytics_enabled = false; schedSave(); obStep = "ready"; }}>
           No thanks
         </button>
+      </div>
+
+    {:else if obStep === "ready"}
+      <!-- Paso final: shortcut + menu bar hint con flecha animada -->
+      <div class="ob-intro">
+        <h1>You're all set</h1>
+        <p>Press <kbd>⌥</kbd><kbd>Space</kbd> anywhere to dictate. Change it in Settings.</p>
+        <p class="ob-menubar-hint">onnda lives in your menu bar — open it whenever you need it.</p>
+      </div>
+      <div class="ob-arrow" aria-hidden="true">
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <path d="M14 50 C 30 40, 44 26, 52 14" fill="none" stroke="var(--text)" stroke-width="3" stroke-linecap="round"/>
+          <path d="M52 14 l-12 2 M52 14 l-2 12" fill="none" stroke="var(--text)" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="ob-foot">
+        <button class="btn-primary" onclick={finishOnboarding}>Start</button>
       </div>
     {/if}
 
     <div class="ob-steps">
       <div class="ob-step-dot" class:active={obStep === "welcome"}></div>
       <div class="ob-step-dot" class:active={obStep === "perms"}></div>
+      <div class="ob-step-dot" class:active={obStep === "language"}></div>
       <div class="ob-step-dot" class:active={obStep === "models"}></div>
       <div class="ob-step-dot" class:active={obStep === "analytics"}></div>
+      <div class="ob-step-dot" class:active={obStep === "ready"}></div>
     </div>
    </div>
   </div>
@@ -442,6 +508,9 @@
           {/if}
         </div>
       {/if}
+      <!-- Cascadeo sutil al cambiar de vista: el wrapper se remonta con {#key view} -->
+      {#key view}
+      <div class="page-enter">
       {#if view === "home"}
         <Home {history} />
       {/if}
@@ -463,6 +532,8 @@
           onCheckPerms={checkPerms}
         />
       {/if}
+      </div>
+      {/key}
     </main>
   </div>
 {/if}
@@ -497,12 +568,45 @@
     border-radius: var(--r-card);
   }
 
+  /* ── Cascadeo de entrada por página (muy sutil). El wrapper .page-enter se
+       remonta con {#key view}; la página hace un fade y sus hijos directos
+       (nietos del wrapper) suben en cascada escalonada. ── */
+  :global(.page-enter) {
+    height: 100%;
+    animation: page-in 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  @keyframes page-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  :global(.page-enter > * > *) {
+    animation: cascade-in 0.34s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  :global(.page-enter > * > *:nth-child(1)) { animation-delay: 0.02s; }
+  :global(.page-enter > * > *:nth-child(2)) { animation-delay: 0.06s; }
+  :global(.page-enter > * > *:nth-child(3)) { animation-delay: 0.10s; }
+  :global(.page-enter > * > *:nth-child(4)) { animation-delay: 0.14s; }
+  :global(.page-enter > * > *:nth-child(5)) { animation-delay: 0.18s; }
+  :global(.page-enter > * > *:nth-child(n + 6)) { animation-delay: 0.22s; }
+  @keyframes cascade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global(.page-enter),
+    :global(.page-enter > * > *) { animation: none; }
+  }
+
   /* ── Onboarding: columna acotada. .ob es el scroll-container a pantalla
        completa; .ob-inner se centra con margin:auto (centra si cabe, hace scroll
        desde arriba si el contenido es más alto que la ventana — sin recortar el
        botón Continue). ── */
   .ob {
     height: 100vh; overflow-y: auto; display: flex;
+    /* Cohesión con la app: mismo gris + textura de puntos que .content (no blanco) */
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dot-grid) 1px, transparent 1.5px);
+    background-size: var(--dot-pitch) var(--dot-pitch);
   }
   .ob-inner {
     margin: auto; width: 100%; max-width: 380px;
@@ -521,7 +625,34 @@
   .ob-intro p { font-size: 13.5px; color: var(--text-muted); line-height: 1.65; }
 
   .perm-list { display: flex; flex-direction: column; }
-  .model-list { display: flex; flex-direction: column; gap: var(--s2); }
+
+  /* Fila de descarga del modelo (onboarding, mismo patrón que Ajustes) */
+  .model-dl-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    min-height: 32px;
+  }
+  .dot-on-indicator {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--dot-on); flex-shrink: 0;
+  }
+  .dl-status { font-size: 13px; color: var(--text-muted); }
+  .dl-bar-wrap {
+    width: 100px; height: 4px;
+    background: var(--line); border-radius: 2px; overflow: hidden;
+  }
+  .dl-bar {
+    height: 100%; background: var(--dot-on);
+    border-radius: 2px; transition: width .3s linear;
+  }
+  .dl-pct {
+    font-size: 12px; color: var(--text-muted);
+    font-variant-numeric: tabular-nums; min-width: 32px;
+  }
+  .dl-error { font-size: 12px; color: var(--text-muted); }
+  /* Download button en onboarding: ancho automático (no full-width) */
+  .btn-dl { width: auto; padding: 8px 18px; font-size: 13px; }
 
   /* Welcome step: name + optional email */
   .ob-form { display: flex; flex-direction: column; gap: var(--s4); }
@@ -551,6 +682,25 @@
     color: var(--text-muted);
     line-height: 1.65;
   }
+
+  /* Paso ready: flecha animada y hint de menu bar */
+  .ob-arrow {
+    display: flex;
+    justify-content: flex-end;
+    padding-right: var(--s4);
+    animation: ob-bob 1.6s ease-in-out infinite;
+  }
+  @keyframes ob-bob {
+    0%, 100% { transform: translate(0, 0); }
+    50%       { transform: translate(4px, -4px); }
+  }
+  kbd {
+    font: inherit;
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 2px 6px;
+  }
+  .ob-menubar-hint { color: var(--text-muted); }
 
   .btn-secondary {
     width: 100%; background: transparent; color: var(--text-muted); border: none;

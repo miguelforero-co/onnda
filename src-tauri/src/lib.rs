@@ -112,11 +112,26 @@ pub fn run() {
                 if window.label() == "main" {
                     api.prevent_close();
                     let _ = window.hide();
+                    // Ventana oculta → salir del Dock (modo Accessory = solo barra de menú).
+                    #[cfg(target_os = "macos")]
+                    let _ = window.app_handle().set_activation_policy(tauri::ActivationPolicy::Accessory);
                 }
                 // Widget window is closed/hidden by the widget itself
             }
         })
         .setup(|app| {
+            // Detectar si arrancamos por login item (tauri-plugin-autostart pasa "--hidden").
+            // Task 6 reutilizará esta variable para la política de Dock dinámica.
+            let launched_hidden = std::env::args().any(|a| a == "--hidden");
+
+            // Si arrancamos por login item, ocultamos la ventana principal:
+            // la app vive solo en la barra de menú hasta que el usuario la abra.
+            if launched_hidden {
+                if let Some(w) = app.get_webview_window("main") {
+                    let _ = w.hide();
+                }
+            }
+
             settings::init(app.handle())?;
             history::init(app.handle());
             setup_tray(app.handle())?;
@@ -128,7 +143,14 @@ pub fn run() {
 
             #[cfg(target_os = "macos")]
             {
-                app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+                // Política inicial: Regular (visible en Dock) si la ventana arranca visible;
+                // Accessory (solo barra de menú) si arrancamos ocultos por login item.
+                let policy = if launched_hidden {
+                    tauri::ActivationPolicy::Accessory
+                } else {
+                    tauri::ActivationPolicy::Regular
+                };
+                app.set_activation_policy(policy);
 
                 if let Some(widget) = app.get_webview_window("widget") {
                     // No vibrancy: the widget draws its own opaque black notch
@@ -189,6 +211,11 @@ fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
 }
 
 fn open_main_window<R: Runtime>(app: &AppHandle<R>) {
+    // Ventana visible → aparecer en el Dock (modo Regular). Se hace ANTES de show()/set_focus():
+    // una app Accessory no puede traer su ventana al frente de forma fiable, así que primero
+    // pasamos a Regular y luego mostramos/enfocamos para que la ventana suba bien.
+    #[cfg(target_os = "macos")]
+    let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.set_focus();

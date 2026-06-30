@@ -1,28 +1,34 @@
 <script lang="ts">
   import { openUrl } from "@tauri-apps/plugin-opener";
-  import { BRAND } from "$lib/brand";
 
-  const FEEDBACK_URL = "https://onnda.app/feedback"; // TODO-LINK: confirm real URL with user before ship
-  function open() { openUrl(FEEDBACK_URL).catch(() => {}); }
+  const EMAIL = "hello@miguelforero.co";
+  // Abrir el cliente de correo vía el plugin opener (el webview no navega mailto: solo).
+  function mail(e: MouseEvent) {
+    e.preventDefault();
+    openUrl(`mailto:${EMAIL}`).catch(() => {});
+  }
 </script>
 
-<button class="banner" onclick={open}>
-  Thanks for using {BRAND}, a lot of love went into building it. If you want to
-  leave feedback or request a feature click here
-</button>
+<p class="feedback">
+  Built with love. Got feedback or a feature request? Email me at
+  <a href="mailto:{EMAIL}" onclick={mail}>{EMAIL}</a>.
+</p>
 
 <style>
-  .banner {
+  .feedback {
+    margin: 0;
     width: 100%;
-    text-align: left;
-    background: var(--surface-ink);
-    color: var(--text-on-ink);
-    border: none;
-    border-radius: var(--r-card);
-    padding: var(--s4);
+    text-align: center;
+    color: var(--text-muted);
     font-family: var(--font-sans);
-    font-size: 14px;
-    line-height: 1.1;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .feedback a {
+    color: var(--text);
+    text-decoration: underline;
+    text-underline-offset: 2px;
     cursor: pointer;
   }
+  .feedback a:hover { color: var(--text-muted); }
 </style>

@@ -32,10 +32,16 @@ impl WhisperBackend {
         if needs_load {
             log::info!("[onnda] loading model: {}", self.model_path);
             let mut ctx_params = WhisperContextParameters::default();
+            // Apple Silicon: GPU Metal + flash attention (optimización ANE/Metal).
             #[cfg(target_arch = "aarch64")]
             {
                 ctx_params.use_gpu(true);
                 ctx_params.flash_attn(true);
+            }
+            // Intel: GPU Metal (sin flash_attn). whisper.cpp cae a CPU si Metal no está.
+            #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+            {
+                ctx_params.use_gpu(true);
             }
             let ctx = WhisperContext::new_with_params(&self.model_path, ctx_params)?;
             *cache = Some((self.model_path.clone(), ctx));

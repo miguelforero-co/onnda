@@ -93,10 +93,10 @@ impl Default for AppSettings {
     fn default() -> Self {
         Self {
             shortcut: "Alt+Space".to_string(),
-            push_to_talk: true,
+            push_to_talk: false,
             selected_language: "auto".to_string(),
             selected_model: "large-v3-turbo".to_string(),
-            autostart: false,
+            autostart: true,
             onboarding_done: false,
             widget_position: "center".to_string(),
             custom_words: String::new(),
@@ -226,5 +226,11 @@ mod tests {
         let old = r#"{"shortcut":"Alt+Space","push_to_talk":true,"selected_language":"auto","selected_model":"base","autostart":false,"onboarding_done":true,"widget_position":"center"}"#;
         let s: AppSettings = serde_json::from_str(old).expect("old settings.json must deserialize");
         assert!(!s.analytics_enabled);
+    }
+
+    #[test]
+    fn default_recording_mode_is_toggle() {
+        // toggle = push_to_talk falso por defecto
+        assert_eq!(AppSettings::default().push_to_talk, false);
     }
 }
