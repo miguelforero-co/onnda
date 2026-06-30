@@ -32,3 +32,4 @@ src-tauri/sidecar-asr/.build/
 
 # Compiled test/scratch binaries at repo root
 rust_out
+dist/
