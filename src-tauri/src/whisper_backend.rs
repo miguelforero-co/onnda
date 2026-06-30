@@ -38,10 +38,12 @@ impl WhisperBackend {
                 ctx_params.use_gpu(true);
                 ctx_params.flash_attn(true);
             }
-            // Intel: GPU Metal (sin flash_attn). whisper.cpp cae a CPU si Metal no está.
+            // Intel: CPU. El backend Metal de whisper.cpp se CUELGA en varios Macs
+            // Intel (la transcripción se queda "pensando" para siempre), así que en
+            // x86_64 forzamos CPU — confiable. CPU con modelo `small` va bien en Intel.
             #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
             {
-                ctx_params.use_gpu(true);
+                ctx_params.use_gpu(false);
             }
             let ctx = WhisperContext::new_with_params(&self.model_path, ctx_params)?;
             *cache = Some((self.model_path.clone(), ctx));
