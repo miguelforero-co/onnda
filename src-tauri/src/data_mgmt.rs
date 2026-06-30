@@ -13,21 +13,34 @@
 use std::fs;
 use tauri::{AppHandle, Runtime};
 
-/// Open the app data directory in Finder (macOS).
+/// Open the app data directory in Finder, showing its contents.
 ///
-/// NOTE: the app identifier is `com.onnda.app`, so `app_data_dir()` ends in
-/// `.app`. Plain `open <dir>` treats a `.app`-suffixed path as an application
-/// bundle and fails with "executable is missing". `open -a Finder <dir>` forces
-/// Finder to open it as a folder, so the user sees their history and recordings.
+/// The app identifier is `com.onnda.app`, so the data dir ends in `.app`.
+/// Plain `open <dir>` tries to LAUNCH it as an application bundle (silent failure).
+/// AppleScript's `open folder` forces folder semantics; fallback to `open -R` (reveal parent).
 #[tauri::command]
 pub fn reveal_data_dir<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     let dir = crate::paths::data_dir(&app);
-    #[cfg(target_os = "macos")]
+    let dir_str = dir.to_string_lossy().to_string();
+    // El data dir termina en ".app" (identifier com.onnda.app) → macOS lo tipa como
+    // application bundle y `open <dir>` lo LANZA en vez de abrir su contenido.
+    // AppleScript `open folder` fuerza semántica de carpeta y muestra el contenido.
+    let script = format!(
+        "tell application \"Finder\"\nopen folder (POSIX file \"{}\")\nactivate\nend tell",
+        dir_str.replace('\\', "\\\\").replace('"', "\\\"")
+    );
+    let status = std::process::Command::new("osascript")
+        .args(["-e", &script])
+        .status()
+        .map_err(|e| format!("osascript spawn failed: {e}"))?;
+    if status.success() {
+        return Ok(());
+    }
+    // Fallback: revelar/seleccionar en el padre.
     std::process::Command::new("open")
-        .args(["-a", "Finder"])
-        .arg(&dir)
-        .spawn()
-        .map_err(|e| e.to_string())?;
+        .args(["-R", &dir_str])
+        .status()
+        .map_err(|e| format!("open -R failed: {e}"))?;
     Ok(())
 }
 
