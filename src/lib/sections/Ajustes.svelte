@@ -1,5 +1,5 @@
 <script lang="ts">
-  import type { Settings, ModelInfo, DownloadProgress, UpdateStatus } from "$lib/types";
+  import type { Settings, ModelInfo, DownloadProgress } from "$lib/types";
   import { onMount } from "svelte";
   import { invoke } from "@tauri-apps/api/core";
   import Toggle from "$lib/components/Toggle.svelte";
@@ -20,6 +20,14 @@
     a11yGranted,
     appVersion = "",
     buildHash = "",
+    updateVersion = "",
+    updating = false,
+    updatePct = 0,
+    updateError = "",
+    updateChecking = false,
+    updateUpToDate = false,
+    onCheckUpdates,
+    onInstallUpdate,
     onSave,
     onDownload,
     onCheckPerms,
@@ -32,6 +40,14 @@
     a11yGranted: boolean;
     appVersion?: string;
     buildHash?: string;
+    updateVersion?: string;
+    updating?: boolean;
+    updatePct?: number;
+    updateError?: string;
+    updateChecking?: boolean;
+    updateUpToDate?: boolean;
+    onCheckUpdates: () => void;
+    onInstallUpdate: () => void;
     onSave: (shortcutChanged?: boolean) => void;
     onDownload: (modelId: string) => void;
     onCheckPerms: () => void;
@@ -50,25 +66,9 @@
   // Refresh permissions the moment the section mounts (parent keeps polling every 3s).
   onMount(() => onCheckPerms());
 
-  // ── Actualizaciones (D-14) ──
-  let updateMsg = $state("");
-  let checkingUpdates = $state(false);
-
-  async function checkUpdates() {
-    checkingUpdates = true;
-    updateMsg = "";
-    try {
-      const st = await invoke<UpdateStatus>("check_for_updates");
-      updateMsg = st.up_to_date
-        ? "You're up to date"
-        : `A new version is available (v${st.available_version})`;
-    } catch (e) {
-      updateMsg = "Could not check. Check your connection and try again.";
-      console.error(e);
-    } finally {
-      checkingUpdates = false;
-    }
-  }
+  // ── Actualizaciones ── El flujo real (check + descarga + instala) vive en
+  // +page.svelte (plugin updater de Tauri); aquí solo invocamos sus callbacks
+  // y mostramos su estado. Antes esto solo informaba — ahora instala de verdad.
 
   // ── Datos (D-15) — destructive actions confirm-gated (T-01-17) ──
   async function revealData() {
@@ -312,12 +312,20 @@
       </div>
       <div class="sep"></div>
       <div class="row">
-        <span class="row-label">Check for updates</span>
+        <span class="row-label">Software update</span>
         <div class="update-action">
-          {#if updateMsg}<span class="update-msg">{updateMsg}</span>{/if}
-          <button class="btn-primary" onclick={checkUpdates} disabled={checkingUpdates}>
-            {checkingUpdates ? "Checking…" : "Check for updates"}
-          </button>
+          {#if updateError}<span class="update-msg update-err">{updateError}</span>{/if}
+          {#if !updateError && updateUpToDate}<span class="update-msg">You're up to date</span>{/if}
+          {#if updating}
+            <button class="btn-primary" disabled>Updating… {updatePct}%</button>
+          {:else if updateVersion}
+            <span class="update-msg">v{updateVersion} available</span>
+            <button class="btn-primary" onclick={onInstallUpdate}>Update &amp; restart</button>
+          {:else}
+            <button class="btn-primary" onclick={onCheckUpdates} disabled={updateChecking}>
+              {updateChecking ? "Checking…" : "Check for updates"}
+            </button>
+          {/if}
         </div>
       </div>
     </div>
@@ -479,7 +487,11 @@
   .update-msg {
     font-size: 12px;
     color: var(--text-muted);
+    max-width: 220px;
+    text-align: right;
   }
+  /* Error legible (no rojo brillante, pero visible): ink fuerte */
+  .update-err { color: var(--text); font-weight: 500; }
   .version-value {
     font-size: 12px;
     color: var(--text-muted);

@@ -241,3 +241,10 @@ pub fn get_recording_audio<R: Runtime>(app: AppHandle<R>, filename: String) -> O
 pub fn track_event(app: tauri::AppHandle, event: String, props: Option<serde_json::Value>) {
     crate::analytics::track(&app, &event, props);
 }
+
+/// Permite al frontend escribir al log de disco (p.ej. errores del updater JS,
+/// que de otro modo solo irían a la consola del webview, inaccesible en prod).
+#[tauri::command]
+pub fn log_frontend(msg: String) {
+    log::warn!("{msg}");
+}
