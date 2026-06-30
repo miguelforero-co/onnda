@@ -424,8 +424,8 @@
         </button>
       </div>
 
-    {:else}
-      <!-- Step 3: analytics consent -->
+    {:else if obStep === "analytics"}
+      <!-- Paso analytics: consentimiento de estadísticas anónimas -->
       <div class="ob-intro">
         <h1>Anonymous usage stats</h1>
         <p>Allow onnda to send anonymous usage stats?<br>We never send what you dictate.</p>
@@ -436,12 +436,29 @@
       </div>
 
       <div class="ob-foot">
-        <button class="btn-primary" onclick={() => { settings.analytics_enabled = true; finishOnboarding(); }}>
+        <button class="btn-primary" onclick={() => { settings.analytics_enabled = true; schedSave(); obStep = "ready"; }}>
           Allow
         </button>
-        <button class="btn-secondary" onclick={() => { settings.analytics_enabled = false; finishOnboarding(); }}>
+        <button class="btn-secondary" onclick={() => { settings.analytics_enabled = false; schedSave(); obStep = "ready"; }}>
           No thanks
         </button>
+      </div>
+
+    {:else if obStep === "ready"}
+      <!-- Paso final: shortcut + menu bar hint con flecha animada -->
+      <div class="ob-intro">
+        <h1>You're all set</h1>
+        <p>Press <kbd>⌥</kbd><kbd>Space</kbd> anywhere to dictate. Change it in Settings.</p>
+        <p class="ob-menubar-hint">onnda lives in your menu bar — open it whenever you need it.</p>
+      </div>
+      <div class="ob-arrow" aria-hidden="true">
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <path d="M14 50 C 30 40, 44 26, 52 14" fill="none" stroke="var(--text)" stroke-width="3" stroke-linecap="round"/>
+          <path d="M52 14 l-12 2 M52 14 l-2 12" fill="none" stroke="var(--text)" stroke-width="3" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="ob-foot">
+        <button class="btn-primary" onclick={finishOnboarding}>Start</button>
       </div>
     {/if}
 
@@ -627,6 +644,25 @@
     color: var(--text-muted);
     line-height: 1.65;
   }
+
+  /* Paso ready: flecha animada y hint de menu bar */
+  .ob-arrow {
+    display: flex;
+    justify-content: flex-end;
+    padding-right: var(--s4);
+    animation: ob-bob 1.6s ease-in-out infinite;
+  }
+  @keyframes ob-bob {
+    0%, 100% { transform: translate(0, 0); }
+    50%       { transform: translate(4px, -4px); }
+  }
+  kbd {
+    font: inherit;
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 2px 6px;
+  }
+  .ob-menubar-hint { color: var(--text-muted); }
 
   .btn-secondary {
     width: 100%; background: transparent; color: var(--text-muted); border: none;
