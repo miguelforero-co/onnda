@@ -210,6 +210,10 @@ pub(crate) fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result
 
 pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     let capture = CAPTURE.lock().unwrap().take();
+    // Diagnóstico del doble-paste: si esto entra dos veces por un dictado, el log
+    // lo muestra (la segunda con capture=false). Junto con "suppressed duplicate
+    // paste" en paste.rs, deja clara la causa raíz.
+    log::info!("[onnda] stop_and_transcribe_internal entered (capture={})", capture.is_some());
     IS_RECORDING.store(false, Ordering::SeqCst);
     app.emit("recording-state", false).ok();
 
