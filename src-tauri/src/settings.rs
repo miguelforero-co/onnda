@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
 use std::sync::Mutex;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppSettings {
@@ -53,6 +53,14 @@ pub struct AppSettings {
     /// from→to reaches the promotion threshold it is added to `replacements`.
     #[serde(default)]
     pub learned_corrections: Vec<LearnedCorrection>,
+    /// Visual sensitivity of the widget mic animation: how strongly the wave
+    /// reacts to the audio spectrum. 1.0 = default; lower = calmer, higher = more reactive.
+    #[serde(default = "default_mic_sensitivity")]
+    pub mic_sensitivity: f32,
+    /// Opt-in anonymous usage analytics (Aptabase). Default false — no events
+    /// are sent until the user consents. Never includes transcribed content.
+    #[serde(default)]
+    pub analytics_enabled: bool,
 }
 
 /// A correction observed from user edits, with how many times it's been seen.
@@ -79,6 +87,7 @@ pub struct Replacement {
 
 fn default_word_correction_threshold() -> f32 { 0.85 }
 fn default_true() -> bool { true }
+fn default_mic_sensitivity() -> f32 { 1.0 }
 
 impl Default for AppSettings {
     fn default() -> Self {
@@ -101,6 +110,8 @@ impl Default for AppSettings {
             replacements: Vec::new(),
             auto_learn: true,
             learned_corrections: Vec::new(),
+            mic_sensitivity: default_mic_sensitivity(),
+            analytics_enabled: false,
         }
     }
 }
@@ -123,10 +134,7 @@ pub fn migrate_dictionary(dictionary: &[String], custom_words: &str) -> Vec<Stri
 static CACHE: Mutex<Option<AppSettings>> = Mutex::new(None);
 
 fn settings_path<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
-    app.path()
-        .app_data_dir()
-        .expect("no app data dir")
-        .join("settings.json")
+    crate::paths::data_dir(app).join("settings.json")
 }
 
 pub fn init<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
@@ -208,5 +216,15 @@ mod tests {
     fn dictionary_join_for_prompt() {
         let dict = vec!["GitHub".to_string(), "Claude Code".to_string()];
         assert_eq!(dict.join(", "), "GitHub, Claude Code");
+    }
+
+    #[test]
+    fn analytics_disabled_by_default_and_for_old_settings() {
+        // New default
+        assert!(!AppSettings::default().analytics_enabled);
+        // Old settings.json without the field must deserialize to false
+        let old = r#"{"shortcut":"Alt+Space","push_to_talk":true,"selected_language":"auto","selected_model":"base","autostart":false,"onboarding_done":true,"widget_position":"center"}"#;
+        let s: AppSettings = serde_json::from_str(old).expect("old settings.json must deserialize");
+        assert!(!s.analytics_enabled);
     }
 }

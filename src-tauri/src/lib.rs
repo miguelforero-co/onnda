@@ -5,6 +5,7 @@ use tauri::{
 };
 use tauri_plugin_log::{Target, TargetKind, RotationStrategy};
 
+mod analytics;
 mod audio;
 mod backend;
 mod commands;
@@ -16,6 +17,7 @@ mod models;
 #[cfg(target_os = "macos")]
 mod notch;
 mod paste;
+mod paths;
 mod recording;
 mod settings;
 mod shortcut;
@@ -36,12 +38,24 @@ mod updater_check;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    // tauri-plugin-aptabase's setup spawns its flush loop with a bare
+    // `tokio::spawn`, which panics ("there is no reactor running") because Tauri
+    // runs plugin setup on the main thread, outside any Tokio runtime context.
+    // Enter a multi-threaded Tokio runtime for the whole app lifetime so that
+    // spawn finds a reactor. Tauri's own async_runtime is unaffected (it manages
+    // its own handle); command-context spawns keep running on Tauri's workers.
+    let runtime = tokio::runtime::Builder::new_multi_thread()
+        .enable_all()
+        .build()
+        .expect("failed to build Tokio runtime");
+    let _runtime_guard = runtime.enter();
+
     tauri::Builder::default()
         .plugin(
             tauri_plugin_log::Builder::new()
                 .level(log::LevelFilter::Info)
                 .target(Target::new(TargetKind::LogDir {
-                    file_name: Some("voz-local".to_string()),
+                    file_name: Some("onnda".to_string()),
                 }))
                 .max_file_size(5_000_000)
                 .rotation_strategy(RotationStrategy::KeepOne)
@@ -58,6 +72,9 @@ pub fn run() {
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_fs::init())
+        .plugin(
+            tauri_plugin_aptabase::Builder::new(analytics::app_key()).build(),
+        )
         .invoke_handler(tauri::generate_handler![
             commands::get_settings,
             commands::save_settings,
@@ -70,6 +87,7 @@ pub fn run() {
             models::check_model_status,
             commands::check_mic_permission,
             commands::check_accessibility_permission,
+            commands::request_accessibility,
             commands::open_accessibility_settings,
             commands::open_microphone_settings,
             commands::get_history,
@@ -85,6 +103,7 @@ pub fn run() {
             data_mgmt::clear_models,
             data_mgmt::get_storage_usage,
             updater_check::check_for_updates,
+            commands::track_event,
         ])
         .on_window_event(|window, event| {
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
@@ -103,6 +122,7 @@ pub fn run() {
             escape::install(app.handle()); // Escape cancels an in-progress recording
 
             mic_permission::request_if_needed();
+            analytics::track(app.handle(), "app_launched", None);
 
             #[cfg(target_os = "macos")]
             {
@@ -126,14 +146,14 @@ fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
     let version_label = MenuItem::with_id(
         app,
         "version",
-        format!("Voz Local v{}", app.package_info().version),
+        format!("onnda v{}", app.package_info().version),
         false,
         None::<&str>,
     )?;
-    let show_settings = MenuItem::with_id(app, "settings", "Configuración...", true, None::<&str>)?;
+    let show_settings = MenuItem::with_id(app, "settings", "Settings…", true, None::<&str>)?;
     let sep = PredefinedMenuItem::separator(app)?;
     let sep2 = PredefinedMenuItem::separator(app)?;
-    let quit = MenuItem::with_id(app, "quit", "Salir", true, None::<&str>)?;
+    let quit = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
 
     let menu = Menu::with_items(app, &[&version_label, &sep, &show_settings, &sep2, &quit])?;
 
@@ -145,7 +165,7 @@ fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
         .icon_as_template(true)
         .menu(&menu)
         .show_menu_on_left_click(false)
-        .tooltip("Voz Local")
+        .tooltip("onnda")
         .on_menu_event(|app, event| match event.id.as_ref() {
             "settings" => open_main_window(app),
             "quit" => app.exit(0),
@@ -176,7 +196,7 @@ fn open_main_window<R: Runtime>(app: &AppHandle<R>) {
             "main",
             tauri::WebviewUrl::App("/".into()),
         )
-        .title("Voz Local")
+        .title("onnda")
         .inner_size(880.0, 640.0)
         .resizable(true)
         .center()

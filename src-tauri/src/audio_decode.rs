@@ -97,7 +97,7 @@ pub fn decode_file(path: &str) -> Result<(Vec<f32>, u32), String> {
     }
 
     if out.is_empty() {
-        return Err("no se decodificó audio".to_string());
+        return Err("no audio decoded".to_string());
     }
     Ok((out, sample_rate))
 }
@@ -134,7 +134,7 @@ mod tests {
     fn temp_path(name: &str) -> std::path::PathBuf {
         let mut p = std::env::temp_dir();
         p.push(format!(
-            "voz-local-decode-{}-{}",
+            "onnda-decode-{}-{}",
             std::process::id(),
             name
         ));

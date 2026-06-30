@@ -1,7 +1,7 @@
 {
-  "name": "voz-local",
-  "version": "0.1.0",
-  "description": "",
+  "name": "onnda",
+  "version": "1.7.0",
+  "description": "Voice to text, 100% local on your Mac. No cloud, no account.",
   "type": "module",
   "scripts": {
     "dev": "vite dev",
@@ -13,7 +13,8 @@
   },
   "license": "MIT",
   "dependencies": {
-    "@tauri-apps/api": "^2",
+    "@fontsource/goudy-bookletter-1911": "^5.2.8",
+    "@tauri-apps/api": "~2.10",
     "@tauri-apps/plugin-dialog": "^2.7.1",
     "@tauri-apps/plugin-fs": "^2.5.1",
     "@tauri-apps/plugin-opener": "^2",

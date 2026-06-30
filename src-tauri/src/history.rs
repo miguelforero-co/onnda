@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::PathBuf;
-use tauri::{AppHandle, Manager, Runtime};
+use tauri::{AppHandle, Runtime};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HistoryEntry {
@@ -25,11 +25,11 @@ fn default_source() -> String {
 }
 
 fn history_path<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
-    app.path().app_data_dir().unwrap().join("history.json")
+    crate::paths::data_dir(app).join("history.json")
 }
 
 fn recordings_dir<R: Runtime>(app: &AppHandle<R>) -> PathBuf {
-    app.path().app_data_dir().unwrap().join("recordings")
+    crate::paths::data_dir(app).join("recordings")
 }
 
 pub fn init<R: Runtime>(app: &AppHandle<R>) {

@@ -1,5 +1,6 @@
 <script lang="ts">
   import type { Settings, Replacement } from "$lib/types";
+  import SectionLabel from "$lib/components/ui/SectionLabel.svelte";
 
   // Prop contract from 01-03 (Diccionario stub). D-19/D-20/D-21: item-list editor.
   let {
@@ -95,182 +96,478 @@
     if (e.key === "Enter") { e.preventDefault(); commitEdit(idx); }
     if (e.key === "Escape") { editingIdx = null; }
   }
+
+  // Refocus the word input after adding so fast entry works
+  let wordInputEl: HTMLInputElement;
+  function addWordAndRefocus() {
+    addWord();
+    wordInputEl?.focus();
+  }
+  function onAddKeyRefocus(e: KeyboardEvent) {
+    if (e.key === "Enter") { e.preventDefault(); addWordAndRefocus(); }
+  }
+
+  // Refocus rFrom after adding a replacement
+  let rFromEl: HTMLInputElement;
+  function addReplacementAndRefocus() {
+    addReplacement();
+    rFromEl?.focus();
+  }
+  function onReplKeyRefocus(e: KeyboardEvent) {
+    if (e.key === "Enter") { e.preventDefault(); addReplacementAndRefocus(); }
+  }
 </script>
 
-<h1 class="page-title">Diccionario</h1>
+<div class="screen">
+  <h1 class="page-title">Dictionary</h1>
 
-<section>
-  <p class="section-hint">
-    Agrega palabras o nombres propios para que Whisper los reconozca mejor.
-  </p>
+  <!-- ── Words section ── -->
+  <section class="section">
+    <SectionLabel text="Words" />
+    <p class="section-hint">
+      Add words or proper nouns to help Whisper recognize them better.
+    </p>
 
-  <!-- ── Add input ── -->
-  <div class="add-row">
-    <input
-      class="ipt"
-      type="text"
-      placeholder="Escribe una palabra y pulsa Enter"
-      bind:value={draft}
-      onkeydown={onAddKey}
-    />
-    <button class="link-btn" onclick={addWord} disabled={!draft.trim()}>+ Agregar palabra</button>
-  </div>
+    <div class="card">
+      <!-- Inline add row (always visible at the top of the card) -->
+      <div class="add-row">
+        <input
+          bind:this={wordInputEl}
+          class="ipt add-ipt"
+          type="text"
+          placeholder="Add word…"
+          bind:value={draft}
+          onkeydown={onAddKeyRefocus}
+        />
+        <button class="btn-primary" onclick={addWordAndRefocus} disabled={!draft.trim()}>
+          Add
+        </button>
+      </div>
 
-  <!-- ── Item list / empty state ── -->
-  {#if settings.dictionary.length === 0}
-    <div class="empty">
-      <p>Tu diccionario está vacío</p>
-      <span>Agrega palabras o nombres propios para que Whisper los reconozca mejor.</span>
+      <!-- Table or empty state -->
+      {#if settings.dictionary.length === 0}
+        <div class="empty-row">No words yet</div>
+      {:else}
+        <table class="words-table">
+          <tbody>
+            {#each settings.dictionary as word, idx (idx)}
+              <tr class="word-row">
+                <td class="word-cell">
+                  {#if editingIdx === idx}
+                    <input
+                      class="ipt inline-edit"
+                      type="text"
+                      bind:value={editValue}
+                      onkeydown={(e) => onEditKey(e, idx)}
+                      onblur={() => commitEdit(idx)}
+                    />
+                  {:else}
+                    <span class="word-text">{word}</span>
+                  {/if}
+                </td>
+                <td class="action-cell">
+                  <div class="row-actions">
+                    <button
+                      class="icon-btn"
+                      onclick={() => startEdit(idx)}
+                      title="Edit"
+                      tabindex="0"
+                    >
+                      <!-- Pencil icon -->
+                      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M9.5 2.5l2 2L4 12H2v-2L9.5 2.5z"/>
+                      </svg>
+                    </button>
+                    <button
+                      class="icon-btn"
+                      onclick={() => removeWord(idx)}
+                      title="Delete"
+                      tabindex="0"
+                    >
+                      <!-- X icon -->
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      {/if}
     </div>
-  {:else}
-    <div class="chips">
-      {#each settings.dictionary as word, idx (idx)}
-        {#if editingIdx === idx}
-          <input
-            class="ipt chip-edit"
-            type="text"
-            bind:value={editValue}
-            onkeydown={(e) => onEditKey(e, idx)}
-            onblur={() => commitEdit(idx)}
-          />
-        {:else}
-          <span class="chip">
-            <button class="chip-word" onclick={() => startEdit(idx)} title="Editar">{word}</button>
-            <button class="icon-btn del" onclick={() => removeWord(idx)} title="Eliminar">
-              <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-                <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
-              </svg>
-            </button>
-          </span>
-        {/if}
-      {/each}
+  </section>
+
+  <!-- ── Replacements section ── -->
+  <section class="section">
+    <SectionLabel text="Replacements" />
+    <p class="section-hint">
+      Fix terms or expand shortcuts in every transcription (both engines).
+      E.g. "air table" → "Airtable", or "my email" → your address. Case-insensitive.
+    </p>
+
+    <div class="card">
+      <!-- Inline add row -->
+      <div class="repl-add-row">
+        <input
+          bind:this={rFromEl}
+          class="ipt repl-ipt"
+          type="text"
+          placeholder="From…"
+          bind:value={rFrom}
+          onkeydown={onReplKeyRefocus}
+        />
+        <span class="arrow" aria-hidden="true">→</span>
+        <input
+          class="ipt repl-ipt"
+          type="text"
+          placeholder="To…"
+          bind:value={rTo}
+          onkeydown={onReplKeyRefocus}
+        />
+        <label class="rx-toggle" title="Treat From as a regular expression">
+          <input type="checkbox" bind:checked={rRegex} />
+          <span>regex</span>
+        </label>
+        <button class="btn-primary" onclick={addReplacementAndRefocus} disabled={!rFrom.trim()}>
+          Add
+        </button>
+      </div>
+
+      <!-- Replacements table or empty state -->
+      {#if (settings.replacements ?? []).length === 0}
+        <div class="empty-row">No replacements yet</div>
+      {:else}
+        <table class="repl-table">
+          <thead>
+            <tr class="repl-head-row">
+              <th class="col-from">From</th>
+              <th class="col-arrow"></th>
+              <th class="col-to">To</th>
+              <th class="col-badge"></th>
+              <th class="col-actions"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {#each settings.replacements as r, idx (idx)}
+              <tr class="repl-row">
+                <td class="col-from">
+                  <span class="code-cell">{r.from}</span>
+                </td>
+                <td class="col-arrow">
+                  <span class="arrow" aria-hidden="true">→</span>
+                </td>
+                <td class="col-to">
+                  <span class="code-cell muted">{r.to || "(empty)"}</span>
+                </td>
+                <td class="col-badge">
+                  {#if r.regex}<span class="rx-badge">regex</span>{/if}
+                </td>
+                <td class="col-actions">
+                  <div class="row-actions">
+                    <button
+                      class="icon-btn"
+                      onclick={() => removeReplacement(idx)}
+                      title="Delete"
+                      tabindex="0"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+                        <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
+                      </svg>
+                    </button>
+                  </div>
+                </td>
+              </tr>
+            {/each}
+          </tbody>
+        </table>
+      {/if}
     </div>
-  {/if}
-</section>
-
-<section>
-  <h2 class="sub-title">Reemplazos y atajos de texto</h2>
-  <p class="section-hint">
-    Corrige términos o expande atajos en cada transcripción (ambos motores).
-    Ej: «air table» → «Airtable», o «mi correo» → tu email. No distingue mayúsculas.
-  </p>
-
-  <div class="repl-add">
-    <input class="ipt" type="text" placeholder="Buscar (lo que se dice)" bind:value={rFrom} onkeydown={onReplKey} />
-    <span class="arrow">→</span>
-    <input class="ipt" type="text" placeholder="Reemplazar por" bind:value={rTo} onkeydown={onReplKey} />
-    <label class="rx-toggle" title="Tratar «Buscar» como expresión regular">
-      <input type="checkbox" bind:checked={rRegex} /> regex
-    </label>
-    <button class="link-btn" onclick={addReplacement} disabled={!rFrom.trim()}>+ Agregar</button>
-  </div>
-
-  {#if (settings.replacements ?? []).length === 0}
-    <div class="empty">
-      <p>Sin reemplazos</p>
-      <span>Agrega reglas para corregir nombres o expandir atajos al dictar.</span>
-    </div>
-  {:else}
-    <ul class="repl-list">
-      {#each settings.replacements as r, idx (idx)}
-        <li class="repl-row">
-          <code class="repl-from">{r.from}</code>
-          <span class="arrow">→</span>
-          <code class="repl-to">{r.to || "(vacío)"}</code>
-          {#if r.regex}<span class="rx-badge">regex</span>{/if}
-          <button class="icon-btn del" onclick={() => removeReplacement(idx)} title="Eliminar">
-            <svg viewBox="0 0 10 10" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-              <line x1="1" y1="1" x2="9" y2="9"/><line x1="9" y1="1" x2="1" y2="9"/>
-            </svg>
-          </button>
-        </li>
-      {/each}
-    </ul>
-  {/if}
-</section>
+  </section>
+</div>
 
 <style>
-  .page-title { font-size: 16px; font-weight: 600; line-height: 1.3; color: var(--text); }
+  /* ── Root container ── */
+  .screen {
+    padding: var(--screen-top) var(--s10) var(--s10);
+    display: flex;
+    flex-direction: column;
+    gap: var(--s8);
+  }
 
-  section { margin-top: 22px; display: flex; flex-direction: column; gap: 12px; }
-  .section-hint { font-size: 11px; color: var(--faint); padding: 0 3px; line-height: 1.5; }
+  /* ── Page title ── */
+  .page-title {
+    font-family: var(--font-serif);
+    font-size: 24px;
+    font-weight: 400;
+    color: var(--text);
+  }
 
-  .add-row { display: flex; align-items: center; gap: 12px; }
+  /* ── Section grouping ── */
+  .section {
+    display: flex;
+    flex-direction: column;
+    gap: var(--s3);
+  }
 
+  .section-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+    line-height: 1.5;
+  }
+
+  /* ── Card wrapper ── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--r-card);
+    padding: var(--s4);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Inline add rows ── */
+  .add-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding-bottom: var(--s3);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: var(--s1);
+  }
+
+  .repl-add-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s2);
+    padding-bottom: var(--s3);
+    border-bottom: 1px solid var(--line);
+    margin-bottom: var(--s1);
+    flex-wrap: wrap;
+  }
+
+  /* ── Inputs ── */
   .ipt {
-    font-size: 12.5px; color: var(--text); background: var(--bg-2);
-    border: 1px solid var(--line); border-radius: var(--r-sm);
-    padding: 7px 10px; outline: none; flex: 1;
-    transition: border-color .15s, box-shadow .15s, background .15s;
+    font-size: 14px;
+    font-family: var(--font-sans);
+    color: var(--text);
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 8px 12px;
+    outline: none;
+    transition: border-color 0.15s;
   }
-  .ipt::placeholder { color: var(--faint); }
-  .ipt:focus {
-    background: var(--elev-1); border-color: transparent;
-    box-shadow: 0 0 0 1px var(--iris-4), 0 0 0 4px rgba(127,200,255,0.16);
+  .ipt::placeholder { color: var(--text-muted); }
+  .ipt:focus { border-color: var(--text-muted); }
+
+  .add-ipt { flex: 1; }
+  .repl-ipt { flex: 1; min-width: 80px; }
+
+  /* Inline edit inside a table row */
+  .inline-edit {
+    width: 100%;
+    min-width: 100px;
+    padding: 4px 8px;
+    font-size: 14px;
   }
 
-  .link-btn {
-    background: none; border: none; padding: 4px 0;
-    font-size: 12px; font-weight: 450; color: var(--coral);
-    cursor: pointer; text-decoration: none; white-space: nowrap;
+  /* ── Primary button ── */
+  .btn-primary {
+    background: var(--nav-active-bg);
+    color: var(--nav-active-ink);
+    border: none;
+    border-radius: var(--r-nav);
+    padding: 8px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: var(--font-sans);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: opacity 0.15s;
+    flex-shrink: 0;
   }
-  .link-btn:hover { opacity: .75; }
-  .link-btn:disabled { color: var(--faint); cursor: default; opacity: .7; }
+  .btn-primary:hover:not(:disabled) { opacity: 0.85; }
+  .btn-primary:disabled { opacity: 0.35; cursor: default; }
 
-  /* ── Chips ── */
-  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
-  .chip {
-    display: inline-flex; align-items: center; gap: 4px;
-    background: var(--glass-fill); border: 1px solid var(--line);
-    box-shadow: var(--glass-edge);
-    border-radius: 16px; padding: 4px 6px 4px 12px;
+  /* ── Empty state row ── */
+  .empty-row {
+    font-size: 13px;
+    color: var(--text-muted);
+    padding: var(--s4) 0 var(--s2);
+    text-align: center;
   }
-  .chip-word {
-    background: none; border: none; padding: 0;
-    font-size: 12.5px; color: var(--text); cursor: pointer;
-  }
-  .chip-edit { border-radius: 16px; padding: 4px 12px; flex: 0 1 auto; min-width: 120px; }
 
-  .icon-btn {
-    width: 18px; height: 18px; background: none; border: none;
-    border-radius: 50%; color: var(--faint); cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    transition: background .12s, color .12s;
+  /* ── Words table ── */
+  .words-table {
+    width: 100%;
+    border-collapse: collapse;
   }
-  .icon-btn svg { width: 8px; height: 8px; }
-  .icon-btn.del:hover { background: rgba(255,106,61,.14); color: var(--coral); }
 
-  /* ── Empty state ── */
-  .empty {
-    display: flex; flex-direction: column; align-items: center;
-    justify-content: center; padding: 48px 20px; gap: 6px; text-align: center;
+  /* No per-row lines — hover background separates rows instead */
+  .word-row {
+    border-radius: var(--r-nav);
+    transition: background 0.12s;
   }
-  .empty p { font-size: 14px; font-weight: 450; color: var(--muted); }
-  .empty span { font-size: 12px; color: var(--faint); line-height: 1.5; }
+  .word-row:hover {
+    background: var(--inset);
+  }
+  /* Show actions on hover or keyboard focus-within */
+  .word-row .row-actions {
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .word-row:hover .row-actions,
+  .word-row:focus-within .row-actions {
+    opacity: 1;
+  }
 
-  /* ── Replacements ── */
-  .sub-title { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
-  .repl-add { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-  .arrow { color: var(--faint); font-size: 13px; }
-  .rx-toggle {
-    display: inline-flex; align-items: center; gap: 4px;
-    font-size: 11px; color: var(--muted); cursor: pointer; white-space: nowrap;
+  .word-cell {
+    padding: 10px 8px 10px 8px;
+    width: 100%;
+    height: 42px;
   }
-  .repl-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 6px; }
+
+  .word-text {
+    font-size: 14px;
+    font-family: var(--font-sans);
+    color: var(--text);
+    line-height: 1.4;
+  }
+
+  .action-cell {
+    padding: 10px 4px 10px 0;
+    text-align: right;
+    white-space: nowrap;
+  }
+
+  /* ── Replacements table ── */
+  .repl-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  /* Faint header underline only — no per-row lines */
+  .repl-head-row {
+    border-bottom: 1px solid var(--line);
+  }
+
+  .repl-table th {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 6px 8px 6px 0;
+    white-space: nowrap;
+  }
+
   .repl-row {
-    display: flex; align-items: center; gap: 8px;
-    background: var(--glass-fill); border: 1px solid var(--line);
-    box-shadow: var(--glass-edge); border-radius: var(--r-sm); padding: 6px 10px;
+    border-radius: var(--r-nav);
+    transition: background 0.12s;
   }
-  .repl-from, .repl-to {
-    font-size: 12px; color: var(--text);
-    background: var(--bg-2); border-radius: 5px; padding: 2px 7px;
-    max-width: 38%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  .repl-row:hover {
+    background: var(--inset);
   }
-  .repl-to { color: var(--muted); }
+  /* Show actions on hover or keyboard focus-within */
+  .repl-row .row-actions {
+    opacity: 0;
+    transition: opacity 0.12s;
+  }
+  .repl-row:hover .row-actions,
+  .repl-row:focus-within .row-actions {
+    opacity: 1;
+  }
+
+  .repl-row td {
+    padding: 10px 8px 10px 0;
+    vertical-align: middle;
+    height: 42px;
+  }
+
+  .col-from   { width: 34%; }
+  .col-arrow  { width: 24px; text-align: center; padding-left: 0; padding-right: 0; }
+  .col-to     { width: 34%; }
+  .col-badge  { width: 52px; }
+  .col-actions { width: 36px; text-align: right; padding-right: 4px; }
+
+  .code-cell {
+    font-size: 13px;
+    font-family: var(--font-sans);
+    color: var(--text);
+    background: var(--bg);
+    border-radius: var(--r-nav);
+    padding: 2px 8px;
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .code-cell.muted { color: var(--text-muted); }
+
+  /* ── Arrow separator ── */
+  .arrow {
+    color: var(--text-muted);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  /* ── Regex badge ── */
   .rx-badge {
-    font-size: 10px; color: var(--faint);
-    border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px;
+    font-size: 11px;
+    color: var(--text-muted);
+    border: 1px solid var(--line);
+    border-radius: var(--r-nav);
+    padding: 1px 6px;
+    font-family: var(--font-sans);
+    white-space: nowrap;
   }
-  .repl-row .icon-btn { margin-left: auto; }
+
+  /* ── Regex toggle (in add row) ── */
+  .rx-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    white-space: nowrap;
+    font-family: var(--font-sans);
+    flex-shrink: 0;
+  }
+  .rx-toggle input[type="checkbox"] {
+    accent-color: var(--nav-active-bg);
+    cursor: pointer;
+  }
+
+  /* ── Row actions container ── */
+  .row-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s1);
+  }
+
+  /* ── Icon buttons (edit + delete) ── */
+  .icon-btn {
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: none;
+    border-radius: var(--r-nav);
+    color: var(--text-muted);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.12s, color 0.12s;
+    flex-shrink: 0;
+  }
+  .icon-btn:hover {
+    background: var(--line);
+    color: var(--text);
+  }
+  .icon-btn:focus-visible {
+    outline: 2px solid var(--text-muted);
+    outline-offset: 1px;
+  }
 </style>

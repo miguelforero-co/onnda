@@ -50,6 +50,7 @@
   const CENTER_FRAC = 0.47; // shared vertical position (lowered a few px)
 
   let voiceLevel = 0;
+  let micSensitivity = 1.0; // user-adjustable animation sensitivity (Ajustes)
   let amp = 0;
   let phaseAcc = 0;
   let morph = 0; // 0 = speaking, 1 = processing (eased)
@@ -236,7 +237,7 @@
       const f = (i / (WAVE_RES - 1)) * (N_BANDS - 1);
       const k = Math.floor(f), t = f - k;
       const v = cr(nodes[ci(k - 1)], nodes[ci(k)], nodes[ci(k + 1)], nodes[ci(k + 2)], t);
-      const e = Math.max(0, Math.min(255, v * 1.8 * 255));
+      const e = Math.max(0, Math.min(255, v * 1.8 * micSensitivity * 255));
       waveLut[i * 4] = e; waveLut[i * 4 + 1] = e; waveLut[i * 4 + 2] = e; waveLut[i * 4 + 3] = 255;
     }
 
@@ -301,7 +302,19 @@
     }, delay);
   }
 
+  // Pull the user's animation sensitivity. Called on mount + at each recording
+  // start so a change in Ajustes takes effect on the next dictation.
+  async function refreshSensitivity() {
+    try {
+      const s = await invoke<{ mic_sensitivity?: number }>("get_settings");
+      if (typeof s?.mic_sensitivity === "number" && s.mic_sensitivity > 0) {
+        micSensitivity = s.mic_sensitivity;
+      }
+    } catch { /* keep default */ }
+  }
+
   onMount(async () => {
+    refreshSensitivity();
     // Register listeners FIRST so the notch always reacts to recording-state
     // (expands & shows) even if WebGL init fails for any reason.
     unlisten.push(
@@ -318,6 +331,7 @@
           clearTimers(); phase = "recording"; open = true;
           warned = false; // HARDEN-05: reset warning flag at start of new recording
           bandsRaw.fill(0); nodes.fill(0); // fresh start, no stale spectrum flash
+          refreshSensitivity(); // pick up any change made in Ajustes
         } else phase = "transcribing";
       }),
       await listen<boolean>("transcribing", (e) => { if (e.payload) phase = "transcribing"; }),

@@ -2,7 +2,7 @@ import Foundation
 import Speech
 import AVFoundation
 
-// Voz Local ASR sidecar — transcribe an audio file with Apple SpeechAnalyzer
+// onnda ASR sidecar — transcribe an audio file with Apple SpeechAnalyzer
 // (macOS 26, on-device, Neural Engine). Invoked by the Rust backend via the
 // tauri-plugin-shell sidecar API.
 //

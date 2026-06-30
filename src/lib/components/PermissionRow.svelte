@@ -1,6 +1,6 @@
 <script lang="ts">
   // Extracted verbatim from +page.svelte .perm-row block (L204-228, 626-646).
-  // Granted → --blue dot + "Concedido"; else muted dot + "Abrir ajustes" link-btn.
+  // Granted → --dot-on dot + "Concedido"; else muted dot + "Abrir ajustes" link.
   let {
     label,
     description = "",
@@ -21,9 +21,9 @@
     {#if description}<span>{description}</span>{/if}
   </div>
   {#if granted}
-    <span class="perm-status ok">Concedido</span>
+    <span class="perm-status ok">Granted</span>
   {:else}
-    <button class="link-btn" onclick={() => onOpen?.()}>Abrir ajustes</button>
+    <button class="link-btn" onclick={() => onOpen?.()}>Open settings</button>
   {/if}
 </div>
 
@@ -37,22 +37,23 @@
 
   .perm-dot {
     width: 7px; height: 7px; border-radius: 50%;
-    background: rgba(255,255,255,.18); flex-shrink: 0;
-    transition: background .3s, box-shadow .3s;
+    background: var(--text-muted); flex-shrink: 0;
+    transition: background .3s;
   }
-  .perm-dot.granted { background: var(--blue); box-shadow: 0 0 8px -1px rgba(127,200,255,.7); }
+  .perm-dot.granted { background: var(--dot-on); }
 
   .perm-info { flex: 1; display: flex; flex-direction: column; gap: 1px; }
-  .perm-info strong { font-size: 13px; font-weight: 600; color: var(--text); }
-  .perm-info span { font-size: 11px; color: var(--muted); }
+  .perm-info strong { font-size: 14px; font-weight: 600; color: var(--text); }
+  .perm-info span { font-size: 12px; color: var(--text-muted); }
 
-  .perm-status { font-size: 11px; font-weight: 450; color: var(--muted); }
-  .perm-status.ok { color: var(--blue); }
+  .perm-status { font-size: 12px; font-weight: 450; color: var(--text-muted); }
+  .perm-status.ok { color: var(--dot-on); }
 
   .link-btn {
     background: none; border: none; padding: 4px 0;
-    font-size: 12px; font-weight: 450; color: var(--coral);
-    cursor: pointer; text-decoration: none;
+    font-size: 12px; font-weight: 450; color: var(--text-muted);
+    cursor: pointer; text-decoration: none; font-family: inherit;
+    transition: color .15s;
   }
-  .link-btn:hover { opacity: .75; }
+  .link-btn:hover { color: var(--text); }
 </style>

@@ -10,7 +10,7 @@
 use tauri::{AppHandle, Runtime};
 
 const RELEASES_LATEST_API: &str =
-    "https://api.github.com/repos/emeforero/voz-local/releases/latest";
+    "https://api.github.com/repos/miguelforero-co/onnda/releases/latest";
 
 #[derive(serde::Serialize)]
 pub struct UpdateStatus {
@@ -72,7 +72,7 @@ pub async fn check_for_updates<R: Runtime>(app: AppHandle<R>) -> Result<UpdateSt
     };
 
     let client = match reqwest::Client::builder()
-        .user_agent(format!("voz-local/{current}"))
+        .user_agent(format!("onnda/{current}"))
         .build()
     {
         Ok(c) => c,
@@ -115,7 +115,7 @@ pub async fn check_for_updates<R: Runtime>(app: AppHandle<R>) -> Result<UpdateSt
             error: None,
         }),
         Some(_) => Ok(up_to_date_with(None)),
-        None => Ok(up_to_date_with(Some("respuesta inesperada de GitHub".into()))),
+        None => Ok(up_to_date_with(Some("unexpected response from GitHub".into()))),
     }
 }
 

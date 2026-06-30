@@ -1,8 +1,8 @@
 <script lang="ts">
   import type { ModelInfo, DownloadProgress } from "$lib/types";
   // Extracted from +page.svelte model rows (L404-431) + dl-bar CSS (L749-760).
-  // States: Installed (--blue badge), Downloading (dl-bar + %), Descargar (link-btn),
-  // Selected (1px coral ring), comingSoon (muted/disabled, "Próximamente", NO coral).
+  // States: Installed (muted badge), Downloading (dl-bar + %), Descargar (link-btn),
+  // Selected (nav-active-bg border), comingSoon (muted/disabled, "Próximamente").
   let {
     model,
     selected = false,
@@ -37,25 +37,25 @@
 >
   <div class="model-info">
     <strong>{model.name}</strong>
-    <span>{model.size_mb > 0 ? `${model.size_mb} MB` : "En el dispositivo · sin descarga · más rápido"}</span>
-    {#if comingSoon}<span class="sub">Disponible en una próxima versión.</span>{/if}
+    <span>{model.size_mb > 0 ? `${model.size_mb} MB` : "On device · no download · fastest"}</span>
+    {#if comingSoon}<span class="sub">Available in a future version.</span>{/if}
     {#if hardwareDisabled}<span class="sub" title={model.disabled_reason}>{model.disabled_reason}</span>{/if}
   </div>
 
   <div class="model-action">
     {#if hardwareDisabled}
-      <span class="badge soon">No disponible</span>
+      <span class="badge soon">Not available</span>
     {:else if comingSoon}
-      <span class="badge soon">Próximamente</span>
+      <span class="badge soon">Coming soon</span>
     {:else if model.downloaded && selected}
-      <span class="badge active">Activo</span>
+      <span class="badge active">Active</span>
     {:else if model.downloaded}
-      <span class="badge installed">{model.size_mb > 0 ? "Instalado" : "Nativo"}</span>
+      <span class="badge installed">{model.size_mb > 0 ? "Installed" : "Native"}</span>
     {:else if progress}
       <div class="dl-bar-wrap"><div class="dl-bar" style="width:{progress.percent}%"></div></div>
       <span class="dl-pct">{Math.round(progress.percent)}%</span>
     {:else}
-      <button class="link-btn" onclick={(e) => { e.stopPropagation(); onDownload?.(model.id); }}>Descargar</button>
+      <button class="download-btn" onclick={(e) => { e.stopPropagation(); onDownload?.(model.id); }}>Download</button>
     {/if}
   </div>
 
@@ -66,74 +66,58 @@
   .model-card {
     position: relative;
     display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
-    background: var(--glass-fill);
-    -webkit-backdrop-filter: var(--glass-blur); backdrop-filter: var(--glass-blur);
+    background: var(--surface);
     border: 1px solid var(--line);
-    border-radius: var(--r);
-    box-shadow: var(--glass-edge), var(--sh-2);
-    padding: 10px 14px; min-height: 42px;
-    transition: transform .16s var(--ease-soft), background .16s, border-color .16s, box-shadow .16s;
+    border-radius: var(--r-card);
+    padding: var(--s4);
+    transition: background .16s, border-color .16s;
   }
   .model-card[role="button"]:hover {
-    transform: translateY(-1px);
-    background: var(--glass-fill-hi);
     border-color: var(--line-strong);
-    box-shadow: var(--glass-edge), var(--sh-3);
   }
-  /* Selected: a 1px iridescent ring (padding-box solid over border-box conic),
-     no layout shift since the border stays 1px. Only the selected card earns it. */
   .model-card.selected {
-    border-color: transparent;
-    background:
-      linear-gradient(var(--elev-2), var(--elev-2)) padding-box,
-      var(--iris-ring) border-box;
-    box-shadow: var(--glass-edge), 0 0 24px -8px rgba(180,140,252,0.4), var(--sh-2);
-  }
-  .model-card.selected:hover { transform: translateY(-1px); }
-  @media (prefers-reduced-motion: no-preference) {
-    .model-card.selected { animation: ring-drift var(--ring-dur) linear infinite; }
-    @keyframes ring-drift { to { --iris-angle: 480deg; } }
-  }
-  /* Solid coral ring fallback for engines without @property animation support. */
-  @supports not (background: paint(something)) {
-    .model-card.selected { border: 1.5px solid var(--accent); background: var(--elev-2); box-shadow: var(--glass-edge), var(--sh-2); }
-  }
-  @media (prefers-contrast: more) {
-    .model-card.selected { border: 1.5px solid var(--accent); background: var(--elev-2); box-shadow: none; }
+    border-color: var(--nav-active-bg);
   }
   .model-card.coming-soon { opacity: .55; cursor: default; }
   .model-card[role="button"] { cursor: pointer; }
 
   .model-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-  .model-info strong { font-size: 13px; font-weight: 450; color: var(--text); }
-  .model-info span { font-size: 11px; color: var(--muted); }
-  .model-info .sub { font-size: 11px; color: var(--muted); }
+  .model-info strong { font-size: 14px; font-weight: 450; color: var(--text); }
+  .model-info span { font-size: 12px; color: var(--text-muted); }
+  .model-info .sub { font-size: 12px; color: var(--text-muted); }
 
   .model-action { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 
   .badge {
-    font-size: 11px; font-weight: 450; border-radius: 20px;
-    padding: 2px 9px; color: var(--muted); background: rgba(255,255,255,.07);
+    font-size: 12px; font-weight: 450; border-radius: var(--r-nav);
+    padding: 2px 9px; color: var(--text-muted); background: transparent;
+    border: 1px solid var(--line);
   }
-  .badge.installed { color: var(--blue); background: rgba(127,200,255,.14); }
-  .badge.active { color: var(--accent); background: rgba(255,106,61,.16); font-weight: 600; }
-  .badge.soon { color: var(--faint); background: rgba(255,255,255,.05); }
+  .badge.installed { color: var(--text-muted); }
+  .badge.active { color: var(--dot-on); border-color: var(--dot-on); font-weight: 600; }
+  .badge.soon { color: var(--text-muted); }
 
-  .link-btn {
-    background: none; border: none; padding: 4px 0;
-    font-size: 12px; font-weight: 450; color: var(--coral);
-    cursor: pointer; text-decoration: none;
+  .download-btn {
+    background: var(--nav-active-bg);
+    color: var(--nav-active-ink);
+    border: none;
+    border-radius: var(--r-nav);
+    padding: 8px 16px;
+    font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s;
+    font-family: inherit;
   }
-  .link-btn:hover { opacity: .75; }
+  .download-btn:hover { opacity: .85; }
 
   .dl-bar-wrap {
-    width: 80px; height: 4px; background: rgba(255,255,255,.10);
+    width: 80px; height: 4px; background: var(--line);
     border-radius: 2px; overflow: hidden;
   }
   .dl-bar {
-    height: 100%; background: var(--iris-ramp); background-size: 200% 100%;
+    height: 100%; background: var(--dot-on);
     border-radius: 2px; transition: width .3s linear;
   }
-  .dl-pct { font-size: 11px; color: var(--faint); width: 30px; text-align: right; }
-  .dl-error { font-size: 11px; color: var(--coral); width: 100%; padding-bottom: 6px; }
+  .dl-pct { font-size: 12px; color: var(--text-muted); width: 30px; text-align: right; }
+  .dl-error { font-size: 12px; color: var(--text-muted); width: 100%; padding-bottom: 6px; }
 </style>

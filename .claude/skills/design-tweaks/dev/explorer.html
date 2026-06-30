@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>design tweaks</title>
+<script src="https://mcp.figma.com/mcp/html-to-design/capture.js" async></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ── design tokens (preview vars) ─────── */
+:root {
+  --dt-bg:#f0f0ee;--dt-surface:#ffffff;--dt-border:#e2e0dc;
+  --dt-text:#1a1917;--dt-muted:#78766e;--dt-faint:#b5b3a8;
+  --dt-accent:#18181b;
+  --dt-success:#166534;--dt-warning:#92400e;--dt-error:#991b1b;--dt-info:#1e40af;
+  --dt-font-xs:11px;--dt-font-sm:12.5px;--dt-font-base:15px;--dt-font-lg:18.5px;
+  --dt-font-xl:23px;--dt-font-2xl:29px;--dt-font-3xl:36px;--dt-font-4xl:46px;
+  --dt-font-family:-apple-system,system-ui,sans-serif;
+  --dt-font-weight:400;--dt-line-height:1.6;--dt-letter-spacing:0em;
+  --dt-space-unit:4px;
+  --dt-radius-base:10px;--dt-radius-xs:4px;--dt-radius-sm:7px;
+  --dt-radius-lg:14px;--dt-radius-xl:20px;--dt-radius-full:9999px;
+  --dt-bw:1px;--dt-border-style:solid;
+  --dt-shadow:0 1px 3px 0 rgba(0,0,0,.08),0 1px 2px -1px rgba(0,0,0,.06);
+  --dt-duration-fast:100ms;--dt-duration-base:200ms;--dt-duration-slow:350ms;
+  --dt-ease:cubic-bezier(0.2,0,0,1);
+  --dt-opacity-disabled:.38;--dt-opacity-overlay:.6;--dt-opacity-muted:.5;
+  --dt-blur-sm:4px;--dt-blur-md:8px;--dt-blur-lg:16px;
+}
+
+/* ── reset ─────────────────────────────── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;overflow:hidden}
+
+body{
+  font-family:'Plus Jakarta Sans',-apple-system,system-ui,sans-serif;
+  font-size:13px;
+  line-height:1.5;
+  color:#1a1917;
+  background:#e9e7e4;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── layout ─────────────────────────────── */
+.app{
+  display:grid;
+  grid-template-rows:52px 1fr;
+  grid-template-columns:210px 300px 1fr;
+  height:100vh;
+}
+
+/* ── topbar ──────────────────────────────── */
+.topbar{
+  grid-column:1 / -1;
+  background:#fff;
+  border-bottom:1px solid #e5e3df;
+  display:flex;
+  align-items:center;
+  padding:0 16px;
+  gap:8px;
+}
+.brand{display:flex;align-items:center;gap:9px;flex-shrink:0}
+.brand-mark{
+  width:28px;height:28px;
+  background:#1a1917;
+  border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.brand-name{font-size:14px;font-weight:600;letter-spacing:-0.01em;color:#1a1917}
+.sep{width:1px;height:18px;background:#e5e3df;flex-shrink:0;margin:0 4px}
+.topbar-gap{flex:1}
+
+.seg{
+  display:flex;
+  background:#f5f4f0;
+  border:1px solid #e5e3df;
+  border-radius:7px;
+  padding:2px;
+  gap:1px;
+}
+.seg-btn{
+  padding:4px 11px;
+  border-radius:5px;
+  border:none;
+  background:transparent;
+  font-size:12px;font-weight:500;
+  color:#78766e;
+  cursor:pointer;
+  font-family:inherit;
+  transition:all .12s;
+  white-space:nowrap;
+}
+.seg-btn.on{background:#fff;color:#1a1917;box-shadow:0 1px 2px rgba(0,0,0,.08)}
+
+.tbtn{
+  display:flex;align-items:center;gap:5px;
+  padding:5px 11px;
+  border:1px solid #e5e3df;
+  border-radius:7px;
+  background:transparent;
+  color:#1a1917;
+  font-size:12px;font-weight:500;
+  font-family:inherit;
+  cursor:pointer;
+  transition:background .1s,border-color .1s;
+  white-space:nowrap;
+}
+.tbtn:hover{background:#f5f4f0;border-color:#d5d3ce}
+.tbtn svg{flex-shrink:0}
+
+/* ── sidebar nav ─────────────────────────── */
+.sidebar{
+  background:#fff;
+  border-right:1px solid #e5e3df;
+  overflow-y:auto;
+  padding:8px;
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+}
+
+.nav-section-label{
+  font-size:11px;
+  font-weight:600;
+  color:#b5b3a8;
+  padding:10px 10px 4px;
+  letter-spacing:0.01em;
+}
+.nav-section-label:first-child{padding-top:4px}
+
+.nav-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 10px;
+  border-radius:7px;
+  border:none;background:transparent;
+  color:#78766e;
+  cursor:pointer;
+  font-size:13px;font-weight:500;
+  font-family:inherit;
+  width:100%;text-align:left;
+  transition:background .1s,color .1s;
+}
+.nav-item:hover{background:#f5f4f0;color:#1a1917}
+.nav-item.active{background:#f5f4f0;color:#1a1917}
+.nav-item.active .ni{color:#1a1917}
+.ni{
+  width:16px;height:16px;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;color:#c5c3be;
+  transition:color .1s;
+}
+.nav-item:hover .ni{color:#78766e}
+
+/* ── controls panel ──────────────────────── */
+.controls{
+  background:#fff;
+  border-right:1px solid #e5e3df;
+  overflow-y:auto;
+  overflow-x:hidden;
+  display:flex;flex-direction:column;
+}
+.ctrl-hdr{
+  padding:16px 16px 12px;
+  border-bottom:1px solid #f0ede8;
+  position:sticky;top:0;
+  background:#fff;z-index:2;
+}
+.ctrl-title{font-size:15px;font-weight:600;letter-spacing:-0.01em;color:#1a1917}
+.ctrl-desc{font-size:12px;color:#78766e;margin-top:2px}
+.ctrl-body{padding:10px 16px 32px;display:flex;flex-direction:column;gap:0}
+
+/* Control group */
+.cg{padding:8px 0;border-bottom:1px solid #f5f3ef}
+.cg:last-child{border-bottom:none}
+.cg-label{
+  font-size:12px;font-weight:500;color:#1a1917;
+  margin-bottom:6px;
+  display:flex;align-items:center;justify-content:space-between;
+}
+.cg-val{
+  font-size:11px;color:#78766e;
+  font-variant-numeric:tabular-nums;
+  font-family:ui-monospace,'SF Mono',monospace;
+}
+.cg-sub{font-size:11px;color:#b5b3a8;margin-bottom:4px}
+
+/* Sliders */
+.ctrl-body input[type=range]{
+  -webkit-appearance:none;
+  width:100%;height:2px;
+  background:#e8e6e2;
+  border-radius:99px;outline:none;cursor:pointer;
+}
+.ctrl-body input[type=range]::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:14px;height:14px;border-radius:50%;
+  background:#1a1917;
+  border:2px solid #fff;
+  box-shadow:0 0 0 1.5px #1a1917;
+  cursor:pointer;transition:transform .1s;
+}
+.ctrl-body input[type=range]::-webkit-slider-thumb:hover{transform:scale(1.15)}
+
+/* Color swatches */
+.color-row{display:flex;align-items:center;gap:8px;padding:5px 0}
+.color-lbl{font-size:12px;font-weight:400;color:#1a1917;flex:1}
+.swatch-wrap{position:relative;flex-shrink:0}
+.swatch{
+  width:24px;height:24px;border-radius:6px;
+  border:1px solid rgba(0,0,0,.1);
+  cursor:pointer;
+}
+.swatch-input{
+  position:absolute;inset:-2px;
+  opacity:0;cursor:pointer;
+  width:calc(100% + 4px);height:calc(100% + 4px);
+}
+.color-hex{
+  font-size:11px;color:#78766e;
+  font-family:ui-monospace,monospace;
+  width:58px;text-align:right;
+}
+
+/* Pills */
+.pills{display:flex;flex-wrap:wrap;gap:3px;margin:3px 0}
+.pill{
+  padding:4px 9px;
+  border:1px solid #e5e3df;border-radius:6px;
+  background:transparent;
+  font-size:11px;font-weight:500;color:#78766e;
+  cursor:pointer;font-family:inherit;
+  transition:all .1s;
+}
+.pill:hover{border-color:#c5c3be;color:#1a1917}
+.pill.on{background:#1a1917;border-color:#1a1917;color:#fff}
+
+/* Easing viz */
+.bez-wrap{margin:6px 0}
+.bez-svg{display:block}
+
+/* ── preview panel ───────────────────────── */
+.preview{
+  background:#f2f0ed;
+  overflow-y:auto;
+  padding:20px;
+}
+.pv-block{
+  background:#fff;
+  border:1px solid #e5e3df;
+  border-radius:10px;
+  margin-bottom:10px;
+  overflow:hidden;
+}
+.pv-lbl{
+  padding:10px 14px 8px;
+  font-size:11.5px;font-weight:500;color:#78766e;
+  border-bottom:1px solid #f5f3ef;
+}
+.pv-body{padding:14px}
+
+/* preview: component card */
+.pv-card{
+  background:var(--dt-surface);
+  border:var(--dt-bw) var(--dt-border-style) var(--dt-border);
+  border-radius:var(--dt-radius-base);
+  padding:16px;
+  box-shadow:var(--dt-shadow);
+  font-family:var(--dt-font-family);
+}
+.pv-card-title{font-size:var(--dt-font-lg);font-weight:600;color:var(--dt-text);margin-bottom:4px;line-height:var(--dt-line-height);letter-spacing:var(--dt-letter-spacing)}
+.pv-card-body{font-size:var(--dt-font-base);color:var(--dt-muted);line-height:var(--dt-line-height);margin-bottom:14px}
+.pv-btns{display:flex;gap:8px;margin-bottom:12px}
+.pv-btn{
+  padding:8px 14px;
+  border-radius:var(--dt-radius-sm);
+  font-size:13px;font-weight:500;font-family:inherit;
+  cursor:pointer;border:none;
+  transition:opacity var(--dt-duration-fast) var(--dt-ease);
+}
+.pv-btn:hover{opacity:.84}
+.pv-btn.pri{background:var(--dt-accent);color:var(--dt-surface)}
+.pv-btn.sec{
+  background:transparent;
+  border:var(--dt-bw) solid var(--dt-border);
+  color:var(--dt-text);
+}
+.pv-input{
+  width:100%;padding:8px 11px;
+  border:var(--dt-bw) var(--dt-border-style) var(--dt-border);
+  border-radius:var(--dt-radius-sm);
+  font-size:var(--dt-font-sm);font-family:inherit;
+  color:var(--dt-text);background:var(--dt-bg);outline:none;
+}
+.pv-input:focus{border-color:var(--dt-accent)}
+
+/* preview: type scale */
+.pv-type-row{display:flex;align-items:baseline;gap:10px;padding:3px 0;border-bottom:1px solid #f5f3ef}
+.pv-type-row:last-child{border-bottom:none}
+.pv-tok{font-size:10px;color:#b5b3a8;width:26px;flex-shrink:0;font-family:ui-monospace,monospace}
+.pv-px{font-size:10px;color:#c5c3be;width:36px;text-align:right;flex-shrink:0;font-family:ui-monospace,monospace}
+.pv-type-s{font-family:var(--dt-font-family);color:var(--dt-text);font-weight:var(--dt-font-weight);letter-spacing:var(--dt-letter-spacing)}
+
+/* preview: palette */
+.pv-palette{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.pv-chip{height:32px;border-radius:6px;border:1px solid rgba(0,0,0,.06)}
+.pv-semantic{display:flex;gap:5px;margin-top:6px}
+.pv-sem{flex:1;height:22px;border-radius:5px;border:1px solid rgba(0,0,0,.06)}
+
+/* preview: shadows */
+.pv-sh-row{display:flex;gap:8px;flex-wrap:wrap}
+.pv-sh{
+  width:48px;height:48px;
+  background:var(--dt-surface);
+  border-radius:var(--dt-radius-sm);
+  display:flex;align-items:flex-end;justify-content:center;
+  padding-bottom:5px;
+  font-size:9px;color:#b5b3a8;
+  font-family:ui-monospace,monospace;
+}
+
+/* preview: radius */
+.pv-rad-row{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.pv-rad{
+  background:#f5f3ef;
+  border:1px solid #e5e3df;
+  display:flex;align-items:center;justify-content:center;
+  font-size:9px;color:#b5b3a8;
+  font-family:ui-monospace,monospace;
+}
+
+/* preview: motion */
+.pv-motion{display:flex;flex-direction:column;gap:8px}
+.pv-motion-row{display:flex;align-items:center;gap:10px}
+.pv-motion-lbl{font-size:11px;color:#78766e;width:32px;font-family:ui-monospace,monospace}
+.pv-motion-track{flex:1;height:4px;background:#f0ede8;border-radius:2px;overflow:hidden}
+.pv-motion-fill{height:100%;background:#1a1917;border-radius:2px;width:0%}
+.pv-motion-btn{
+  padding:5px 12px;
+  border:none;border-radius:6px;
+  background:#f5f3ef;color:#1a1917;
+  font-size:11px;font-weight:500;font-family:inherit;
+  cursor:pointer;margin-bottom:8px;
+  transition:background .1s;
+}
+.pv-motion-btn:hover{background:#ebe9e5}
+
+/* export modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;z-index:100;opacity:0;pointer-events:none;transition:opacity .15s}
+.modal.open{opacity:1;pointer-events:all}
+.modal-panel{background:#fff;border:1px solid #e5e3df;border-radius:14px;padding:20px;width:520px;max-height:64vh;display:flex;flex-direction:column;gap:10px;box-shadow:0 20px 40px rgba(0,0,0,.12)}
+.modal-panel h2{font-size:14px;font-weight:600}
+.modal-panel textarea{flex:1;min-height:180px;font-size:11px;font-family:ui-monospace,'SF Mono',monospace;background:#f9f8f5;border:1px solid #e5e3df;border-radius:8px;padding:12px;color:#1a1917;resize:none;outline:none}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end}
+.mb{padding:6px 14px;font-size:12px;font-weight:500;font-family:inherit;border:1px solid #e5e3df;border-radius:7px;background:#f5f4f0;color:#1a1917;cursor:pointer}
+.mb.pri{background:#1a1917;color:#fff;border-color:#1a1917}
+.mb:hover{opacity:.85}
+
+/* scrollbar */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:2px}
+
+/* dark mode */
+body.dark{
+  background:#111110;color:#f0efec;
+  --dt-bg:#111110;--dt-surface:#1c1c1a;--dt-border:#2c2c2a;
+  --dt-text:#f0efec;--dt-muted:#78766e;--dt-faint:#3e3e3c;--dt-accent:#f0efec;
+}
+body.dark .topbar,
+body.dark .sidebar,
+body.dark .controls,
+body.dark .pv-block{background:#1c1c1a;border-color:#2c2c2a}
+body.dark .ctrl-hdr{background:#1c1c1a}
+body.dark .seg{background:#111110;border-color:#2c2c2a}
+body.dark .seg-btn.on{background:#2c2c2a;color:#f0efec}
+body.dark .tbtn{border-color:#2c2c2a;color:#f0efec}
+body.dark .tbtn:hover{background:#2c2c2a}
+body.dark .nav-item:hover,
+body.dark .nav-item.active{background:#252523}
+body.dark .preview{background:#161614}
+body.dark .cg{border-color:#252523}
+body.dark .color-lbl,
+body.dark .ctrl-title,
+body.dark .pv-card-title{color:#f0efec}
+body.dark .pv-lbl,
+body.dark .ctrl-desc,
+body.dark .brand-name{color:#78766e}
+body.dark .ctrl-body input[type=range]{background:#2c2c2a}
+body.dark .ctrl-body input[type=range]::-webkit-slider-thumb{background:#f0efec;box-shadow:0 0 0 1.5px #f0efec}
+body.dark .pill{border-color:#2c2c2a;color:#78766e}
+body.dark .pill.on{background:#f0efec;border-color:#f0efec;color:#1a1917}
+body.dark .pv-type-row,
+body.dark .pv-lbl{border-color:#252523}
+body.dark .modal-panel{background:#1c1c1a;border-color:#2c2c2a}
+body.dark .modal-panel textarea{background:#111110;border-color:#2c2c2a;color:#f0efec}
+body.dark .mb{background:#252523;border-color:#2c2c2a;color:#f0efec}
+body.dark .mb.pri{background:#f0efec;color:#1a1917}
+body.dark .brand-mark{background:#f0efec}
+body.dark .brand-mark svg path{stroke:#1a1917}
+body.dark .pv-motion-btn{background:#252523;color:#f0efec}
+body.dark .pv-motion-fill{background:#f0efec}
+body.dark .pv-sh{background:var(--dt-surface)}
+</style>
+</head>
+<body>
+<div class="app">
+
+<!-- TOPBAR -->
+<header class="topbar">
+  <div class="brand">
+    <div class="brand-mark">
+      <svg width="16" height="16" viewBox="0 0 26 26" fill="none">
+        <path d="M11.9167 9.20831H8.66669V12.4583M11.9167 9.20831V12.4583H8.66669M11.9167 9.20831L18.4167 6.49998M8.66669 12.4583L5.95835 18.9583M6.50002 20.3125C6.50002 21.0604 5.89374 21.6666 5.14585 21.6666C4.39796 21.6666 3.79169 21.0604 3.79169 20.3125C3.79169 19.5645 4.39796 18.9583 5.14585 18.9583C5.89374 18.9583 6.50002 19.5645 6.50002 20.3125ZM21.125 5.68748C21.125 6.43537 20.5188 7.04165 19.7709 7.04165C19.0229 7.04165 18.4167 6.43537 18.4167 5.68748C18.4167 4.93959 19.0229 4.33331 19.7709 4.33331C20.5188 4.33331 21.125 4.93959 21.125 5.68748ZM18.459 17.7103L20.9968 16.9944C22.0279 16.7037 22.0563 15.2523 21.0372 14.9215L12.5346 12.1608C12.1063 12.0218 11.7051 12.4358 11.8576 12.8596L14.8803 21.2555C15.2372 22.247 16.6562 22.1968 16.9422 21.1826L17.7105 18.4588C17.8127 18.0961 18.0962 17.8126 18.459 17.7103Z" stroke="white" stroke-width="1.25" stroke-linecap="round"/>
+      </svg>
+    </div>
+    <span class="brand-name">design tweaks</span>
+  </div>
+  <div class="sep"></div>
+  <div class="topbar-gap"></div>
+  <div class="seg">
+    <button class="seg-btn on" id="btn-light" onclick="setMode('light')">Light</button>
+    <button class="seg-btn" id="btn-dark" onclick="setMode('dark')">Dark</button>
+  </div>
+  <button class="tbtn" onclick="openModal('json')">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><rect x="3" y="3" width="6" height="6" rx="1"/><path d="M7 7h6v6H7z" rx="1"/></svg>
+    Copy JSON
+  </button>
+  <button class="tbtn" onclick="openModal('prompt')">
+    <svg width="13" height="13" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M2 4h12M2 8h8M2 12h6"/></svg>
+    Copy prompt
+  </button>
+</header>
+
+<!-- SIDEBAR -->
+<nav class="sidebar" id="sidebar"></nav>
+
+<!-- CONTROLS -->
+<div class="controls" id="controls">
+  <div class="ctrl-hdr">
+    <div class="ctrl-title" id="ctrl-title">Color</div>
+    <div class="ctrl-desc" id="ctrl-desc">Palette and semantic colors</div>
+  </div>
+  <div class="ctrl-body" id="ctrl-body"></div>
+</div>
+
+<!-- PREVIEW -->
+<div class="preview" id="preview"></div>
+
+</div>
+
+<!-- MODAL -->
+<div class="modal" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-panel">
+    <h2 id="modal-title">Export</h2>
+    <textarea id="modal-ta" readonly spellcheck="false"></textarea>
+    <div class="modal-footer">
+      <button class="mb" onclick="closeModal()">Close</button>
+      <button class="mb pri" onclick="copyModal()">Copy</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ── state ───────────────────────────────────── */
+const S = {
+  mode: 'light',
+  color: {
+    bg:'#f0f0ee', surface:'#ffffff', border:'#e2e0dc',
+    text:'#1a1917', muted:'#78766e', faint:'#b5b3a8',
+    accent:'#18181b',
+    success:'#166534', warning:'#92400e', error:'#991b1b', info:'#1e40af'
+  },
+  darkColors: {
+    bg:'#111110', surface:'#1c1c1a', border:'#2c2c2a',
+    text:'#f0efec', muted:'#78766e', faint:'#3e3e3c',
+    accent:'#f0efec'
+  },
+  type: { fontBase:15, scaleRatio:1.25, fontFamily:'system', fontWeight:400, lineHeight:1.6, letterSpacing:0 },
+  spacing: { unit:4 },
+  border: { radius:10, width:1, style:'solid' },
+  shadow: { level:'sm', opacity:0.1 },
+  motion: { fast:100, base:200, slow:350, easing:'standard' },
+  opacity: { disabled:0.38, overlay:0.6, muted:0.5 },
+  effects: { blurSm:4, blurMd:8, blurLg:16, backdropBlur:8 },
+  grid: { columns:12, gutter:24, margin:32 }
+}
+let activeCat = 'color'
+
+/* ── icons (16×16 SVG strings) ───────────────── */
+const icons = {
+  color: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><circle cx="6" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="10" cy="6.5" r="1" fill="currentColor" stroke="none"/><circle cx="8" cy="10" r="1" fill="currentColor" stroke="none"/></svg>`,
+  type: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M3 4h10M8 4v8M5.5 12h5"/></svg>`,
+  spacing: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M2 8h12M5 5l-3 3 3 3M11 5l3 3-3 3"/></svg>`,
+  border: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="3" y="3" width="10" height="10" rx="3"/></svg>`,
+  shadow: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="3" y="3" width="8" height="8" rx="2"/><rect x="5" y="5" width="8" height="8" rx="2" stroke-dasharray="2 1.5" opacity=".4"/></svg>`,
+  motion: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"/><path d="M8 5v3l2 2"/></svg>`,
+  opacity: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M8 2.5a5.5 5.5 0 1 1 0 11V2.5Z" fill="currentColor" opacity=".35" stroke="none"/><circle cx="8" cy="8" r="5.5"/></svg>`,
+  effects: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><path d="M8 2v2M8 12v2M2 8h2M12 8h2M4.1 4.1l1.4 1.4M10.5 10.5l1.4 1.4M4.1 11.9l1.4-1.4M10.5 5.5l1.4-1.4"/></svg>`,
+  grid: `<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><rect x="2.5" y="2.5" width="4" height="4" rx="1"/><rect x="9.5" y="2.5" width="4" height="4" rx="1"/><rect x="2.5" y="9.5" width="4" height="4" rx="1"/><rect x="9.5" y="9.5" width="4" height="4" rx="1"/></svg>`
+}
+
+/* ── categories ──────────────────────────────── */
+const cats = [
+  { id:'color',   label:'Color',      desc:'Palette and semantic colors' },
+  { id:'type',    label:'Typography', desc:'Scale, family, weight, spacing' },
+  { id:'spacing', label:'Spacing',    desc:'Base unit and derived scale' },
+  { id:'border',  label:'Border',     desc:'Radius, width, style' },
+  { id:'shadow',  label:'Shadow',     desc:'Elevation level and opacity' },
+  { id:'motion',  label:'Motion',     desc:'Durations and easing curves' },
+  { id:'opacity', label:'Opacity',    desc:'Disabled, overlay, muted' },
+  { id:'effects', label:'Effects',    desc:'Blur and backdrop blur' },
+  { id:'grid',    label:'Grid',       desc:'Columns, gutter, margin' }
+]
+
+/* ── token application ───────────────────────── */
+const EASING = {
+  linear:'0,0,1,1', standard:'0.2,0,0,1', decelerate:'0,0,0,1',
+  accelerate:'0.3,0,1,1', emphasized:'0.05,0.7,0.1,1',
+  bounce:'0.34,1.56,0.64,1', smooth:'0.4,0,0.2,1'
+}
+
+const SHADOWS = {
+  none:'none',
+  xs:`0 1px 2px rgba(0,0,0,{o})`,
+  sm:`0 1px 3px rgba(0,0,0,{o}),0 1px 2px -1px rgba(0,0,0,{o})`,
+  md:`0 4px 6px -1px rgba(0,0,0,{o}),0 2px 4px -2px rgba(0,0,0,{o})`,
+  lg:`0 10px 15px -3px rgba(0,0,0,{o}),0 4px 6px -4px rgba(0,0,0,{o})`,
+  xl:`0 20px 25px -5px rgba(0,0,0,{o}),0 8px 10px -6px rgba(0,0,0,{o})`,
+  '2xl':`0 25px 50px -12px rgba(0,0,0,{o})`
+}
+
+const FONTS = {
+  system:'-apple-system,system-ui,sans-serif',
+  serif:'Georgia,"Times New Roman",serif',
+  mono:`ui-monospace,'SF Mono',monospace`,
+  rounded:'"Plus Jakarta Sans",system-ui,sans-serif'
+}
+
+function scale(base, ratio, step) {
+  return Math.round(base * Math.pow(ratio, step) * 10) / 10
+}
+
+function applyTokens() {
+  const r = document.documentElement.style
+  const c = S.mode === 'dark'
+    ? { ...S.color, ...S.darkColors }
+    : S.color
+  const t = S.type
+  const sp = S.spacing
+  const b = S.border
+  const sh = S.shadow
+  const m = S.motion
+  const o = S.opacity
+
+  r.setProperty('--dt-bg', c.bg)
+  r.setProperty('--dt-surface', c.surface)
+  r.setProperty('--dt-border', c.border)
+  r.setProperty('--dt-text', c.text)
+  r.setProperty('--dt-muted', c.muted)
+  r.setProperty('--dt-faint', c.faint)
+  r.setProperty('--dt-accent', c.accent)
+  r.setProperty('--dt-success', c.success || S.color.success)
+  r.setProperty('--dt-warning', c.warning || S.color.warning)
+  r.setProperty('--dt-error', c.error || S.color.error)
+  r.setProperty('--dt-info', c.info || S.color.info)
+
+  const base = t.fontBase
+  const rat = t.scaleRatio
+  r.setProperty('--dt-font-xs', scale(base,rat,-3)+'px')
+  r.setProperty('--dt-font-sm', scale(base,rat,-1)+'px')
+  r.setProperty('--dt-font-base', base+'px')
+  r.setProperty('--dt-font-lg', scale(base,rat,1)+'px')
+  r.setProperty('--dt-font-xl', scale(base,rat,2)+'px')
+  r.setProperty('--dt-font-2xl', scale(base,rat,3)+'px')
+  r.setProperty('--dt-font-3xl', scale(base,rat,4)+'px')
+  r.setProperty('--dt-font-4xl', scale(base,rat,5)+'px')
+  r.setProperty('--dt-font-family', FONTS[t.fontFamily] || t.fontFamily)
+  r.setProperty('--dt-font-weight', t.fontWeight)
+  r.setProperty('--dt-line-height', t.lineHeight)
+  r.setProperty('--dt-letter-spacing', t.letterSpacing+'em')
+
+  const u = sp.unit
+  r.setProperty('--dt-space-unit', u+'px')
+  ;[1,2,3,4,6,8,12].forEach(n => r.setProperty(`--dt-space-${n}`, u*n+'px'))
+
+  r.setProperty('--dt-radius-base', b.radius+'px')
+  r.setProperty('--dt-radius-xs', Math.max(2,b.radius*0.4)+'px')
+  r.setProperty('--dt-radius-sm', Math.max(4,b.radius*0.7)+'px')
+  r.setProperty('--dt-radius-lg', b.radius*1.4+'px')
+  r.setProperty('--dt-radius-xl', b.radius*2+'px')
+  r.setProperty('--dt-bw', b.width+'px')
+  r.setProperty('--dt-border-style', b.style)
+
+  const shadowStr = (SHADOWS[sh.level]||'none').replaceAll('{o}', sh.opacity)
+  r.setProperty('--dt-shadow', shadowStr)
+
+  r.setProperty('--dt-duration-fast', m.fast+'ms')
+  r.setProperty('--dt-duration-base', m.base+'ms')
+  r.setProperty('--dt-duration-slow', m.slow+'ms')
+  r.setProperty('--dt-ease', `cubic-bezier(${EASING[m.easing]||'0.2,0,0,1'})`)
+
+  r.setProperty('--dt-opacity-disabled', o.disabled)
+  r.setProperty('--dt-opacity-overlay', o.overlay)
+  r.setProperty('--dt-opacity-muted', o.muted)
+
+  r.setProperty('--dt-blur-sm', S.effects.blurSm+'px')
+  r.setProperty('--dt-blur-md', S.effects.blurMd+'px')
+  r.setProperty('--dt-blur-lg', S.effects.blurLg+'px')
+
+  updatePalettePreview()
+  updateTypeScale()
+  updateShadowPreview()
+  updateRadiusPreview()
+}
+
+/* ── sidebar ─────────────────────────────────── */
+function renderSidebar() {
+  const el = document.getElementById('sidebar')
+  el.innerHTML = `<div class="nav-section-label">Tokens</div>` +
+    cats.map(c => `
+      <button class="nav-item${activeCat===c.id?' active':''}" onclick="selectCat('${c.id}')">
+        <span class="ni">${icons[c.id]||''}</span>
+        ${c.label}
+      </button>
+    `).join('')
+}
+
+function selectCat(id) {
+  activeCat = id
+  renderSidebar()
+  const cat = cats.find(c => c.id === id)
+  document.getElementById('ctrl-title').textContent = cat.label
+  document.getElementById('ctrl-desc').textContent = cat.desc
+  renderControls(id)
+}
+
+/* ── controls ────────────────────────────────── */
+function slider(label, val, min, max, step, unit, key1, key2, fmt) {
+  const id = 'r_' + Math.random().toString(36).slice(2)
+  const display = fmt ? fmt(val) : val + unit
+  return `
+    <div class="cg">
+      <div class="cg-label">${label}<span class="cg-val" id="${id}_v">${display}</span></div>
+      <input type="range" min="${min}" max="${max}" step="${step}" value="${val}"
+        oninput="(function(v){S.${key1}.${key2}=+v;document.getElementById('${id}_v').textContent=${fmt?fmt.toString()+'(+v)':'+v+\''+unit+'\''};applyTokens()})(this.value)">
+    </div>`
+}
+
+function colorSwatch(label, key1, key2) {
+  const val = S[key1][key2]
+  const id = 'c_' + Math.random().toString(36).slice(2)
+  return `
+    <div class="cg color-row">
+      <span class="color-lbl">${label}</span>
+      <div class="swatch-wrap">
+        <div class="swatch" id="${id}_sw" style="background:${val}"></div>
+        <input type="color" class="swatch-input" value="${val}"
+          oninput="(function(v){S.${key1}.${key2}=v;document.getElementById('${id}_sw').style.background=v;document.getElementById('${id}_hx').textContent=v;applyTokens()})(this.value)">
+      </div>
+      <span class="color-hex" id="${id}_hx">${val}</span>
+    </div>`
+}
+
+function pills(label, options, key1, key2) {
+  const cur = S[key1][key2]
+  return `
+    <div class="cg">
+      <div class="cg-label">${label}</div>
+      <div class="pills">${options.map(o => {
+        const v = typeof o === 'object' ? o.v : o
+        const l = typeof o === 'object' ? o.l : o
+        return `<button class="pill${cur===v||cur==v?' on':''}" onclick="(function(){S.${key1}.${key2}=${typeof v==='string'?'\''+v+'\'':v};renderControls('${activeCat}');applyTokens()})()">${l}</button>`
+      }).join('')}</div>
+    </div>`
+}
+
+function bezSVG(easing) {
+  const pts = (EASING[easing]||'0.2,0,0,1').split(',').map(Number)
+  const W=80,H=48,P=8
+  const x1=P+pts[0]*(W-2*P), y1=H-P-pts[1]*(H-2*P)
+  const x2=P+pts[2]*(W-2*P), y2=H-P-pts[3]*(H-2*P)
+  return `<svg class="bez-svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+    <path d="M${P},${H-P} C${x1},${y1} ${x2},${y2} ${W-P},${P}"
+      fill="none" stroke="#1a1917" stroke-width="1.5" stroke-linecap="round"/>
+    <circle cx="${P}" cy="${H-P}" r="2.5" fill="#1a1917" opacity=".3"/>
+    <circle cx="${W-P}" cy="${P}" r="2.5" fill="#1a1917" opacity=".3"/>
+    <line x1="${P}" y1="${H-P}" x2="${x1}" y2="${y1}" stroke="#1a1917" stroke-width="1" stroke-dasharray="2 2" opacity=".3"/>
+    <line x1="${W-P}" y1="${P}" x2="${x2}" y2="${y2}" stroke="#1a1917" stroke-width="1" stroke-dasharray="2 2" opacity=".3"/>
+  </svg>`
+}
+
+function renderControls(cat) {
+  const el = document.getElementById('ctrl-body')
+  let html = ''
+
+  if (cat === 'color') {
+    html += `<div class="cg"><div class="cg-sub">Base palette</div></div>`
+    ;[['Background','color','bg'],['Surface','color','surface'],['Border','color','border'],
+      ['Text','color','text'],['Muted','color','muted'],['Accent','color','accent']
+    ].forEach(([l,k1,k2]) => { html += colorSwatch(l,k1,k2) })
+    if (S.mode !== 'dark') {
+      html += `<div class="cg"><div class="cg-sub" style="margin-top:4px">Semantic</div></div>`
+      ;[['Success','color','success'],['Warning','color','warning'],
+        ['Error','color','error'],['Info','color','info']
+      ].forEach(([l,k1,k2]) => { html += colorSwatch(l,k1,k2) })
+    } else {
+      html += `<div class="cg"><div class="cg-sub" style="margin-top:4px">Dark overrides</div></div>`
+      ;[['Background','darkColors','bg'],['Surface','darkColors','surface'],
+        ['Border','darkColors','border'],['Text','darkColors','text'],
+        ['Accent','darkColors','accent']
+      ].forEach(([l,k1,k2]) => { html += colorSwatch(l,k1,k2) })
+    }
+  }
+
+  else if (cat === 'type') {
+    const t = S.type
+    const fmtPx = v => +v + 'px'
+    html += `
+      <div class="cg">
+        <div class="cg-label">Base size<span class="cg-val" id="type_base_v">${t.fontBase}px</span></div>
+        <input type="range" min="11" max="22" step="0.5" value="${t.fontBase}"
+          oninput="S.type.fontBase=+this.value;document.getElementById('type_base_v').textContent=this.value+'px';applyTokens()">
+      </div>
+      ${pills('Scale ratio', [
+        {v:1.125,l:'1.125'},{v:1.2,l:'1.2'},{v:1.25,l:'1.25'},{v:1.333,l:'1.333'},{v:1.5,l:'1.5'}
+      ], 'type', 'scaleRatio')}
+      ${pills('Font family', [
+        {v:'system',l:'System'},{v:'serif',l:'Serif'},{v:'mono',l:'Mono'},{v:'rounded',l:'Jakarta'}
+      ], 'type', 'fontFamily')}
+      <div class="cg">
+        <div class="cg-label">Weight<span class="cg-val" id="type_wt_v">${t.fontWeight}</span></div>
+        <input type="range" min="300" max="800" step="100" value="${t.fontWeight}"
+          oninput="S.type.fontWeight=+this.value;document.getElementById('type_wt_v').textContent=this.value;applyTokens()">
+      </div>
+      <div class="cg">
+        <div class="cg-label">Line height<span class="cg-val" id="type_lh_v">${t.lineHeight}</span></div>
+        <input type="range" min="1.1" max="2.0" step="0.05" value="${t.lineHeight}"
+          oninput="S.type.lineHeight=+this.value;document.getElementById('type_lh_v').textContent=(+this.value).toFixed(2);applyTokens()">
+      </div>
+      <div class="cg">
+        <div class="cg-label">Letter spacing<span class="cg-val" id="type_ls_v">${t.letterSpacing}em</span></div>
+        <input type="range" min="-0.05" max="0.1" step="0.005" value="${t.letterSpacing}"
+          oninput="S.type.letterSpacing=+this.value;document.getElementById('type_ls_v').textContent=(+this.value).toFixed(3)+'em';applyTokens()">
+      </div>`
+  }
+
+  else if (cat === 'spacing') {
+    const u = S.spacing.unit
+    const bars = [1,2,3,4,6,8,12].map(n => {
+      const px = u*n
+      return `<div style="display:flex;align-items:center;gap:8px;padding:3px 0">
+        <span style="font-size:10px;color:#b5b3a8;font-family:ui-monospace,monospace;width:36px">${n}×</span>
+        <div style="height:6px;background:#1a1917;border-radius:2px;opacity:.2;width:${Math.min(px*3,220)}px"></div>
+        <span style="font-size:10px;color:#b5b3a8;font-family:ui-monospace,monospace" id="sp_${n}_v">${px}px</span>
+      </div>`
+    }).join('')
+    html += `
+      <div class="cg">
+        <div class="cg-label">Base unit<span class="cg-val" id="sp_unit_v">${u}px</span></div>
+        <input type="range" min="2" max="8" step="1" value="${u}"
+          oninput="(function(v){S.spacing.unit=+v;document.getElementById('sp_unit_v').textContent=v+'px';[1,2,3,4,6,8,12].forEach(n=>{const e=document.getElementById('sp_'+n+'_v');if(e)e.textContent=(+v*n)+'px'});applyTokens()})(this.value)">
+      </div>
+      <div class="cg">
+        <div class="cg-sub">Derived scale</div>
+        ${bars}
+      </div>`
+  }
+
+  else if (cat === 'border') {
+    const b = S.border
+    html += `
+      <div class="cg">
+        <div class="cg-label">Radius<span class="cg-val" id="br_rad_v">${b.radius}px</span></div>
+        <input type="range" min="0" max="28" step="1" value="${b.radius}"
+          oninput="S.border.radius=+this.value;document.getElementById('br_rad_v').textContent=this.value+'px';applyTokens()">
+      </div>
+      ${pills('Width', [{v:0,l:'0'},{v:1,l:'1px'},{v:1.5,l:'1.5px'},{v:2,l:'2px'}], 'border', 'width')}
+      ${pills('Style', ['solid','dashed','dotted'], 'border', 'style')}`
+  }
+
+  else if (cat === 'shadow') {
+    const sh = S.shadow
+    html += `
+      ${pills('Level', ['none','xs','sm','md','lg','xl','2xl'], 'shadow', 'level')}
+      <div class="cg">
+        <div class="cg-label">Opacity<span class="cg-val" id="sh_op_v">${sh.opacity}</span></div>
+        <input type="range" min="0.02" max="0.35" step="0.01" value="${sh.opacity}"
+          oninput="S.shadow.opacity=+this.value;document.getElementById('sh_op_v').textContent=(+this.value).toFixed(2);applyTokens()">
+      </div>`
+  }
+
+  else if (cat === 'motion') {
+    const m = S.motion
+    html += `
+      <div class="cg">
+        <div class="cg-label">Fast<span class="cg-val" id="mt_f_v">${m.fast}ms</span></div>
+        <input type="range" min="50" max="300" step="10" value="${m.fast}"
+          oninput="S.motion.fast=+this.value;document.getElementById('mt_f_v').textContent=this.value+'ms';applyTokens()">
+      </div>
+      <div class="cg">
+        <div class="cg-label">Base<span class="cg-val" id="mt_b_v">${m.base}ms</span></div>
+        <input type="range" min="100" max="600" step="10" value="${m.base}"
+          oninput="S.motion.base=+this.value;document.getElementById('mt_b_v').textContent=this.value+'ms';applyTokens()">
+      </div>
+      <div class="cg">
+        <div class="cg-label">Slow<span class="cg-val" id="mt_s_v">${m.slow}ms</span></div>
+        <input type="range" min="200" max="1000" step="25" value="${m.slow}"
+          oninput="S.motion.slow=+this.value;document.getElementById('mt_s_v').textContent=this.value+'ms';applyTokens()">
+      </div>
+      <div class="cg">
+        <div class="cg-label">Easing</div>
+        <div class="pills">${Object.keys(EASING).map(k => `
+          <button class="pill${m.easing===k?' on':''}" onclick="S.motion.easing='${k}';renderControls('motion');applyTokens()">${k}</button>`).join('')}
+        </div>
+        <div class="bez-wrap">${bezSVG(m.easing)}</div>
+        <div class="cg-sub">cubic-bezier(${EASING[m.easing]||'0.2,0,0,1'})</div>
+      </div>`
+  }
+
+  else if (cat === 'opacity') {
+    const o = S.opacity
+    html += `
+      <div class="cg">
+        <div class="cg-label">Disabled<span class="cg-val" id="op_d_v">${o.disabled}</span></div>
+        <input type="range" min="0.1" max="0.7" step="0.01" value="${o.disabled}"
+          oninput="S.opacity.disabled=+this.value;document.getElementById('op_d_v').textContent=(+this.value).toFixed(2);applyTokens()">
+      </div>
+      <div class="cg">
+        <div class="cg-label">Overlay<span class="cg-val" id="op_o_v">${o.overlay}</span></div>
+        <input type="range" min="0.2" max="0.9" step="0.01" value="${o.overlay}"
+          oninput="S.opacity.overlay=+this.value;document.getElementById('op_o_v').textContent=(+this.value).toFixed(2);applyTokens()">
+      </div>
+      <div class="cg">
+        <div class="cg-label">Muted<span class="cg-val" id="op_m_v">${o.muted}</span></div>
+        <input type="range" min="0.2" max="0.8" step="0.01" value="${o.muted}"
+          oninput="S.opacity.muted=+this.value;document.getElementById('op_m_v').textContent=(+this.value).toFixed(2);applyTokens()">
+      </div>`
+  }
+
+  else if (cat === 'effects') {
+    const e = S.effects
+    html += `
+      <div class="cg">
+        <div class="cg-label">Blur sm<span class="cg-val" id="ef_sm_v">${e.blurSm}px</span></div>
+        <input type="range" min="2" max="20" step="1" value="${e.blurSm}"
+          oninput="S.effects.blurSm=+this.value;document.getElementById('ef_sm_v').textContent=this.value+'px';applyTokens()">
+      </div>
+      <div class="cg">
+        <div class="cg-label">Blur md<span class="cg-val" id="ef_md_v">${e.blurMd}px</span></div>
+        <input type="range" min="4" max="40" step="2" value="${e.blurMd}"
+          oninput="S.effects.blurMd=+this.value;document.getElementById('ef_md_v').textContent=this.value+'px';applyTokens()">
+      </div>
+      <div class="cg">
+        <div class="cg-label">Blur lg<span class="cg-val" id="ef_lg_v">${e.blurLg}px</span></div>
+        <input type="range" min="8" max="64" step="4" value="${e.blurLg}"
+          oninput="S.effects.blurLg=+this.value;document.getElementById('ef_lg_v').textContent=this.value+'px';applyTokens()">
+      </div>
+      <div class="cg">
+        <div class="cg-label">Backdrop blur<span class="cg-val" id="ef_bd_v">${e.backdropBlur}px</span></div>
+        <input type="range" min="4" max="32" step="2" value="${e.backdropBlur}"
+          oninput="S.effects.backdropBlur=+this.value;document.getElementById('ef_bd_v').textContent=this.value+'px';applyTokens()">
+      </div>`
+  }
+
+  else if (cat === 'grid') {
+    const g = S.grid
+    html += `
+      ${pills('Columns', [{v:4,l:'4'},{v:8,l:'8'},{v:12,l:'12'},{v:16,l:'16'}], 'grid', 'columns')}
+      <div class="cg">
+        <div class="cg-label">Gutter<span class="cg-val" id="gr_g_v">${g.gutter}px</span></div>
+        <input type="range" min="8" max="48" step="4" value="${g.gutter}"
+          oninput="S.grid.gutter=+this.value;document.getElementById('gr_g_v').textContent=this.value+'px';applyTokens()">
+      </div>
+      <div class="cg">
+        <div class="cg-label">Margin<span class="cg-val" id="gr_m_v">${g.margin}px</span></div>
+        <input type="range" min="8" max="80" step="8" value="${g.margin}"
+          oninput="S.grid.margin=+this.value;document.getElementById('gr_m_v').textContent=this.value+'px';applyTokens()">
+      </div>
+      <div class="cg" id="grid-preview"></div>`
+    setTimeout(updateGridPreview, 0)
+  }
+
+  el.innerHTML = html
+}
+
+function updateGridPreview() {
+  const el = document.getElementById('grid-preview')
+  if (!el) return
+  const g = S.grid
+  const W = 268
+  const colW = Math.floor((W - g.margin*2 - g.gutter*(g.columns-1)) / g.columns)
+  const cols = Math.min(g.columns, 12)
+  const svgCols = Array.from({length:cols}, (_,i) => {
+    const x = g.margin + i*(colW+g.gutter)
+    return `<rect x="${x}" y="4" width="${colW}" height="20" rx="2" fill="#1a1917" opacity=".08"/>`
+  }).join('')
+  el.innerHTML = `<div class="cg-sub">Grid preview — ${g.columns} col / ${g.gutter}px gutter / ${g.margin}px margin</div>
+    <svg width="${W}" height="28" viewBox="0 0 ${W} 28">${svgCols}</svg>`
+}
+
+/* ── preview rendering ───────────────────────── */
+function renderPreview() {
+  document.getElementById('preview').innerHTML = `
+    <div class="pv-block">
+      <div class="pv-lbl">Component</div>
+      <div class="pv-body">
+        <div class="pv-card">
+          <div class="pv-card-title">Notification settings</div>
+          <div class="pv-card-body">Manage how and when you receive notifications.</div>
+          <div class="pv-btns">
+            <button class="pv-btn pri">Save changes</button>
+            <button class="pv-btn sec">Cancel</button>
+          </div>
+          <input class="pv-input" placeholder="Search settings…" type="text">
+        </div>
+      </div>
+    </div>
+    <div class="pv-block">
+      <div class="pv-lbl">Type scale</div>
+      <div class="pv-body" id="pv-type"></div>
+    </div>
+    <div class="pv-block">
+      <div class="pv-lbl">Color palette</div>
+      <div class="pv-body" id="pv-palette">
+        <div class="pv-palette">
+          <div class="pv-chip" id="pvc-bg"></div>
+          <div class="pv-chip" id="pvc-surface"></div>
+          <div class="pv-chip" id="pvc-border"></div>
+          <div class="pv-chip" id="pvc-muted"></div>
+          <div class="pv-chip" id="pvc-accent"></div>
+        </div>
+        <div class="pv-semantic">
+          <div class="pv-sem" id="pvc-success"></div>
+          <div class="pv-sem" id="pvc-warning"></div>
+          <div class="pv-sem" id="pvc-error"></div>
+          <div class="pv-sem" id="pvc-info"></div>
+        </div>
+      </div>
+    </div>
+    <div class="pv-block">
+      <div class="pv-lbl">Shadows</div>
+      <div class="pv-body" id="pv-shadows">
+        <div class="pv-sh-row">
+          ${['none','xs','sm','md','lg','xl'].map(l => `
+            <div style="text-align:center">
+              <div class="pv-sh" id="pvsh-${l}" style="box-shadow:${(SHADOWS[l]||'none').replaceAll('{o}',S.shadow.opacity)}">${l}</div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="pv-block">
+      <div class="pv-lbl">Border radius</div>
+      <div class="pv-body" id="pv-radius">
+        <div class="pv-rad-row">
+          ${[['xs',0.4],['sm',0.7],['base',1],['lg',1.4],['xl',2]].map(([l,f]) => `
+            <div class="pv-rad" id="pvr-${l}" style="width:${32+f*8}px;height:${32+f*8}px;border-radius:${S.border.radius*f}px">
+              <span style="font-size:9px;color:#b5b3a8;font-family:ui-monospace,monospace">${l}</span>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="pv-block">
+      <div class="pv-lbl">Motion</div>
+      <div class="pv-body">
+        <button class="pv-motion-btn" onclick="playMotion()">Play animation</button>
+        <div class="pv-motion" id="pv-motion">
+          ${['fast','base','slow'].map(k => `
+            <div class="pv-motion-row">
+              <span class="pv-motion-lbl">${k}</span>
+              <div class="pv-motion-track"><div class="pv-motion-fill" id="pm-${k}"></div></div>
+            </div>`).join('')}
+        </div>
+      </div>
+    </div>
+  `
+  updateTypeScale()
+  updatePalettePreview()
+  updateShadowPreview()
+  updateRadiusPreview()
+}
+
+function updateTypeScale() {
+  const el = document.getElementById('pv-type')
+  if (!el) return
+  const base = S.type.fontBase, rat = S.type.scaleRatio
+  const steps = [['4xl',5],['3xl',4],['2xl',3],['xl',2],['lg',1],['base',0],['sm',-1],['xs',-3]]
+  el.innerHTML = steps.map(([tok,step]) => {
+    const px = scale(base,rat,step)
+    return `<div class="pv-type-row">
+      <span class="pv-tok">${tok}</span>
+      <span class="pv-type-s" style="font-size:${Math.min(px,32)}px">${step>=3?'Heading':'Sample text'}</span>
+      <span class="pv-px">${px}px</span>
+    </div>`
+  }).join('')
+}
+
+function updatePalettePreview() {
+  const c = S.mode === 'dark' ? {...S.color,...S.darkColors} : S.color
+  const map = {bg:c.bg,surface:c.surface,border:c.border,muted:c.muted,accent:c.accent,
+    success:c.success,warning:c.warning,error:c.error,info:c.info}
+  Object.entries(map).forEach(([k,v]) => {
+    const el = document.getElementById(`pvc-${k}`)
+    if (el) el.style.background = v
+  })
+}
+
+function updateShadowPreview() {
+  const o = S.shadow.opacity
+  ;['none','xs','sm','md','lg','xl'].forEach(l => {
+    const el = document.getElementById(`pvsh-${l}`)
+    if (el) el.style.boxShadow = (SHADOWS[l]||'none').replaceAll('{o}',o)
+  })
+}
+
+function updateRadiusPreview() {
+  const r = S.border.radius
+  ;[['xs',0.4],['sm',0.7],['base',1],['lg',1.4],['xl',2]].forEach(([l,f]) => {
+    const el = document.getElementById(`pvr-${l}`)
+    if (el) el.style.borderRadius = (r*f)+'px'
+  })
+}
+
+function playMotion() {
+  ;['fast','base','slow'].forEach((k,i) => {
+    setTimeout(() => {
+      const fill = document.getElementById(`pm-${k}`)
+      if (!fill) return
+      const dur = S.motion[k]
+      const ease = `cubic-bezier(${EASING[S.motion.easing]||'0.2,0,0,1'})`
+      fill.style.transition = 'none'
+      fill.style.width = '0%'
+      fill.getBoundingClientRect()
+      fill.style.transition = `width ${dur}ms ${ease}`
+      fill.style.width = '100%'
+      setTimeout(() => {
+        fill.style.transition = `width ${dur}ms ease`
+        fill.style.width = '0%'
+      }, dur + 100)
+    }, i * 80)
+  })
+}
+
+/* ── mode ────────────────────────────────────── */
+function setMode(mode) {
+  S.mode = mode
+  document.body.classList.toggle('dark', mode === 'dark')
+  document.getElementById('btn-light').classList.toggle('on', mode === 'light')
+  document.getElementById('btn-dark').classList.toggle('on', mode === 'dark')
+  if (activeCat === 'color') renderControls('color')
+  applyTokens()
+}
+
+/* ── export ──────────────────────────────────── */
+function exportJSON() {
+  const c = S.mode === 'dark' ? {...S.color,...S.darkColors} : S.color
+  return JSON.stringify({
+    mode: S.mode,
+    color: c,
+    typography: {
+      fontBase: S.type.fontBase+'px',
+      scaleRatio: S.type.scaleRatio,
+      fontFamily: S.type.fontFamily,
+      fontWeight: S.type.fontWeight,
+      lineHeight: S.type.lineHeight,
+      letterSpacing: S.type.letterSpacing+'em'
+    },
+    spacing: { unit: S.spacing.unit+'px' },
+    border: { radius: S.border.radius+'px', width: S.border.width+'px', style: S.border.style },
+    shadow: { level: S.shadow.level, opacity: S.shadow.opacity },
+    motion: { fast: S.motion.fast+'ms', base: S.motion.base+'ms', slow: S.motion.slow+'ms', easing: S.motion.easing },
+    opacity: S.opacity,
+    effects: { blurSm: S.effects.blurSm+'px', blurMd: S.effects.blurMd+'px', blurLg: S.effects.blurLg+'px', backdropBlur: S.effects.backdropBlur+'px' },
+    grid: { columns: S.grid.columns, gutter: S.grid.gutter+'px', margin: S.grid.margin+'px' }
+  }, null, 2)
+}
+
+function exportPrompt() {
+  const c = S.mode === 'dark' ? {...S.color,...S.darkColors} : S.color
+  return `Design system config (mode: ${S.mode}):
+
+Color: bg ${c.bg} · surface ${c.surface} · border ${c.border} · text ${c.text} · accent ${c.accent}
+Semantic: success ${c.success} · warning ${c.warning} · error ${c.error} · info ${c.info}
+Typography: ${S.type.fontBase}px base · ${S.type.scaleRatio}× scale · ${S.type.fontFamily} family · weight ${S.type.fontWeight} · ${S.type.lineHeight} line-height
+Spacing: ${S.spacing.unit}px unit
+Border: ${S.border.radius}px radius · ${S.border.width}px ${S.border.style}
+Shadow: ${S.shadow.level} level · ${S.shadow.opacity} opacity
+Motion: fast ${S.motion.fast}ms · base ${S.motion.base}ms · slow ${S.motion.slow}ms · ${S.motion.easing} easing
+Opacity: disabled ${S.opacity.disabled} · overlay ${S.opacity.overlay} · muted ${S.opacity.muted}
+Effects: blur ${S.effects.blurSm}/${S.effects.blurMd}/${S.effects.blurLg}px · backdrop ${S.effects.backdropBlur}px
+Grid: ${S.grid.columns} columns · ${S.grid.gutter}px gutter · ${S.grid.margin}px margin`
+}
+
+function openModal(type) {
+  document.getElementById('modal-title').textContent = type === 'json' ? 'Export JSON' : 'Export prompt'
+  document.getElementById('modal-ta').value = type === 'json' ? exportJSON() : exportPrompt()
+  document.getElementById('modal').classList.add('open')
+}
+function closeModal() { document.getElementById('modal').classList.remove('open') }
+function copyModal() {
+  navigator.clipboard.writeText(document.getElementById('modal-ta').value).then(() => {
+    const btn = document.querySelector('.mb.pri')
+    const orig = btn.textContent
+    btn.textContent = 'Copied'
+    setTimeout(() => btn.textContent = orig, 1500)
+  })
+}
+
+/* ── init ────────────────────────────────────── */
+renderSidebar()
+renderControls('color')
+renderPreview()
+applyTokens()
+</script>
+</body>
+</html>

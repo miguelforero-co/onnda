@@ -5,7 +5,7 @@
 set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 MANIFEST="$SCRIPT_DIR/../src-tauri"
-BINARY="$MANIFEST/target/debug/voz-local"
+BINARY="$MANIFEST/target/debug/onnda"
 ENTITLEMENTS="$MANIFEST/entitlements.plist"
 
 if [ ! -f "$BINARY" ]; then

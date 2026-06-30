@@ -3,8 +3,8 @@
 <plist version="1.0">
 <dict>
   <key>NSMicrophoneUsageDescription</key>
-  <string>Voz Local necesita el micrófono para transcribir audio localmente, sin enviar datos a ningún servidor.</string>
+  <string>onnda needs the microphone to transcribe audio locally, without sending data to any server.</string>
   <key>NSSpeechRecognitionUsageDescription</key>
-  <string>Voz Local usa el reconocimiento de voz de Apple en el dispositivo para transcribir tu dictado. El audio nunca sale de tu Mac.</string>
+  <string>onnda uses Apple's on-device speech recognition to transcribe your dictation. Audio never leaves your Mac.</string>
 </dict>
 </plist>

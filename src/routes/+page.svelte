@@ -1,9 +1,11 @@
 <script lang="ts">
   import { invoke } from "@tauri-apps/api/core";
   import { listen } from "@tauri-apps/api/event";
+  import { track } from "$lib/analytics";
   import { getCurrentWindow } from "@tauri-apps/api/window";
   import { onMount, onDestroy } from "svelte";
   import "$lib/styles/tokens.css";
+  import "@fontsource/goudy-bookletter-1911";
   import type { Settings, HistoryEntry, ModelInfo, DownloadProgress, View } from "$lib/types";
 
   import Sidebar from "$lib/components/Sidebar.svelte";
@@ -14,6 +16,9 @@
   import Importar from "$lib/sections/Importar.svelte";
   import Diccionario from "$lib/sections/Diccionario.svelte";
   import Ajustes from "$lib/sections/Ajustes.svelte";
+  import Wordmark from "$lib/components/ui/Wordmark.svelte";
+  import { userName } from "$lib/stores/userName.svelte";
+  import { subscribe } from "$lib/subscribe";
 
   // Window drag from the content's top header band (the title bar is hidden, so
   // the top ~56px acts as the drag handle — like Wispr Flow). Uses the same
@@ -43,10 +48,14 @@
     sound_on_listen: true, sound_on_stop: true, sound_on_cancel: true,
     pause_media: false, dictionary: [], replacements: [],
     auto_learn: true, learned_corrections: [],
+    mic_sensitivity: 1.0,
+    analytics_enabled: false,
   });
   let view = $state<View>("home");
-  // onboarding has two steps: "perms" then "models"
-  let obStep = $state<"perms" | "models">("perms");
+  // onboarding steps: "welcome" (name + optional email) → "perms" → "models" → "analytics"
+  let obStep = $state<"welcome" | "perms" | "models" | "analytics">("welcome");
+  let obName = $state("");   // nombre para el saludo (requerido para continuar)
+  let obEmail = $state("");  // correo opcional → solo se usa para la lista de lanzamiento
   let models = $state<ModelInfo[]>([]);
   let history = $state<HistoryEntry[]>([]);
   let micGranted = $state(false);
@@ -62,20 +71,32 @@
   let modelReady = $state(true); // assume ready until checked; avoids flash
   let warnMsg = $state(""); // HARDEN-05: transcribe-warning toast (auto-clears)
   let warnTimer: ReturnType<typeof setTimeout> | null = null;
+  let ready = $state(false); // flash guard: nothing renders until init resolves
 
   const unlisten: (() => void)[] = [];
 
-  onMount(async () => {
-    appVersion = await invoke<string>("get_app_version").catch(() => "");
-    buildHash = await invoke<string>("get_build_hash").catch(() => "");
+  // Onboarding step 1: guarda el nombre para el saludo y, si dieron correo,
+  // lo manda (opt-in) a la lista de lanzamiento. El correo NO se guarda local —
+  // su único propósito es la suscripción.
+  function finishWelcome() {
+    userName.value = obName.trim();
+    const email = obEmail.trim();
+    if (email) void subscribe(email, obName.trim());
+    obStep = "perms";
+    pollInterval = setInterval(checkPerms, 1500);
+  }
+
+  async function init() {
     settings = await invoke("get_settings");
     models = await invoke("get_models");
     await checkPerms();
 
     if (!settings.onboarding_done) {
+      // Empieza en el paso "welcome" (nombre + correo). El polling de permisos
+      // arranca al pasar al paso "perms" (finishWelcome).
       view = "onboarding";
-      pollInterval = setInterval(checkPerms, 1500);
     } else {
+      view = "home";
       history = await invoke("get_history");
       // Keep checking permissions so the warning banner updates live
       pollInterval = setInterval(checkPerms, 3000);
@@ -86,7 +107,13 @@
         modelReady = st.ready;
       } catch { modelReady = true; } // on invoke error, don't bother the user
     }
+  }
 
+  onMount(async () => {
+    appVersion = await invoke<string>("get_app_version").catch(() => "");
+    buildHash = await invoke<string>("get_build_hash").catch(() => "");
+
+    // Register event listeners immediately, before init resolves.
     unlisten.push(
       // Always re-pull history so the shared store is current regardless of
       // which section is open (real-time refresh, no view-conditional delay).
@@ -108,6 +135,9 @@
         warnMsg = payload;
         warnTimer = setTimeout(() => { warnMsg = ""; warnTimer = null; }, 4000);
       }),
+      await listen<{ event: string; props: Record<string, unknown> }>("analytics-event", (e) => {
+        void track(e.payload.event, e.payload.props);
+      }),
       await listen<string>("download-complete", async ({ payload: modelId }) => {
         delete downloadProgress[modelId];
         downloadProgress = { ...downloadProgress };
@@ -124,7 +154,10 @@
       }),
     );
 
+    await init();
+
     initialized = true;
+    ready = true;
   });
 
   onDestroy(() => {
@@ -145,6 +178,15 @@
   async function checkPerms() {
     micGranted  = await invoke<boolean>("check_mic_permission");
     a11yGranted = await invoke<boolean>("check_accessibility_permission");
+  }
+
+  // Accessibility: the prompt registers the app in the list (so the toggle
+  // appears) and shows the system dialog; then we open the pane so the user can
+  // flip it. Just opening the pane alone leaves the app absent from the list.
+  async function requestA11y() {
+    await invoke("request_accessibility").catch(() => {});
+    await invoke("open_accessibility_settings").catch(() => {});
+    checkPerms();
   }
 
   async function startDownload(modelId: string) {
@@ -180,50 +222,85 @@
   }
 </script>
 
+{#if ready}
 {#if view === "onboarding"}
   <!-- ── ONBOARDING (precedes the shell) ── -->
   <div class="ob">
-    <div class="ob-steps">
-      <div class="ob-step-dot" class:active={obStep === "perms"}></div>
-      <div class="ob-step-dot" class:active={obStep === "models"}></div>
-    </div>
+    <div class="ob-brand"><Wordmark /></div>
 
-    {#if obStep === "perms"}
+    {#if obStep === "welcome"}
+      <!-- Step 1: name (for the greeting) + optional email (launch list) -->
       <div class="ob-intro">
-        <h1>Bienvenido</h1>
-        <p>Voz a texto local en tu Mac.<br>Necesitamos dos permisos para funcionar.</p>
+        <h1>Welcome to onnda</h1>
+        <p>Local voice-to-text on your Mac.<br>What should we call you?</p>
+      </div>
+
+      <div class="ob-form">
+        <label class="ob-field">
+          <span class="ob-label">Name</span>
+          <input
+            class="ob-input"
+            type="text"
+            placeholder="Your name"
+            bind:value={obName}
+            onkeydown={(e) => { if (e.key === "Enter" && obName.trim()) finishWelcome(); }}
+          />
+        </label>
+        <label class="ob-field">
+          <span class="ob-label">Email <span class="ob-optional">— optional, for launch updates</span></span>
+          <input
+            class="ob-input"
+            type="email"
+            placeholder="you@example.com"
+            bind:value={obEmail}
+            onkeydown={(e) => { if (e.key === "Enter" && obName.trim()) finishWelcome(); }}
+          />
+        </label>
+      </div>
+
+      <div class="ob-foot">
+        <p class="hint">No account, no password. Your name stays on this Mac; the email is only used to send launch updates if you enter one.</p>
+        <button class="btn-primary" disabled={!obName.trim()} onclick={finishWelcome}>
+          Continue
+        </button>
+      </div>
+
+    {:else if obStep === "perms"}
+      <div class="ob-intro">
+        <h1>Permissions</h1>
+        <p>onnda needs two permissions to get started.</p>
       </div>
 
       <div class="perm-list">
         <PermissionRow
-          label="Micrófono"
-          description="Para capturar tu voz"
+          label="Microphone"
+          description="To capture your voice"
           granted={micGranted}
           onOpen={() => invoke("open_microphone_settings")}
         />
         <PermissionRow
-          label="Accesibilidad"
-          description="Para pegar donde escribes"
+          label="Accessibility"
+          description="To paste where you type"
           granted={a11yGranted}
-          onOpen={() => invoke("open_accessibility_settings")}
+          onOpen={requestA11y}
         />
       </div>
 
       <div class="ob-foot">
         {#if !a11yGranted && micGranted}
-          <p class="hint">Sin accesibilidad, el texto se copia al portapapeles automáticamente.</p>
+          <p class="hint">Without accessibility, text is copied to the clipboard automatically.</p>
         {/if}
         <button class="btn-primary" disabled={!micGranted}
                 onclick={() => { if (pollInterval) { clearInterval(pollInterval); pollInterval = null; } obStep = "models"; }}>
-          {micGranted ? "Continuar" : "Esperando permiso de micrófono…"}
+          {micGranted ? "Continue" : "Waiting for microphone permission…"}
         </button>
       </div>
 
-    {:else}
+    {:else if obStep === "models"}
       <!-- Step 2: download a model -->
       <div class="ob-intro">
-        <h1>Descargar modelo</h1>
-        <p>Elige el modelo de reconocimiento.<br>Se guarda en tu Mac y funciona sin internet.</p>
+        <h1>Download a model</h1>
+        <p>Choose a recognition model.<br>It's saved on your Mac and works offline.</p>
       </div>
 
       <div class="model-list">
@@ -238,12 +315,39 @@
       </div>
 
       <div class="ob-foot">
-        <p class="hint">Puedes descargar más modelos desde Ajustes en cualquier momento.</p>
-        <button class="btn-primary" disabled={!models.some(m => m.downloaded)} onclick={finishOnboarding}>
-          {models.some(m => m.downloaded) ? "Empezar" : "Descarga al menos un modelo…"}
+        <p class="hint">You can download more models from Settings at any time.</p>
+        <button class="btn-primary" disabled={!models.some(m => m.downloaded)} onclick={() => { obStep = "analytics"; }}>
+          {models.some(m => m.downloaded) ? "Continue" : "Download at least one model…"}
+        </button>
+      </div>
+
+    {:else}
+      <!-- Step 3: analytics consent -->
+      <div class="ob-intro">
+        <h1>Anonymous usage stats</h1>
+        <p>Allow onnda to send anonymous usage stats?<br>We never send what you dictate.</p>
+      </div>
+
+      <div class="ob-analytics">
+        <p class="analytics-detail">We only record events like "transcription completed" without any text. You can change this in Settings at any time.</p>
+      </div>
+
+      <div class="ob-foot">
+        <button class="btn-primary" onclick={() => { settings.analytics_enabled = true; finishOnboarding(); }}>
+          Allow
+        </button>
+        <button class="btn-secondary" onclick={() => { settings.analytics_enabled = false; finishOnboarding(); }}>
+          No thanks
         </button>
       </div>
     {/if}
+
+    <div class="ob-steps">
+      <div class="ob-step-dot" class:active={obStep === "welcome"}></div>
+      <div class="ob-step-dot" class:active={obStep === "perms"}></div>
+      <div class="ob-step-dot" class:active={obStep === "models"}></div>
+      <div class="ob-step-dot" class:active={obStep === "analytics"}></div>
+    </div>
   </div>
 {:else}
   <!-- ── SHELL (sidebar + content fill to the top; traffic lights float over the
@@ -252,11 +356,19 @@
     <Sidebar bind:view />
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <main class="content" onmousedown={contentDrag} ondblclick={contentDblClick}>
+      {#if !a11yGranted}
+        <!-- Accessibility missing: dictation copies to clipboard but can't auto-paste
+             (Cmd+V via CGEvent needs Accessibility). Prompt the user to grant it. -->
+        <div class="a11y-banner">
+          <span>onnda needs <strong>Accessibility</strong> permission to paste dictation into other apps. Until then, text is copied to the clipboard but won't paste automatically.</span>
+          <button onclick={requestA11y}>Enable</button>
+        </div>
+      {/if}
       {#if !modelReady}
         <!-- HARDEN-04: actionable banner when no model is downloaded -->
         <div class="model-banner">
-          <span>No hay un modelo de voz descargado. Descarga uno para empezar a dictar.</span>
-          <button onclick={() => { view = "ajustes"; }}>Descargar modelo</button>
+          <span>No voice model downloaded. Download one to start dictating.</span>
+          <button onclick={() => { view = "ajustes"; }}>Download model</button>
         </div>
       {/if}
       {#if view === "home"}
@@ -284,102 +396,155 @@
   </div>
 {/if}
 
+{/if}
+
 {#if warnMsg}
   <!-- HARDEN-05: transcribe-warning toast (auto-disappears after 4 s) -->
   <div class="warn-toast">{warnMsg}</div>
 {/if}
 
 <style>
-  /* ── Shell (sidebar + content fill the window to the very top) ── */
-  .shell { position: relative; display: flex; height: 100vh; background: var(--bg); }
-
-  /* Aurora mesh — warm top-left, violet top-right, aqua bottom, all ≤0.20
-     alpha so the void stays near-black. Blurred to melt the blob seams, plus
-     a 5% film grain so the gradient never bands. Pointer-transparent decorative
-     layers; content sits above via z-index. */
-  .shell::before {
-    content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none;
-    background: var(--aurora-warm), var(--aurora-violet), var(--aurora-aqua);
-    filter: blur(8px);
-  }
-  .shell::after {
-    content: ""; position: absolute; inset: 0; z-index: 0;
-    background-image: var(--grain);
-    opacity: 0.05; mix-blend-mode: overlay; pointer-events: none;
-  }
-  .shell > :global(*) { position: relative; z-index: 1; }
-
-  @media (prefers-reduced-motion: no-preference) {
-    .shell::before {
-      animation: aurora-drift var(--drift-slow) var(--ease-soft) infinite alternate;
-    }
-    @keyframes aurora-drift {
-      to { transform: translate3d(2.5%, 1.5%, 0) scale(1.06); opacity: 0.85; }
-    }
-  }
-  @media (prefers-reduced-transparency: reduce) {
-    .shell::before, .shell::after { display: none; }
+  /* ── Shell: black base (--shell) shows through as a 2px frame (padding) and a
+       2px seam (gap) between two rounded panels — the sidebar and the content.
+       Matches Figma: panels float on the black window base. ── */
+  .shell {
+    display: flex;
+    gap: var(--seam);
+    height: 100vh;
+    background: var(--shell);
+    border-radius: var(--r-window);
+    overflow: hidden;
   }
 
   .content {
-    flex: 1; overflow-y: auto; overflow-x: hidden;
-    background: transparent; padding: 32px;
+    flex: 1 0 0; min-width: 0; min-height: 0;
+    overflow-y: auto; overflow-x: hidden;
+    background-color: var(--bg);
+    /* notebook dot texture */
+    background-image: radial-gradient(var(--dot-grid) 1px, transparent 1.5px);
+    background-size: var(--dot-pitch) var(--dot-pitch);
+    border-radius: var(--r-card);
   }
 
-  /* ── Onboarding (preserved) ── */
+  /* ── Onboarding: columna acotada y centrada, lenguaje onnda (serif + tokens) ── */
   .ob {
-    height: 100vh; display: flex; flex-direction: column;
-    padding: 36px 22px 24px; gap: 28px;
+    min-height: 100vh; display: flex; flex-direction: column;
+    justify-content: center;
+    width: 100%; max-width: 380px; margin: 0 auto;
+    padding: var(--s10) var(--s8); gap: var(--s6); box-sizing: border-box;
   }
-  .ob-intro { display: flex; flex-direction: column; gap: 7px; }
-  .ob-intro h1 { font-size: 22px; font-weight: 600; letter-spacing: -.03em; color: var(--text); }
-  .ob-intro p { font-size: 13px; color: var(--muted); line-height: 1.7; }
+  .ob-brand { display: flex; }
+  .ob-brand :global(.wordmark) { height: 32px; }
+
+  .ob-intro { display: flex; flex-direction: column; gap: var(--s2); }
+  .ob-intro h1 {
+    font-family: var(--font-serif);
+    font-size: 30px; font-weight: 400; line-height: 1.1;
+    color: var(--text);
+  }
+  .ob-intro p { font-size: 13.5px; color: var(--text-muted); line-height: 1.65; }
 
   .perm-list { display: flex; flex-direction: column; }
-  .model-list { display: flex; flex-direction: column; gap: 8px; }
+  .model-list { display: flex; flex-direction: column; gap: var(--s2); }
 
-  .ob-foot { display: flex; flex-direction: column; gap: 10px; margin-top: auto; }
-  .hint { font-size: 11.5px; color: var(--faint); line-height: 1.55; }
+  /* Welcome step: name + optional email */
+  .ob-form { display: flex; flex-direction: column; gap: var(--s4); }
+  .ob-field { display: flex; flex-direction: column; gap: var(--s1); }
+  .ob-label {
+    font-size: 11px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+    color: var(--text-section);
+  }
+  .ob-optional { font-weight: 400; letter-spacing: 0; text-transform: none; color: var(--text-muted); }
+  .ob-input {
+    width: 100%; box-sizing: border-box;
+    background: var(--bg); color: var(--text);
+    border: 1px solid var(--line); border-radius: var(--r-nav);
+    padding: 11px 13px; font-size: 14px; font-family: var(--font-sans);
+    transition: border-color .15s;
+  }
+  .ob-input::placeholder { color: var(--text-muted); }
+  .ob-input:focus { outline: none; border-color: var(--text); }
+
+  .ob-analytics {
+    background: var(--surface);
+    border-radius: var(--r-card);
+    padding: var(--s4);
+  }
+  .analytics-detail {
+    font-size: 12.5px;
+    color: var(--text-muted);
+    line-height: 1.65;
+  }
+
+  .btn-secondary {
+    width: 100%; background: transparent; color: var(--text-muted); border: none;
+    border-radius: var(--r-nav); padding: var(--s3); font-size: 13px; font-weight: 500;
+    cursor: pointer;
+    transition: color .15s;
+  }
+  .btn-secondary:hover { color: var(--text); }
+
+  .ob-foot { display: flex; flex-direction: column; gap: var(--s3); margin-top: var(--s1); }
+  .hint { font-size: 12px; color: var(--text-muted); line-height: 1.55; }
 
   .btn-primary {
-    width: 100%; background: var(--accent); color: #fff; border: none;
-    border-radius: var(--r); padding: 11px; font-size: 13.5px; font-weight: 600;
-    cursor: pointer; letter-spacing: -.01em;
-    box-shadow: var(--accent-glow);
-    transition: opacity .15s, transform .1s, box-shadow .15s;
+    width: 100%; background: var(--nav-active-bg); color: var(--nav-active-ink); border: none;
+    border-radius: var(--r-nav); padding: 12px; font-size: 14px; font-weight: 600;
+    cursor: pointer;
+    transition: opacity .15s, transform .1s;
   }
-  .btn-primary:hover:not(:disabled) { opacity: .92; transform: translateY(-1px); }
+  .btn-primary:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
   .btn-primary:active:not(:disabled) { transform: scale(.98); }
   .btn-primary:disabled {
-    opacity: 1; cursor: default;
-    background: rgba(255,255,255,0.06); color: var(--faint);
+    cursor: default;
+    background: var(--surface); color: var(--text-muted);
     box-shadow: inset 0 0 0 1px var(--line);
   }
 
-  /* Onboarding step progress dots */
-  .ob-steps { display: flex; gap: 5px; justify-content: center; }
+  /* Onboarding step progress dots — footer indicator */
+  .ob-steps { display: flex; gap: var(--s1); justify-content: flex-start; margin-top: var(--s2); }
   .ob-step-dot {
     width: 5px; height: 5px; border-radius: 50%;
-    background: rgba(255,255,255,.18);
-    transition: background .2s;
+    background: var(--text); opacity: .18;
+    transition: opacity .2s;
   }
-  .ob-step-dot.active { background: var(--accent); box-shadow: 0 0 8px -1px rgba(255,106,61,.7); }
+  .ob-step-dot.active { opacity: 1; }
 
   /* HARDEN-04: no-model banner */
+  /* Accessibility-missing banner (onnda) — shows on any screen until granted. */
+  .a11y-banner {
+    display: flex; align-items: center; gap: var(--s3);
+    margin: var(--s4) var(--s10) 0;
+    padding: var(--s3) var(--s4);
+    border-radius: var(--r-card);
+    background: var(--surface);
+    border: 1px solid var(--danger);
+  }
+  .a11y-banner span { flex: 1; font-size: 14px; color: var(--text); line-height: 1.4; }
+  .a11y-banner strong { font-weight: 600; }
+  .a11y-banner button {
+    flex-shrink: 0;
+    background: var(--nav-active-bg); color: var(--nav-active-ink); border: none;
+    border-radius: var(--r-nav); padding: 8px 16px;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: opacity .15s;
+  }
+  .a11y-banner button:hover { opacity: .9; }
+
   .model-banner {
     display: flex; align-items: center; gap: 12px;
     padding: 10px 14px;
     margin-bottom: 16px;
     border-radius: var(--r);
-    background: rgba(255, 106, 61, 0.12);
-    border: 1px solid rgba(255, 106, 61, 0.30);
+    background: var(--surface);
+    border: 1px solid var(--danger);
   }
   .model-banner span {
     flex: 1; font-size: 12.5px; color: var(--text); line-height: 1.5;
   }
   .model-banner button {
     flex-shrink: 0;
-    background: var(--accent); color: #fff; border: none;
+    background: var(--nav-active-bg); color: var(--nav-active-ink); border: none;
     border-radius: var(--r); padding: 6px 12px;
     font-size: 12px; font-weight: 600; cursor: pointer;
     transition: opacity .15s;

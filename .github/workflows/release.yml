@@ -1,9 +1,14 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v*"
+  # Auto-release en tag DESHABILITADO temporalmente: el runner macos-15 de GitHub
+  # rompe la compilación de whisper.cpp (always_inline i8mm/clang). Mientras tanto
+  # los releases se construyen localmente (Mac del dev), que sí compila. Re-habilitar
+  # el trigger de tags cuando se arregle la CI:
+  #   push:
+  #     tags:
+  #       - "v*"
+  workflow_dispatch:
 
 jobs:
   build-macos:
@@ -13,6 +18,11 @@ jobs:
     runs-on: macos-15
     permissions:
       contents: write
+    env:
+      APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+      APPLE_ID: ${{ secrets.APPLE_ID }}
+      APPLE_APP_PASSWORD: ${{ secrets.APPLE_APP_PASSWORD }}
+      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
 
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +49,32 @@ jobs:
 
       - name: Select Xcode 26.x
         run: sudo xcode-select -s /Applications/Xcode_26.3.app/Contents/Developer
+
+      # ── Importar el certificado Developer ID a un keychain temporal ─────────
+      # Secrets requeridos (Settings → Secrets and variables → Actions):
+      #   APPLE_CERTIFICATE_BASE64    — base64 del .p12 (Developer ID Application)
+      #   APPLE_CERTIFICATE_PASSWORD  — contraseña de exportación del .p12
+      #   KEYCHAIN_PASSWORD           — cualquier cadena aleatoria (keychain temporal)
+      #   APPLE_SIGNING_IDENTITY      — "Developer ID Application: Nombre (TEAMID)"
+      - name: Import Developer ID certificate
+        env:
+          APPLE_CERTIFICATE_BASE64: ${{ secrets.APPLE_CERTIFICATE_BASE64 }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          KEYCHAIN_PASSWORD: ${{ secrets.KEYCHAIN_PASSWORD }}
+        run: |
+          CERT_PATH="$RUNNER_TEMP/certificate.p12"
+          KEYCHAIN_PATH="$RUNNER_TEMP/app-signing.keychain-db"
+          echo "$APPLE_CERTIFICATE_BASE64" | base64 --decode > "$CERT_PATH"
+          security create-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security set-keychain-settings -lut 21600 "$KEYCHAIN_PATH"
+          security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          security import "$CERT_PATH" -P "$APPLE_CERTIFICATE_PASSWORD" \
+            -A -t cert -f pkcs12 -k "$KEYCHAIN_PATH"
+          security set-key-partition-list -S apple-tool:,apple:,codesign: \
+            -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
+          # Pon el keychain temporal primero en la lista de búsqueda para codesign.
+          security list-keychain -d user -s "$KEYCHAIN_PATH" login.keychain-db
+          security find-identity -v -p codesigning "$KEYCHAIN_PATH"
 
       # ── Sidecar ASR (ambos triples, ANTES del primer tauri build) ───────────
       # Tauri verifica todos los externalBin al inicio del bundle; ambos triples
@@ -67,21 +103,36 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ""
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
 
-      - name: Sign arm64 bundle
+      - name: Sign arm64 bundle (Developer ID + hardened runtime)
         run: |
-          codesign --deep --force --sign - \
+          APP="src-tauri/target/release/bundle/macos/onnda.app"
+          # Inside-out: firma binarios anidados (sidecar/dylibs) y luego el bundle.
+          find "$APP/Contents/MacOS" -type f ! -name onnda -print0 \
+            | xargs -0 -I {} codesign --force --options runtime --timestamp \
+              --sign "$APPLE_SIGNING_IDENTITY" {}
+          codesign --force --options runtime --timestamp \
             --entitlements src-tauri/entitlements.plist \
-            "src-tauri/target/release/bundle/macos/Voz Local.app"
+            --sign "$APPLE_SIGNING_IDENTITY" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      - name: Notarize + staple arm64 app
+        run: |
+          APP="src-tauri/target/release/bundle/macos/onnda.app"
+          ditto -c -k --keepParent "$APP" "$RUNNER_TEMP/onnda-arm64.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/onnda-arm64.zip" \
+            --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "$APP"
 
       - name: Create arm64 DMG
         run: |
           VERSION=$(grep '^version' src-tauri/Cargo.toml | head -1 | cut -d'"' -f2)
           mkdir -p dist
           hdiutil create \
-            -volname "Voz Local" \
-            -srcfolder "src-tauri/target/release/bundle/macos/Voz Local.app" \
+            -volname "onnda" \
+            -srcfolder "src-tauri/target/release/bundle/macos/onnda.app" \
             -ov -format UDZO \
-            "dist/Voz Local_${VERSION}_aarch64.dmg"
+            "dist/onnda_${VERSION}_aarch64.dmg"
 
       # ── x86_64 (cross-compiled from arm64) ─────────────────────────────────
 
@@ -91,43 +142,55 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ""
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ""
 
-      - name: Sign x86_64 bundle
+      - name: Sign x86_64 bundle (Developer ID + hardened runtime)
         run: |
-          codesign --deep --force --sign - \
+          APP="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/onnda.app"
+          find "$APP/Contents/MacOS" -type f ! -name onnda -print0 \
+            | xargs -0 -I {} codesign --force --options runtime --timestamp \
+              --sign "$APPLE_SIGNING_IDENTITY" {}
+          codesign --force --options runtime --timestamp \
             --entitlements src-tauri/entitlements.plist \
-            "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Voz Local.app"
+            --sign "$APPLE_SIGNING_IDENTITY" "$APP"
+          codesign --verify --deep --strict --verbose=2 "$APP"
+
+      - name: Notarize + staple x86_64 app
+        run: |
+          APP="src-tauri/target/x86_64-apple-darwin/release/bundle/macos/onnda.app"
+          ditto -c -k --keepParent "$APP" "$RUNNER_TEMP/onnda-x86_64.zip"
+          xcrun notarytool submit "$RUNNER_TEMP/onnda-x86_64.zip" \
+            --apple-id "$APPLE_ID" --password "$APPLE_APP_PASSWORD" \
+            --team-id "$APPLE_TEAM_ID" --wait
+          xcrun stapler staple "$APP"
 
       - name: Create x86_64 DMG
         run: |
           VERSION=$(grep '^version' src-tauri/Cargo.toml | head -1 | cut -d'"' -f2)
           hdiutil create \
-            -volname "Voz Local" \
-            -srcfolder "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/Voz Local.app" \
+            -volname "onnda" \
+            -srcfolder "src-tauri/target/x86_64-apple-darwin/release/bundle/macos/onnda.app" \
             -ov -format UDZO \
-            "dist/Voz Local_${VERSION}_x86_64.dmg"
+            "dist/onnda_${VERSION}_x86_64.dmg"
 
       # ── Publish release ─────────────────────────────────────────────────────
 
       - name: Upload DMGs to Release
         uses: softprops/action-gh-release@v2
         with:
-          name: "Voz Local ${{ github.ref_name }}"
+          name: "onnda ${{ github.ref_name }}"
           body: |
             ## Descarga
 
             Elige el DMG para tu Mac:
-            - **Apple Silicon (M1/M2/M3/M4):** `Voz Local_*_aarch64.dmg`
-            - **Intel Mac:** `Voz Local_*_x86_64.dmg`
+            - **Apple Silicon (M1/M2/M3/M4):** `onnda_*_aarch64.dmg`
+            - **Intel Mac:** `onnda_*_x86_64.dmg`
 
             ## Instalación
 
-            1. Abre el `.dmg` y arrastra **Voz Local** a Aplicaciones
-            2. **Primer arranque:** clic derecho → Abrir (la app no está notarizada)
+            1. Abre el `.dmg` y arrastra **onnda** a Aplicaciones
+            2. Ábrela desde Aplicaciones (firmada y notarizada por Apple — sin avisos)
             3. Concede permisos de **Micrófono** y **Accesibilidad**
             4. Descarga un modelo Whisper desde la pantalla de bienvenida
             5. Pulsa `Alt+Espacio` para empezar a dictar
-
-            > Si macOS dice que la app está dañada: `sudo xattr -cr /Applications/Voz\ Local.app`
 
             > Requiere macOS 11 (Big Sur) o superior · Apple Silicon e Intel
           files: dist/*.dmg
