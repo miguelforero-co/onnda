@@ -2,6 +2,11 @@
 //! selecting appropriate defaults per hardware. All helpers that shell out
 //! (`sw_vers`, `sysctl`) are split into a pure parser function so tests can
 //! run without spawning subprocesses.
+//!
+//! Varios helpers solo se usan en el camino aarch64 (disponibilidad de Apple
+//! Speech). En builds x86_64 (Intel) quedan sin uso a propósito → silenciamos
+//! dead_code a nivel de módulo en vez de cfg-gatear (siguen cubiertos por tests).
+#![allow(dead_code)]
 
 /// Parse the major version from `sw_vers -productVersion` output.
 /// Examples: "26.5.1\n" → 26, "" → 0, "garbage" → 0.
