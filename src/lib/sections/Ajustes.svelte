@@ -6,6 +6,7 @@
   import HotkeyRecorder from "$lib/components/HotkeyRecorder.svelte";
   import PermissionRow from "$lib/components/PermissionRow.svelte";
   import SectionLabel from "$lib/components/ui/SectionLabel.svelte";
+  import Select from "$lib/components/ui/Select.svelte";
   import { userName } from "$lib/stores/userName.svelte";
 
   // Prop contract from 01-03 (Ajustes stub).
@@ -163,9 +164,12 @@
       <div class="sep"></div>
       <div class="row">
         <span class="row-label">Language</span>
-        <select class="sel" bind:value={settings.selected_language} onchange={() => onSave()}>
-          {#each LANGUAGES as l}<option value={l.value}>{l.label}</option>{/each}
-        </select>
+        <Select
+          bind:value={settings.selected_language}
+          options={LANGUAGES.map((l) => ({ label: l.label, value: l.value }))}
+          onchange={onSave}
+          ariaLabel="Language"
+        />
       </div>
     </div>
     <p class="section-hint">
@@ -181,17 +185,20 @@
     <div class="card">
       <div class="row">
         <span class="row-label">Active model</span>
-        <select
-          class="sel"
+        <Select
           bind:value={settings.selected_model}
-          onchange={() => onSave()}
-        >
-          {#each modelList as m (m.id)}
-            <option value={m.id} disabled={m.coming_soon || !!m.disabled_reason}>
-              {m.name}{m.size_mb > 0 ? ` · ${(m.size_mb / 1024).toFixed(1)} GB` : " · Native"}
-            </option>
-          {/each}
-        </select>
+          options={modelList.map((m) => ({
+            label: m.coming_soon
+              ? `${m.name} · coming soon`
+              : m.size_mb > 0
+              ? `${m.name} · ${(m.size_mb / 1024).toFixed(1)} GB`
+              : `${m.name} · Native`,
+            value: m.id,
+            disabled: m.coming_soon || !!m.disabled_reason,
+          }))}
+          onchange={onSave}
+          ariaLabel="Model"
+        />
       </div>
 
       {#if selectedModel}
@@ -401,28 +408,6 @@
     font-weight: 450;
     color: var(--text);
   }
-
-  /* ── Select (language + model) ── */
-  .sel {
-    font-size: 14px;
-    font-family: var(--font-sans);
-    color: var(--text);
-    background-color: var(--bg);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888888' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 10px center;
-    background-size: 12px;
-    border: 1px solid var(--line);
-    border-radius: var(--r-nav);
-    padding: 8px 34px 8px 12px;
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    cursor: pointer;
-    transition: border-color .15s;
-  }
-  .sel:hover { border-color: var(--line-strong); }
-  .sel:focus { border-color: var(--text-muted); }
 
   /* ── Model download row ── */
   .model-dl-row {
