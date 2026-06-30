@@ -112,6 +112,9 @@ pub fn run() {
                 if window.label() == "main" {
                     api.prevent_close();
                     let _ = window.hide();
+                    // Ventana oculta → salir del Dock (modo Accessory = solo barra de menú).
+                    #[cfg(target_os = "macos")]
+                    let _ = window.app_handle().set_activation_policy(tauri::ActivationPolicy::Accessory);
                 }
                 // Widget window is closed/hidden by the widget itself
             }
@@ -140,7 +143,14 @@ pub fn run() {
 
             #[cfg(target_os = "macos")]
             {
-                app.set_activation_policy(tauri::ActivationPolicy::Accessory);
+                // Política inicial: Regular (visible en Dock) si la ventana arranca visible;
+                // Accessory (solo barra de menú) si arrancamos ocultos por login item.
+                let policy = if launched_hidden {
+                    tauri::ActivationPolicy::Accessory
+                } else {
+                    tauri::ActivationPolicy::Regular
+                };
+                app.set_activation_policy(policy);
 
                 if let Some(widget) = app.get_webview_window("widget") {
                     // No vibrancy: the widget draws its own opaque black notch
@@ -204,6 +214,9 @@ fn open_main_window<R: Runtime>(app: &AppHandle<R>) {
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.set_focus();
+        // Ventana visible → aparecer en el Dock (modo Regular).
+        #[cfg(target_os = "macos")]
+        let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
     } else {
         let _ = tauri::WebviewWindowBuilder::new(
             app,
