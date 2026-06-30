@@ -569,6 +569,10 @@
        botón Continue). ── */
   .ob {
     height: 100vh; overflow-y: auto; display: flex;
+    /* Cohesión con la app: mismo gris + textura de puntos que .content (no blanco) */
+    background-color: var(--bg);
+    background-image: radial-gradient(var(--dot-grid) 1px, transparent 1.5px);
+    background-size: var(--dot-pitch) var(--dot-pitch);
   }
   .ob-inner {
     margin: auto; width: 100%; max-width: 380px;
