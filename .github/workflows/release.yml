@@ -1,9 +1,14 @@
 name: Release
 
 on:
-  push:
-    tags:
-      - "v*"
+  # Auto-release en tag DESHABILITADO temporalmente: el runner macos-15 de GitHub
+  # rompe la compilación de whisper.cpp (always_inline i8mm/clang). Mientras tanto
+  # los releases se construyen localmente (Mac del dev), que sí compila. Re-habilitar
+  # el trigger de tags cuando se arregle la CI:
+  #   push:
+  #     tags:
+  #       - "v*"
+  workflow_dispatch:
 
 jobs:
   build-macos:
