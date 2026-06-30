@@ -117,6 +117,18 @@ pub fn run() {
             }
         })
         .setup(|app| {
+            // Detectar si arrancamos por login item (tauri-plugin-autostart pasa "--hidden").
+            // Task 6 reutilizará esta variable para la política de Dock dinámica.
+            let launched_hidden = std::env::args().any(|a| a == "--hidden");
+
+            // Si arrancamos por login item, ocultamos la ventana principal:
+            // la app vive solo en la barra de menú hasta que el usuario la abra.
+            if launched_hidden {
+                if let Some(w) = app.get_webview_window("main") {
+                    let _ = w.hide();
+                }
+            }
+
             settings::init(app.handle())?;
             history::init(app.handle());
             setup_tray(app.handle())?;

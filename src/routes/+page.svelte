@@ -43,7 +43,7 @@
 
   let settings = $state<Settings>({
     shortcut: "Alt+Space", push_to_talk: false, selected_language: "auto",
-    selected_model: "large-v3-turbo", autostart: false,
+    selected_model: "large-v3-turbo", autostart: true,
     onboarding_done: false, widget_position: "center", custom_words: "",
     word_correction_threshold: 0.85,
     sounds_enabled: true,

@@ -96,7 +96,7 @@ impl Default for AppSettings {
             push_to_talk: false,
             selected_language: "auto".to_string(),
             selected_model: "large-v3-turbo".to_string(),
-            autostart: false,
+            autostart: true,
             onboarding_done: false,
             widget_position: "center".to_string(),
             custom_words: String::new(),
