@@ -17,6 +17,7 @@
     "notification:default",
     "process:allow-exit",
     "process:allow-restart",
+    "updater:default",
     "shell:allow-open",
     {
       "identifier": "shell:allow-execute",

@@ -19,6 +19,8 @@
   import Wordmark from "$lib/components/ui/Wordmark.svelte";
   import { userName } from "$lib/stores/userName.svelte";
   import { subscribe } from "$lib/subscribe";
+  import { check as checkUpdate, type Update } from "@tauri-apps/plugin-updater";
+  import { relaunch } from "@tauri-apps/plugin-process";
 
   // Window drag from the content's top header band (the title bar is hidden, so
   // the top ~56px acts as the drag handle — like Wispr Flow). Uses the same
@@ -57,6 +59,10 @@
   let obName = $state("");   // nombre para el saludo (requerido para continuar)
   let obEmail = $state("");  // correo opcional → solo se usa para la lista de lanzamiento
   let models = $state<ModelInfo[]>([]);
+  // ¿El modelo seleccionado está disponible (descargado / nativo)? Gate del paso 3.
+  const selectedModelReady = $derived(
+    models.find((m) => m.id === settings.selected_model)?.downloaded ?? false,
+  );
   let history = $state<HistoryEntry[]>([]);
   let micGranted = $state(false);
   let a11yGranted = $state(false);
@@ -72,6 +78,40 @@
   let warnMsg = $state(""); // HARDEN-05: transcribe-warning toast (auto-clears)
   let warnTimer: ReturnType<typeof setTimeout> | null = null;
   let ready = $state(false); // flash guard: nothing renders until init resolves
+
+  // ── Auto-update (Tauri updater plugin) ──────────────────────────────────────
+  let pendingUpdate: Update | null = null;       // el Update si hay uno disponible
+  let updateVersion = $state("");                // versión disponible (muestra banner)
+  let updating = $state(false);                  // descarga/instalación en curso
+  let updatePct = $state(0);                      // % de descarga
+  let updateError = $state("");
+
+  // Comprueba si hay update (silencioso: offline / sin manifest aún = no banner).
+  async function checkForUpdate() {
+    try {
+      const upd = await checkUpdate();
+      if (upd?.available) { pendingUpdate = upd; updateVersion = upd.version; }
+    } catch { /* sin red / sin release / etc. → no molestar */ }
+  }
+
+  // Descarga + instala + reinicia in-app.
+  async function installUpdate() {
+    if (!pendingUpdate || updating) return;
+    updating = true; updateError = ""; updatePct = 0;
+    try {
+      let total = 0, got = 0;
+      await pendingUpdate.downloadAndInstall((e) => {
+        if (e.event === "Started") total = e.data.contentLength ?? 0;
+        else if (e.event === "Progress") { got += e.data.chunkLength; updatePct = total ? Math.round((got / total) * 100) : 0; }
+        else if (e.event === "Finished") updatePct = 100;
+      });
+      await relaunch();
+    } catch (e) {
+      updateError = "Update failed. Try again later.";
+      updating = false;
+      console.error("[update]", e);
+    }
+  }
 
   const unlisten: (() => void)[] = [];
 
@@ -90,6 +130,12 @@
     settings = await invoke("get_settings");
     models = await invoke("get_models");
     await checkPerms();
+
+    // Si el motor seleccionado es Apple, caliéntalo al arrancar para que el primer
+    // dictado no sufra el cold-start del modelo on-device de macOS.
+    if (settings.selected_model === "apple-speech") {
+      invoke("warm_apple_engine").catch(() => {});
+    }
 
     if (!settings.onboarding_done) {
       // Empieza en el paso "welcome" (nombre + correo). El polling de permisos
@@ -158,6 +204,9 @@
 
     initialized = true;
     ready = true;
+
+    // Comprobar updates en segundo plano (no bloquea el arranque).
+    void checkForUpdate();
   });
 
   onDestroy(() => {
@@ -226,6 +275,7 @@
 {#if view === "onboarding"}
   <!-- ── ONBOARDING (precedes the shell) ── -->
   <div class="ob">
+   <div class="ob-inner">
     <div class="ob-brand"><Wordmark /></div>
 
     {#if obStep === "welcome"}
@@ -297,27 +347,33 @@
       </div>
 
     {:else if obStep === "models"}
-      <!-- Step 2: download a model -->
+      <!-- Step 3: choose a model (Apple needs no download; Whisper downloads). -->
       <div class="ob-intro">
-        <h1>Download a model</h1>
-        <p>Choose a recognition model.<br>It's saved on your Mac and works offline.</p>
+        <h1>Choose a model</h1>
+        <p>Apple's engine is instant and needs no download.<br>Whisper models run offline once downloaded.</p>
       </div>
 
       <div class="model-list">
         {#each models as m}
           <ModelCard
             model={m}
+            selected={settings.selected_model === m.id}
             progress={downloadProgress[m.id]}
             error={downloadErrors[m.id]}
             onDownload={startDownload}
+            onSelect={(id) => {
+              settings.selected_model = id;
+              schedSave();
+              if (id === "apple-speech") invoke("warm_apple_engine").catch(() => {});
+            }}
           />
         {/each}
       </div>
 
       <div class="ob-foot">
-        <p class="hint">You can download more models from Settings at any time.</p>
-        <button class="btn-primary" disabled={!models.some(m => m.downloaded)} onclick={() => { obStep = "analytics"; }}>
-          {models.some(m => m.downloaded) ? "Continue" : "Download at least one model…"}
+        <p class="hint">Tap a model to select it. You can change it anytime in Settings.</p>
+        <button class="btn-primary" disabled={!selectedModelReady} onclick={() => { schedSave(); obStep = "analytics"; }}>
+          {selectedModelReady ? "Continue" : "Select an available model to continue"}
         </button>
       </div>
 
@@ -348,6 +404,7 @@
       <div class="ob-step-dot" class:active={obStep === "models"}></div>
       <div class="ob-step-dot" class:active={obStep === "analytics"}></div>
     </div>
+   </div>
   </div>
 {:else}
   <!-- ── SHELL (sidebar + content fill to the top; traffic lights float over the
@@ -369,6 +426,20 @@
         <div class="model-banner">
           <span>No voice model downloaded. Download one to start dictating.</span>
           <button onclick={() => { view = "ajustes"; }}>Download model</button>
+        </div>
+      {/if}
+      {#if updateVersion}
+        <!-- Auto-update: descarga + instala + reinicia sin tocar el DMG. -->
+        <div class="update-banner">
+          {#if updating}
+            <span>Updating onnda… {updatePct}%</span>
+          {:else if updateError}
+            <span>{updateError}</span>
+            <button onclick={installUpdate}>Retry</button>
+          {:else}
+            <span>onnda <strong>{updateVersion}</strong> is available.</span>
+            <button onclick={installUpdate}>Update &amp; restart</button>
+          {/if}
         </div>
       {/if}
       {#if view === "home"}
@@ -426,12 +497,17 @@
     border-radius: var(--r-card);
   }
 
-  /* ── Onboarding: columna acotada y centrada, lenguaje onnda (serif + tokens) ── */
+  /* ── Onboarding: columna acotada. .ob es el scroll-container a pantalla
+       completa; .ob-inner se centra con margin:auto (centra si cabe, hace scroll
+       desde arriba si el contenido es más alto que la ventana — sin recortar el
+       botón Continue). ── */
   .ob {
-    min-height: 100vh; display: flex; flex-direction: column;
-    justify-content: center;
-    width: 100%; max-width: 380px; margin: 0 auto;
-    padding: var(--s10) var(--s8); gap: var(--s6); box-sizing: border-box;
+    height: 100vh; overflow-y: auto; display: flex;
+  }
+  .ob-inner {
+    margin: auto; width: 100%; max-width: 380px;
+    display: flex; flex-direction: column;
+    padding: var(--s8) var(--s8); gap: var(--s6); box-sizing: border-box;
   }
   .ob-brand { display: flex; }
   .ob-brand :global(.wordmark) { height: 32px; }
@@ -550,6 +626,26 @@
     transition: opacity .15s;
   }
   .model-banner button:hover { opacity: .88; }
+
+  /* Auto-update banner — tono positivo (no destructivo) */
+  .update-banner {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    border-radius: var(--r-nav);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+  }
+  .update-banner span { flex: 1; font-size: 12.5px; color: var(--text); line-height: 1.5; }
+  .update-banner strong { font-weight: 600; }
+  .update-banner button {
+    flex-shrink: 0;
+    background: var(--nav-active-bg); color: var(--nav-active-ink); border: none;
+    border-radius: var(--r-nav); padding: 6px 12px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: opacity .15s;
+  }
+  .update-banner button:hover { opacity: .88; }
 
   /* HARDEN-05: transcribe-warning toast */
   .warn-toast {

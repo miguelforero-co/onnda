@@ -64,9 +64,29 @@ pub(crate) fn prompt_ax_trust() -> bool {
     }
 }
 
+// Anti-doble-paste: último texto pegado + cuándo. Si un disparo doble (atajo/stop
+// que se ejecuta dos veces) pide pegar el MISMO texto en una ventana corta, lo
+// suprimimos para que no aparezca "texto texto". Punto único: cubre cualquier
+// origen del doble disparo. Loguea al suprimir → deja evidencia de la causa raíz.
+static LAST_PASTE: std::sync::Mutex<Option<(String, std::time::Instant)>> =
+    std::sync::Mutex::new(None);
+const PASTE_DEDUP_MS: u128 = 1200;
+
 /// Write `text` to the clipboard and simulate Cmd+V in the foreground app.
 /// No-op on non-macOS builds (paste is macOS-only at this time).
 pub(crate) fn paste_text(text: &str) {
+    {
+        let mut last = LAST_PASTE.lock().unwrap();
+        let now = std::time::Instant::now();
+        if let Some((prev, when)) = last.as_ref() {
+            if prev == text && now.duration_since(*when).as_millis() < PASTE_DEDUP_MS {
+                log::warn!("[onnda] suppressed duplicate paste within {PASTE_DEDUP_MS}ms");
+                return;
+            }
+        }
+        *last = Some((text.to_string(), now));
+    }
+
     #[cfg(target_os = "macos")]
     {
         // 1. Write to clipboard using NSPasteboard directly — avoids pbcopy's locale

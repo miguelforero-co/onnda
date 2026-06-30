@@ -16,6 +16,7 @@ pub fn install<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     use objc2_app_kit::{NSEvent, NSEventMask};
     use objc2_foundation::MainThreadMarker;
     use std::ptr::NonNull;
+    use tauri::Emitter;
 
     if MainThreadMarker::new().is_none() {
         log::warn!("[escape] not on main thread; skipping monitor install");
@@ -26,11 +27,20 @@ pub fn install<R: tauri::Runtime>(app: &tauri::AppHandle<R>) {
     let handler = RcBlock::new(move |event: NonNull<NSEvent>| {
         const ESCAPE: u16 = 53; // kVK_Escape
         let key_code = unsafe { event.as_ref().keyCode() };
-        if key_code == ESCAPE && crate::recording::is_recording() {
+        if key_code != ESCAPE {
+            return;
+        }
+        if crate::recording::is_recording() {
+            // Grabando: cancelar la captura (descarta audio, cierra notch).
             let app = app.clone();
             tauri::async_runtime::spawn(async move {
                 crate::recording::cancel_recording_internal(app).await;
             });
+        } else if crate::recording::is_transcribing() {
+            // Transcribiendo (post-stop): descartar el resultado y cerrar el notch
+            // para que un motor lento/colgado no deje el notch atascado sin salida.
+            crate::recording::request_cancel_transcription();
+            app.emit("recording-cancelled", ()).ok();
         }
     });
 

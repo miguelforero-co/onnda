@@ -16,6 +16,16 @@ use crate::whisper_backend::WhisperBackend;
 pub(crate) static IS_RECORDING: AtomicBool = AtomicBool::new(false);
 static CAPTURE: Mutex<Option<AudioCapture>> = Mutex::new(None);
 
+// ── Fase de transcripción (post-stop) ───────────────────────────────────────
+// IS_TRANSCRIBING es true mientras se espera al motor (whisper/Apple) tras soltar.
+// En esa fase IS_RECORDING ya es false, así que Escape no podía cerrar el notch:
+// CANCEL_TRANSCRIPTION permite que Escape descarte el resultado y cierre el notch.
+// El timeout garantiza que el notch NUNCA quede colgado si el sidecar Apple se cuelga
+// (p.ej. cold-start mientras macOS aprovisiona el modelo on-device).
+pub(crate) static IS_TRANSCRIBING: AtomicBool = AtomicBool::new(false);
+static CANCEL_TRANSCRIPTION: AtomicBool = AtomicBool::new(false);
+const TRANSCRIBE_TIMEOUT_SECS: u64 = 45;
+
 // ── Streaming (incremental) transcription state ─────────────────────────────
 // While recording, completed speech segments (audio up to a real pause) are
 // transcribed and their text committed here, in order. COMMITTED_SAMPLES tracks
@@ -30,6 +40,16 @@ static STREAM_HANDLE: Mutex<Option<tauri::async_runtime::JoinHandle<()>>> = Mute
 
 pub(crate) fn is_recording() -> bool {
     IS_RECORDING.load(Ordering::SeqCst)
+}
+
+pub(crate) fn is_transcribing() -> bool {
+    IS_TRANSCRIBING.load(Ordering::SeqCst)
+}
+
+/// Pide descartar la transcripción en curso (Escape durante la fase de transcripción).
+/// El await sigue corriendo en background pero su resultado se ignora (sin paste/guardar).
+pub(crate) fn request_cancel_transcription() {
+    CANCEL_TRANSCRIPTION.store(true, Ordering::SeqCst);
 }
 
 // ── Recording state machine ───────────────────────────────────────────────────
@@ -190,6 +210,10 @@ pub(crate) fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result
 
 pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) {
     let capture = CAPTURE.lock().unwrap().take();
+    // Diagnóstico del doble-paste: si esto entra dos veces por un dictado, el log
+    // lo muestra (la segunda con capture=false). Junto con "suppressed duplicate
+    // paste" en paste.rs, deja clara la causa raíz.
+    log::info!("[onnda] stop_and_transcribe_internal entered (capture={})", capture.is_some());
     IS_RECORDING.store(false, Ordering::SeqCst);
     app.emit("recording-state", false).ok();
 
@@ -299,32 +323,57 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
     let lang_tail = language.clone();
     let prompt_tail = custom_words.clone();
     let min_tail = (sample_rate as usize) / 10; // 100ms — skip a negligible tail
+    // Marca la fase de transcripción: habilita que Escape cierre el notch y que el
+    // timeout lo libere si el motor (sobre todo el sidecar Apple en cold-start) cuelga.
+    CANCEL_TRANSCRIPTION.store(false, Ordering::SeqCst);
+    IS_TRANSCRIBING.store(true, Ordering::SeqCst);
     let tail_result = if tail.len() > min_tail {
-        if is_apple {
-            // Apple SpeechAnalyzer via the async sidecar (no spawn_blocking).
-            match crate::speech_backend::apple_transcribe(&app, &tail, sample_rate, &lang_tail).await {
-                Ok(t) => Ok(Ok(t)),
-                Err(e) => Ok(Err(e)),
+        let transcribe = async {
+            if is_apple {
+                // Apple SpeechAnalyzer via the async sidecar (no spawn_blocking).
+                match crate::speech_backend::apple_transcribe(&app, &tail, sample_rate, &lang_tail).await {
+                    Ok(t) => Ok(Ok(t)),
+                    Err(e) => Ok(Err(e)),
+                }
+            } else {
+                tokio::task::spawn_blocking(move || {
+                    WhisperBackend::new(model_path_str).transcribe(
+                        &tail,
+                        &TranscribeOpts {
+                            language: lang_tail,
+                            initial_prompt: prompt_tail,
+                            word_correction_threshold: 1.0,
+                            sample_rate,
+                        },
+                    )
+                })
+                .await
             }
-        } else {
-            tokio::task::spawn_blocking(move || {
-                WhisperBackend::new(model_path_str).transcribe(
-                    &tail,
-                    &TranscribeOpts {
-                        language: lang_tail,
-                        initial_prompt: prompt_tail,
-                        word_correction_threshold: 1.0,
-                        sample_rate,
-                    },
-                )
-            })
-            .await
+        };
+        // Nunca dejar el notch colgado: si el motor no responde en N s, abortar con error.
+        match tokio::time::timeout(
+            std::time::Duration::from_secs(TRANSCRIBE_TIMEOUT_SECS),
+            transcribe,
+        )
+        .await
+        {
+            Ok(r) => r,
+            Err(_) => Ok(Err(anyhow::anyhow!(
+                "Transcription timed out. The engine may still be warming up — try again."
+            ))),
         }
     } else {
         Ok(Ok(String::new()))
     };
 
+    IS_TRANSCRIBING.store(false, Ordering::SeqCst);
     app.emit("transcribing", false).ok();
+
+    // Si Escape canceló durante la transcripción: descartar el resultado y cerrar el
+    // notch sin pegar nada (el notch ya recibió recording-cancelled desde escape.rs).
+    if CANCEL_TRANSCRIPTION.swap(false, Ordering::SeqCst) {
+        return;
+    }
 
     // If the tail fails but we already committed segments, fall back to those.
     let tail_text = match tail_result {

@@ -38,10 +38,16 @@ pub fn init<R: Runtime>(app: &AppHandle<R>) {
 
 pub fn load<R: Runtime>(app: &AppHandle<R>) -> Vec<HistoryEntry> {
     let path = history_path(app);
-    fs::read_to_string(&path)
+    let mut entries: Vec<HistoryEntry> = fs::read_to_string(&path)
         .ok()
         .and_then(|s| serde_json::from_str(&s).ok())
-        .unwrap_or_default()
+        .unwrap_or_default();
+    // Defensa: ids duplicados rompen el `{#each ... (e.id)}` de Svelte 5
+    // (each_key_duplicate) y dejan la página de Transcriptions sin renderizar.
+    // Dedup por id conservando el primero (el más reciente, por insert(0)).
+    let mut seen = std::collections::HashSet::new();
+    entries.retain(|e| seen.insert(e.id.clone()));
+    entries
 }
 
 pub fn save_entry<R: Runtime>(
@@ -56,7 +62,24 @@ pub fn save_entry<R: Runtime>(
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()
         .as_millis() as i64;
-    let id = ts.to_string();
+
+    // Carga existente una vez (la reusamos abajo al insertar).
+    let mut history = load(app);
+    // Dedup de doble-guardado: si un dictado se procesa dos veces (doble disparo de
+    // stop), no guardamos la entrada repetida. Si la más reciente tiene el MISMO
+    // texto en los últimos 2s, devolvemos esa en vez de crear otra.
+    if let Some(latest) = history.first() {
+        if latest.text == text && (ts - latest.timestamp_ms).abs() < 2000 {
+            log::warn!("[onnda] skipped duplicate history entry (same text within 2s)");
+            return latest.clone();
+        }
+    }
+
+    // id único aunque dos guardados caigan en el mismo milisegundo (timestamp solo
+    // no basta: causaba ids duplicados → each_key_duplicate). Sufijo monotónico.
+    static SAVE_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::AtomicU64::new(0);
+    let seq = SAVE_SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+    let id = format!("{ts}-{seq}");
     let duration_secs = samples.len() as f32 / sample_rate as f32;
 
     let audio_filename = if !samples.is_empty() {
@@ -83,7 +106,6 @@ pub fn save_entry<R: Runtime>(
         original_text: None,
     };
 
-    let mut history = load(app);
     history.insert(0, entry.clone());
     history.truncate(200);
     if let Ok(json) = serde_json::to_string_pretty(&history) {
