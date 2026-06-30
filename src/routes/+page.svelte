@@ -89,12 +89,36 @@
   let updatePct = $state(0);                      // % de descarga
   let updateError = $state("");
 
+  let updateChecking = $state(false);            // check manual en curso (Ajustes)
+  let updateUpToDate = $state(false);            // último check no encontró update
+
+  // Loguea a disco (Rust) para tener rastro del updater fuera de la consola del webview.
+  function logUpdate(msg: string) {
+    invoke("log_frontend", { msg: `[update] ${msg}` }).catch(() => {});
+  }
+
   // Comprueba si hay update (silencioso: offline / sin manifest aún = no banner).
   async function checkForUpdate() {
     try {
       const upd = await checkUpdate();
-      if (upd?.available) { pendingUpdate = upd; updateVersion = upd.version; }
-    } catch { /* sin red / sin release / etc. → no molestar */ }
+      if (upd?.available) { pendingUpdate = upd; updateVersion = upd.version; logUpdate(`available: ${upd.version}`); }
+    } catch (e) { logUpdate(`check failed: ${e}`); /* sin red / sin release → no molestar */ }
+  }
+
+  // Check manual (desde Ajustes): reporta estado para mostrar en la UI.
+  async function checkForUpdateManual() {
+    if (updateChecking || updating) return;
+    updateChecking = true; updateError = ""; updateUpToDate = false;
+    try {
+      const upd = await checkUpdate();
+      if (upd?.available) { pendingUpdate = upd; updateVersion = upd.version; logUpdate(`manual check: ${upd.version} available`); }
+      else { updateUpToDate = true; logUpdate("manual check: up to date"); }
+    } catch (e) {
+      updateError = String(e instanceof Error ? e.message : e) || "Could not check for updates.";
+      logUpdate(`manual check failed: ${e}`);
+    } finally {
+      updateChecking = false;
+    }
   }
 
   // Descarga + instala + reinicia in-app.
@@ -103,15 +127,19 @@
     updating = true; updateError = ""; updatePct = 0;
     try {
       let total = 0, got = 0;
+      logUpdate(`installing ${updateVersion}…`);
       await pendingUpdate.downloadAndInstall((e) => {
-        if (e.event === "Started") total = e.data.contentLength ?? 0;
+        if (e.event === "Started") { total = e.data.contentLength ?? 0; logUpdate(`download started (${total} bytes)`); }
         else if (e.event === "Progress") { got += e.data.chunkLength; updatePct = total ? Math.round((got / total) * 100) : 0; }
-        else if (e.event === "Finished") updatePct = 100;
+        else if (e.event === "Finished") { updatePct = 100; logUpdate("download finished, installing"); }
       });
+      logUpdate("installed, relaunching");
       await relaunch();
     } catch (e) {
-      updateError = "Update failed. Try again later.";
+      // Mostrar el error REAL (no genérico) para poder diagnosticar.
+      updateError = String(e instanceof Error ? e.message : e) || "Update failed.";
       updating = false;
+      logUpdate(`FAILED: ${e}`);
       console.error("[update]", e);
     }
   }
@@ -527,6 +555,9 @@
         <Ajustes
           {settings} {models} {downloadProgress} {downloadErrors}
           {micGranted} {a11yGranted} {appVersion} {buildHash}
+          {updateVersion} {updating} {updatePct} {updateError} {updateChecking} {updateUpToDate}
+          onCheckUpdates={checkForUpdateManual}
+          onInstallUpdate={installUpdate}
           onSave={(sc) => schedSave(sc)}
           onDownload={startDownload}
           onCheckPerms={checkPerms}
