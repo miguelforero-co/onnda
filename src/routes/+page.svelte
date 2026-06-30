@@ -10,7 +10,6 @@
 
   import Sidebar from "$lib/components/Sidebar.svelte";
   import PermissionRow from "$lib/components/PermissionRow.svelte";
-  import ModelCard from "$lib/components/ModelCard.svelte";
   import Home from "$lib/sections/Home.svelte";
   import Transcripciones from "$lib/sections/Transcripciones.svelte";
   import Importar from "$lib/sections/Importar.svelte";
@@ -65,6 +64,8 @@
   const selectedModelReady = $derived(
     models.find((m) => m.id === settings.selected_model)?.downloaded ?? false,
   );
+  // ModelInfo del modelo actualmente seleccionado (para la fila de descarga en onboarding).
+  const selectedModelForDl = $derived(models.find((m) => m.id === settings.selected_model));
   let history = $state<HistoryEntry[]>([]);
   let micGranted = $state(false);
   let a11yGranted = $state(false);
@@ -143,9 +144,12 @@
       // Empieza en el paso "welcome" (nombre + correo). El polling de permisos
       // arranca al pasar al paso "perms" (finishWelcome).
       view = "onboarding";
-      // Preseleccionar idioma del sistema si está en la lista; si no, dejar "auto".
-      const sysLang = (navigator.language || "").slice(0, 2);
-      if (LANGUAGES.some((l) => l.value === sysLang)) settings.selected_language = sysLang;
+      // Preseleccionar idioma del sistema solo si el usuario aún no eligió uno (guard para
+      // reinicio a mitad del onboarding: no pisar una selección ya guardada).
+      if (!settings.selected_language || settings.selected_language === "auto") {
+        const sysLang = (navigator.language || "").slice(0, 2);
+        if (LANGUAGES.some((l) => l.value === sysLang)) settings.selected_language = sysLang;
+      }
     } else {
       view = "home";
       history = await invoke("get_history");
@@ -253,6 +257,12 @@
       delete downloadProgress[modelId];
       downloadProgress = { ...downloadProgress };
     }
+  }
+
+  // Llamado al cambiar modelo en el dropdown del onboarding: guarda y calienta Apple si aplica.
+  function onModelChange() {
+    schedSave();
+    if (settings.selected_model === "apple-speech") invoke("warm_apple_engine").catch(() => {});
   }
 
   async function finishOnboarding() {
@@ -373,25 +383,42 @@
         <p>Apple's engine is instant and needs no download.<br>Whisper models run offline once downloaded.</p>
       </div>
 
-      <div class="model-list">
-        {#each models as m}
-          <ModelCard
-            model={m}
-            selected={settings.selected_model === m.id}
-            progress={downloadProgress[m.id]}
-            error={downloadErrors[m.id]}
-            onDownload={startDownload}
-            onSelect={(id) => {
-              settings.selected_model = id;
-              schedSave();
-              if (id === "apple-speech") invoke("warm_apple_engine").catch(() => {});
-            }}
-          />
-        {/each}
-      </div>
+      <!-- Dropdown compacto de modelos (mismo patrón que Ajustes) -->
+      <Select
+        bind:value={settings.selected_model}
+        options={models.map((m) => ({
+          label: m.coming_soon ? `${m.name} · coming soon` : m.name,
+          value: m.id,
+          disabled: m.coming_soon || !!m.disabled_reason,
+        }))}
+        onchange={onModelChange}
+        ariaLabel="Transcription model"
+      />
+
+      <!-- Fila de descarga del modelo seleccionado (mismo patrón que Ajustes .model-dl-row) -->
+      {#if selectedModelForDl}
+        <div class="model-dl-row">
+          {#if downloadProgress[settings.selected_model]}
+            <div class="dl-bar-wrap">
+              <div class="dl-bar" style="width:{downloadProgress[settings.selected_model].percent}%"></div>
+            </div>
+            <span class="dl-pct">{Math.round(downloadProgress[settings.selected_model].percent)}%</span>
+          {:else if selectedModelForDl.downloaded}
+            <span class="dot-on-indicator"></span>
+            <span class="dl-status">Downloaded</span>
+          {:else}
+            <button class="btn-primary btn-dl" onclick={() => startDownload(settings.selected_model)}>
+              Download
+            </button>
+          {/if}
+          {#if downloadErrors[settings.selected_model]}
+            <span class="dl-error">{downloadErrors[settings.selected_model]}</span>
+          {/if}
+        </div>
+      {/if}
 
       <div class="ob-foot">
-        <p class="hint">Tap a model to select it. You can change it anytime in Settings.</p>
+        <p class="hint">You can change the model anytime in Settings.</p>
         <button class="btn-primary" disabled={!selectedModelReady} onclick={() => { schedSave(); obStep = "analytics"; }}>
           {selectedModelReady ? "Continue" : "Select an available model to continue"}
         </button>
@@ -543,7 +570,34 @@
   .ob-intro p { font-size: 13.5px; color: var(--text-muted); line-height: 1.65; }
 
   .perm-list { display: flex; flex-direction: column; }
-  .model-list { display: flex; flex-direction: column; gap: var(--s2); }
+
+  /* Fila de descarga del modelo (onboarding, mismo patrón que Ajustes) */
+  .model-dl-row {
+    display: flex;
+    align-items: center;
+    gap: var(--s3);
+    min-height: 32px;
+  }
+  .dot-on-indicator {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--dot-on); flex-shrink: 0;
+  }
+  .dl-status { font-size: 13px; color: var(--text-muted); }
+  .dl-bar-wrap {
+    width: 100px; height: 4px;
+    background: var(--line); border-radius: 2px; overflow: hidden;
+  }
+  .dl-bar {
+    height: 100%; background: var(--dot-on);
+    border-radius: 2px; transition: width .3s linear;
+  }
+  .dl-pct {
+    font-size: 12px; color: var(--text-muted);
+    font-variant-numeric: tabular-nums; min-width: 32px;
+  }
+  .dl-error { font-size: 12px; color: var(--text-muted); }
+  /* Download button en onboarding: ancho automático (no full-width) */
+  .btn-dl { width: auto; padding: 8px 18px; font-size: 13px; }
 
   /* Welcome step: name + optional email */
   .ob-form { display: flex; flex-direction: column; gap: var(--s4); }
