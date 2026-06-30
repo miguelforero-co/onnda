@@ -118,6 +118,18 @@ pub fn is_recording_cmd() -> bool {
     crate::recording::is_recording()
 }
 
+/// Calienta el motor Apple SpeechAnalyzer: dispara en background el aprovisionamiento
+/// del modelo Speech on-device de macOS (que en el primer uso descarga/inicializa y
+/// puede tardar), para que el PRIMER dictado real no sufra el cold-start que dejaba el
+/// notch colgado. Fire-and-forget: ignora el resultado. Llamar al seleccionar Apple.
+#[tauri::command]
+pub fn warm_apple_engine(app: tauri::AppHandle) {
+    tauri::async_runtime::spawn(async move {
+        let silence = vec![0.0f32; 8000]; // 0.5s @ 16kHz, sólo para provocar la carga
+        let _ = crate::speech_backend::apple_transcribe(&app, &silence, 16000, "auto").await;
+    });
+}
+
 // ── Paste / build info ─────────────────────────────────────────────────────
 
 /// Returns "ok" if paste should work, or an error description if not

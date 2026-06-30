@@ -57,6 +57,10 @@
   let obName = $state("");   // nombre para el saludo (requerido para continuar)
   let obEmail = $state("");  // correo opcional → solo se usa para la lista de lanzamiento
   let models = $state<ModelInfo[]>([]);
+  // ¿El modelo seleccionado está disponible (descargado / nativo)? Gate del paso 3.
+  const selectedModelReady = $derived(
+    models.find((m) => m.id === settings.selected_model)?.downloaded ?? false,
+  );
   let history = $state<HistoryEntry[]>([]);
   let micGranted = $state(false);
   let a11yGranted = $state(false);
@@ -90,6 +94,12 @@
     settings = await invoke("get_settings");
     models = await invoke("get_models");
     await checkPerms();
+
+    // Si el motor seleccionado es Apple, caliéntalo al arrancar para que el primer
+    // dictado no sufra el cold-start del modelo on-device de macOS.
+    if (settings.selected_model === "apple-speech") {
+      invoke("warm_apple_engine").catch(() => {});
+    }
 
     if (!settings.onboarding_done) {
       // Empieza en el paso "welcome" (nombre + correo). El polling de permisos
@@ -226,6 +236,7 @@
 {#if view === "onboarding"}
   <!-- ── ONBOARDING (precedes the shell) ── -->
   <div class="ob">
+   <div class="ob-inner">
     <div class="ob-brand"><Wordmark /></div>
 
     {#if obStep === "welcome"}
@@ -297,27 +308,33 @@
       </div>
 
     {:else if obStep === "models"}
-      <!-- Step 2: download a model -->
+      <!-- Step 3: choose a model (Apple needs no download; Whisper downloads). -->
       <div class="ob-intro">
-        <h1>Download a model</h1>
-        <p>Choose a recognition model.<br>It's saved on your Mac and works offline.</p>
+        <h1>Choose a model</h1>
+        <p>Apple's engine is instant and needs no download.<br>Whisper models run offline once downloaded.</p>
       </div>
 
       <div class="model-list">
         {#each models as m}
           <ModelCard
             model={m}
+            selected={settings.selected_model === m.id}
             progress={downloadProgress[m.id]}
             error={downloadErrors[m.id]}
             onDownload={startDownload}
+            onSelect={(id) => {
+              settings.selected_model = id;
+              schedSave();
+              if (id === "apple-speech") invoke("warm_apple_engine").catch(() => {});
+            }}
           />
         {/each}
       </div>
 
       <div class="ob-foot">
-        <p class="hint">You can download more models from Settings at any time.</p>
-        <button class="btn-primary" disabled={!models.some(m => m.downloaded)} onclick={() => { obStep = "analytics"; }}>
-          {models.some(m => m.downloaded) ? "Continue" : "Download at least one model…"}
+        <p class="hint">Tap a model to select it. You can change it anytime in Settings.</p>
+        <button class="btn-primary" disabled={!selectedModelReady} onclick={() => { schedSave(); obStep = "analytics"; }}>
+          {selectedModelReady ? "Continue" : "Select an available model to continue"}
         </button>
       </div>
 
@@ -348,6 +365,7 @@
       <div class="ob-step-dot" class:active={obStep === "models"}></div>
       <div class="ob-step-dot" class:active={obStep === "analytics"}></div>
     </div>
+   </div>
   </div>
 {:else}
   <!-- ── SHELL (sidebar + content fill to the top; traffic lights float over the
@@ -426,12 +444,17 @@
     border-radius: var(--r-card);
   }
 
-  /* ── Onboarding: columna acotada y centrada, lenguaje onnda (serif + tokens) ── */
+  /* ── Onboarding: columna acotada. .ob es el scroll-container a pantalla
+       completa; .ob-inner se centra con margin:auto (centra si cabe, hace scroll
+       desde arriba si el contenido es más alto que la ventana — sin recortar el
+       botón Continue). ── */
   .ob {
-    min-height: 100vh; display: flex; flex-direction: column;
-    justify-content: center;
-    width: 100%; max-width: 380px; margin: 0 auto;
-    padding: var(--s10) var(--s8); gap: var(--s6); box-sizing: border-box;
+    height: 100vh; overflow-y: auto; display: flex;
+  }
+  .ob-inner {
+    margin: auto; width: 100%; max-width: 380px;
+    display: flex; flex-direction: column;
+    padding: var(--s8) var(--s8); gap: var(--s6); box-sizing: border-box;
   }
   .ob-brand { display: flex; }
   .ob-brand :global(.wordmark) { height: 32px; }

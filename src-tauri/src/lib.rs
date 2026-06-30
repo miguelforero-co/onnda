@@ -82,6 +82,7 @@ pub fn run() {
             commands::stop_and_transcribe,
             recording::transcribe_file,
             commands::is_recording_cmd,
+            commands::warm_apple_engine,
             models::get_models,
             models::download_model,
             models::check_model_status,
