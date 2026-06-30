@@ -508,6 +508,9 @@
           {/if}
         </div>
       {/if}
+      <!-- Cascadeo sutil al cambiar de vista: el wrapper se remonta con {#key view} -->
+      {#key view}
+      <div class="page-enter">
       {#if view === "home"}
         <Home {history} />
       {/if}
@@ -529,6 +532,8 @@
           onCheckPerms={checkPerms}
         />
       {/if}
+      </div>
+      {/key}
     </main>
   </div>
 {/if}
@@ -561,6 +566,35 @@
     background-image: radial-gradient(var(--dot-grid) 1px, transparent 1.5px);
     background-size: var(--dot-pitch) var(--dot-pitch);
     border-radius: var(--r-card);
+  }
+
+  /* ── Cascadeo de entrada por página (muy sutil). El wrapper .page-enter se
+       remonta con {#key view}; la página hace un fade y sus hijos directos
+       (nietos del wrapper) suben en cascada escalonada. ── */
+  :global(.page-enter) {
+    height: 100%;
+    animation: page-in 0.28s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  @keyframes page-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  :global(.page-enter > * > *) {
+    animation: cascade-in 0.34s cubic-bezier(0.4, 0, 0.2, 1) both;
+  }
+  :global(.page-enter > * > *:nth-child(1)) { animation-delay: 0.02s; }
+  :global(.page-enter > * > *:nth-child(2)) { animation-delay: 0.06s; }
+  :global(.page-enter > * > *:nth-child(3)) { animation-delay: 0.10s; }
+  :global(.page-enter > * > *:nth-child(4)) { animation-delay: 0.14s; }
+  :global(.page-enter > * > *:nth-child(5)) { animation-delay: 0.18s; }
+  :global(.page-enter > * > *:nth-child(n + 6)) { animation-delay: 0.22s; }
+  @keyframes cascade-in {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: none; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    :global(.page-enter),
+    :global(.page-enter > * > *) { animation: none; }
   }
 
   /* ── Onboarding: columna acotada. .ob es el scroll-container a pantalla
