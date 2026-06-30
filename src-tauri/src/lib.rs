@@ -211,12 +211,14 @@ fn setup_tray<R: Runtime>(app: &AppHandle<R>) -> tauri::Result<()> {
 }
 
 fn open_main_window<R: Runtime>(app: &AppHandle<R>) {
+    // Ventana visible → aparecer en el Dock (modo Regular). Se hace ANTES de show()/set_focus():
+    // una app Accessory no puede traer su ventana al frente de forma fiable, así que primero
+    // pasamos a Regular y luego mostramos/enfocamos para que la ventana suba bien.
+    #[cfg(target_os = "macos")]
+    let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.set_focus();
-        // Ventana visible → aparecer en el Dock (modo Regular).
-        #[cfg(target_os = "macos")]
-        let _ = app.set_activation_policy(tauri::ActivationPolicy::Regular);
     } else {
         let _ = tauri::WebviewWindowBuilder::new(
             app,
