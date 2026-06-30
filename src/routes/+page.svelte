@@ -17,7 +17,9 @@
   import Diccionario from "$lib/sections/Diccionario.svelte";
   import Ajustes from "$lib/sections/Ajustes.svelte";
   import Wordmark from "$lib/components/ui/Wordmark.svelte";
+  import Select from "$lib/components/ui/Select.svelte";
   import { userName } from "$lib/stores/userName.svelte";
+  import { LANGUAGES } from "$lib/constants";
   import { subscribe } from "$lib/subscribe";
   import { check as checkUpdate, type Update } from "@tauri-apps/plugin-updater";
   import { relaunch } from "@tauri-apps/plugin-process";
@@ -54,8 +56,8 @@
     analytics_enabled: false,
   });
   let view = $state<View>("home");
-  // onboarding steps: "welcome" (name + optional email) → "perms" → "models" → "analytics"
-  let obStep = $state<"welcome" | "perms" | "models" | "analytics">("welcome");
+  // onboarding steps: welcome → perms → language → models → analytics → ready
+  let obStep = $state<"welcome" | "perms" | "language" | "models" | "analytics" | "ready">("welcome");
   let obName = $state("");   // nombre para el saludo (requerido para continuar)
   let obEmail = $state("");  // correo opcional → solo se usa para la lista de lanzamiento
   let models = $state<ModelInfo[]>([]);
@@ -141,6 +143,9 @@
       // Empieza en el paso "welcome" (nombre + correo). El polling de permisos
       // arranca al pasar al paso "perms" (finishWelcome).
       view = "onboarding";
+      // Preseleccionar idioma del sistema si está en la lista; si no, dejar "auto".
+      const sysLang = (navigator.language || "").slice(0, 2);
+      if (LANGUAGES.some((l) => l.value === sysLang)) settings.selected_language = sysLang;
     } else {
       view = "home";
       history = await invoke("get_history");
@@ -341,9 +346,24 @@
           <p class="hint">Without accessibility, text is copied to the clipboard automatically.</p>
         {/if}
         <button class="btn-primary" disabled={!micGranted}
-                onclick={() => { if (pollInterval) { clearInterval(pollInterval); pollInterval = null; } obStep = "models"; }}>
+                onclick={() => { if (pollInterval) { clearInterval(pollInterval); pollInterval = null; } obStep = "language"; }}>
           {micGranted ? "Continue" : "Waiting for microphone permission…"}
         </button>
+      </div>
+
+    {:else if obStep === "language"}
+      <!-- Paso language: el usuario elige el idioma de transcripción. -->
+      <div class="ob-intro">
+        <h1>What language do you speak?</h1>
+        <p>onnda tunes transcription for your language. You can change it later in Settings.</p>
+      </div>
+      <Select
+        bind:value={settings.selected_language}
+        options={LANGUAGES.map((l) => ({ label: l.label, value: l.value }))}
+        ariaLabel="Spoken language"
+      />
+      <div class="ob-foot">
+        <button class="btn-primary" onclick={() => { schedSave(); obStep = "models"; }}>Continue</button>
       </div>
 
     {:else if obStep === "models"}
@@ -401,8 +421,10 @@
     <div class="ob-steps">
       <div class="ob-step-dot" class:active={obStep === "welcome"}></div>
       <div class="ob-step-dot" class:active={obStep === "perms"}></div>
+      <div class="ob-step-dot" class:active={obStep === "language"}></div>
       <div class="ob-step-dot" class:active={obStep === "models"}></div>
       <div class="ob-step-dot" class:active={obStep === "analytics"}></div>
+      <div class="ob-step-dot" class:active={obStep === "ready"}></div>
     </div>
    </div>
   </div>

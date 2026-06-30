@@ -8,6 +8,7 @@
   import SectionLabel from "$lib/components/ui/SectionLabel.svelte";
   import Select from "$lib/components/ui/Select.svelte";
   import { userName } from "$lib/stores/userName.svelte";
+  import { LANGUAGES } from "$lib/constants";
 
   // Prop contract from 01-03 (Ajustes stub).
   let {
@@ -36,15 +37,7 @@
     onCheckPerms: () => void;
   } = $props();
 
-  // Supported recognition languages.
-  const LANGUAGES = [
-    { value: "auto", label: "Auto" },
-    { value: "es",   label: "Español" },
-    { value: "en",   label: "English" },
-    { value: "pt",   label: "Português" },
-    { value: "fr",   label: "Français" },
-    { value: "de",   label: "Deutsch" },
-  ];
+  // LANGUAGES importado de $lib/constants (lista compartida con onboarding).
 
   // Local model list: mirrors the prop, refreshed after clear_models.
   // svelte-ignore state_referenced_locally
