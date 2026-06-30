@@ -19,6 +19,8 @@
   import Wordmark from "$lib/components/ui/Wordmark.svelte";
   import { userName } from "$lib/stores/userName.svelte";
   import { subscribe } from "$lib/subscribe";
+  import { check as checkUpdate, type Update } from "@tauri-apps/plugin-updater";
+  import { relaunch } from "@tauri-apps/plugin-process";
 
   // Window drag from the content's top header band (the title bar is hidden, so
   // the top ~56px acts as the drag handle — like Wispr Flow). Uses the same
@@ -76,6 +78,40 @@
   let warnMsg = $state(""); // HARDEN-05: transcribe-warning toast (auto-clears)
   let warnTimer: ReturnType<typeof setTimeout> | null = null;
   let ready = $state(false); // flash guard: nothing renders until init resolves
+
+  // ── Auto-update (Tauri updater plugin) ──────────────────────────────────────
+  let pendingUpdate: Update | null = null;       // el Update si hay uno disponible
+  let updateVersion = $state("");                // versión disponible (muestra banner)
+  let updating = $state(false);                  // descarga/instalación en curso
+  let updatePct = $state(0);                      // % de descarga
+  let updateError = $state("");
+
+  // Comprueba si hay update (silencioso: offline / sin manifest aún = no banner).
+  async function checkForUpdate() {
+    try {
+      const upd = await checkUpdate();
+      if (upd?.available) { pendingUpdate = upd; updateVersion = upd.version; }
+    } catch { /* sin red / sin release / etc. → no molestar */ }
+  }
+
+  // Descarga + instala + reinicia in-app.
+  async function installUpdate() {
+    if (!pendingUpdate || updating) return;
+    updating = true; updateError = ""; updatePct = 0;
+    try {
+      let total = 0, got = 0;
+      await pendingUpdate.downloadAndInstall((e) => {
+        if (e.event === "Started") total = e.data.contentLength ?? 0;
+        else if (e.event === "Progress") { got += e.data.chunkLength; updatePct = total ? Math.round((got / total) * 100) : 0; }
+        else if (e.event === "Finished") updatePct = 100;
+      });
+      await relaunch();
+    } catch (e) {
+      updateError = "Update failed. Try again later.";
+      updating = false;
+      console.error("[update]", e);
+    }
+  }
 
   const unlisten: (() => void)[] = [];
 
@@ -168,6 +204,9 @@
 
     initialized = true;
     ready = true;
+
+    // Comprobar updates en segundo plano (no bloquea el arranque).
+    void checkForUpdate();
   });
 
   onDestroy(() => {
@@ -389,6 +428,20 @@
           <button onclick={() => { view = "ajustes"; }}>Download model</button>
         </div>
       {/if}
+      {#if updateVersion}
+        <!-- Auto-update: descarga + instala + reinicia sin tocar el DMG. -->
+        <div class="update-banner">
+          {#if updating}
+            <span>Updating onnda… {updatePct}%</span>
+          {:else if updateError}
+            <span>{updateError}</span>
+            <button onclick={installUpdate}>Retry</button>
+          {:else}
+            <span>onnda <strong>{updateVersion}</strong> is available.</span>
+            <button onclick={installUpdate}>Update &amp; restart</button>
+          {/if}
+        </div>
+      {/if}
       {#if view === "home"}
         <Home {history} />
       {/if}
@@ -573,6 +626,26 @@
     transition: opacity .15s;
   }
   .model-banner button:hover { opacity: .88; }
+
+  /* Auto-update banner — tono positivo (no destructivo) */
+  .update-banner {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px;
+    margin-bottom: 16px;
+    border-radius: var(--r-nav);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+  }
+  .update-banner span { flex: 1; font-size: 12.5px; color: var(--text); line-height: 1.5; }
+  .update-banner strong { font-weight: 600; }
+  .update-banner button {
+    flex-shrink: 0;
+    background: var(--nav-active-bg); color: var(--nav-active-ink); border: none;
+    border-radius: var(--r-nav); padding: 6px 12px;
+    font-size: 12px; font-weight: 600; cursor: pointer;
+    transition: opacity .15s;
+  }
+  .update-banner button:hover { opacity: .88; }
 
   /* HARDEN-05: transcribe-warning toast */
   .warn-toast {
