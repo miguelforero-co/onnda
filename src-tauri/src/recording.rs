@@ -108,6 +108,8 @@ pub(crate) fn start_recording_internal<R: Runtime>(app: &AppHandle<R>) -> Result
         } else {
             settings.selected_model.clone()
         };
+        // Guard Intel: si por settings viejas quedó apple-speech, cae a whisper.
+        let model_name = effective_model_id(&model_name);
         // Apple SpeechAnalyzer is effectively instant (~0.15s, ANE) and has no
         // model to warm — incremental pre-commits would only add overhead. Skip
         // the streaming loop entirely; the full audio is transcribed once at stop.
@@ -279,6 +281,8 @@ pub(crate) async fn stop_and_transcribe_internal<R: Runtime>(app: AppHandle<R>) 
     } else {
         settings.selected_model.clone()
     };
+    // Guard Intel: si por settings viejas quedó apple-speech, cae a whisper.
+    let model_name = effective_model_id(&model_name);
     let is_apple = model_name == crate::speech_backend::APPLE_MODEL_ID;
 
     // Whisper needs a downloaded .bin; Apple SpeechAnalyzer transcribes via the
@@ -506,6 +510,8 @@ pub async fn transcribe_file<R: Runtime>(app: AppHandle<R>, path: String) -> Res
     } else {
         settings.selected_model.clone()
     };
+    // Guard Intel: si por settings viejas quedó apple-speech, cae a whisper.
+    let model_name = effective_model_id(&model_name);
     let is_apple = model_name == crate::speech_backend::APPLE_MODEL_ID;
 
     let model_path_str = if is_apple {
@@ -594,4 +600,31 @@ pub async fn transcribe_file<R: Runtime>(app: AppHandle<R>, path: String) -> Res
     let props = crate::analytics::transcription_props(engine, &model_name, &language, "file", &text, duration_ms);
     app.emit("analytics-event", serde_json::json!({ "event": "transcription_completed", "props": props })).ok();
     Ok(text)
+}
+
+// ── Routing helpers ───────────────────────────────────────────────────────────
+
+/// En arquitecturas sin Apple Silicon, Apple SpeechAnalyzer no existe (no hay
+/// sidecar). Si por settings viejas quedó "apple-speech", caemos a whisper.
+pub fn effective_model_id(requested: &str) -> String {
+    #[cfg(not(target_arch = "aarch64"))]
+    {
+        if requested == crate::speech_backend::APPLE_MODEL_ID {
+            return "small".to_string();
+        }
+    }
+    requested.to_string()
+}
+
+#[cfg(test)]
+mod route_tests {
+    use super::*;
+    #[test]
+    fn apple_is_kept_on_arm_and_replaced_elsewhere() {
+        let r = effective_model_id(crate::speech_backend::APPLE_MODEL_ID);
+        #[cfg(target_arch = "aarch64")]
+        assert_eq!(r, crate::speech_backend::APPLE_MODEL_ID);
+        #[cfg(not(target_arch = "aarch64"))]
+        assert_eq!(r, "small");
+    }
 }
