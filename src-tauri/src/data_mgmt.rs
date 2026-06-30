@@ -16,31 +16,27 @@ use tauri::{AppHandle, Runtime};
 /// Open the app data directory in Finder, showing its contents.
 ///
 /// The app identifier is `com.onnda.app`, so the data dir ends in `.app`.
-/// Plain `open <dir>` tries to LAUNCH it as an application bundle (silent failure).
-/// AppleScript's `open folder` forces folder semantics; fallback to `open -R` (reveal parent).
+/// macOS tipa como application bundle y `open <dir>` lo LANZA en vez de abrir su contenido.
+/// Solución: revelar un ítem HIJO fuerza a Finder a abrir el CONTENIDO del paquete.
 #[tauri::command]
 pub fn reveal_data_dir<R: Runtime>(app: AppHandle<R>) -> Result<(), String> {
     let dir = crate::paths::data_dir(&app);
-    let dir_str = dir.to_string_lossy().to_string();
     // El data dir termina en ".app" (identifier com.onnda.app) → macOS lo tipa como
-    // application bundle y `open <dir>` lo LANZA en vez de abrir su contenido.
-    // AppleScript `open folder` fuerza semántica de carpeta y muestra el contenido.
-    let script = format!(
-        "tell application \"Finder\"\nopen folder (POSIX file \"{}\")\nactivate\nend tell",
-        dir_str.replace('\\', "\\\\").replace('"', "\\\"")
-    );
-    let status = std::process::Command::new("osascript")
-        .args(["-e", &script])
-        .status()
-        .map_err(|e| format!("osascript spawn failed: {e}"))?;
-    if status.success() {
-        return Ok(());
-    }
-    // Fallback: revelar/seleccionar en el padre.
-    std::process::Command::new("open")
-        .args(["-R", &dir_str])
+    // application bundle: `open <dir>` lo LANZA y el AppleScript `open folder` falla (-1700).
+    // Revelar un ítem HIJO fuerza a Finder a abrir el CONTENIDO del paquete (con el ítem
+    // seleccionado). Si la carpeta está vacía, revelamos la carpeta misma en el padre.
+    let target = fs::read_dir(&dir)
+        .ok()
+        .and_then(|mut it| it.find_map(|e| e.ok().map(|e| e.path())))
+        .unwrap_or_else(|| dir.clone());
+    let status = std::process::Command::new("open")
+        .arg("-R")
+        .arg(&target)
         .status()
         .map_err(|e| format!("open -R failed: {e}"))?;
+    if !status.success() {
+        return Err(format!("open -R exited with status {status}"));
+    }
     Ok(())
 }
 
