@@ -142,6 +142,17 @@ pub fn run() {
             mic_permission::request_if_needed();
             analytics::track(app.handle(), "app_launched", None);
 
+            // Migración one-time Intel: pasa el default histórico `small` al más
+            // rápido `base-q5_1` (CPU). Corre en background (descarga 57 MB si
+            // hace falta) para no bloquear el arranque ni interrumpir a `small`.
+            #[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+            {
+                let handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    settings::migrate_intel_to_base_q5(&handle).await;
+                });
+            }
+
             #[cfg(target_os = "macos")]
             {
                 // Política inicial: Regular (visible en Dock) si la ventana arranca visible;

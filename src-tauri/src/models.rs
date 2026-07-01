@@ -86,15 +86,7 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
         }
     };
 
-    vec![
-        ModelInfo {
-            id: "base".to_string(),
-            name: "Whisper Base".to_string(),
-            size_mb: 141,
-            downloaded: model_exists("base"),
-            coming_soon: false,
-            disabled_reason: None,
-        },
+    let mut models = vec![
         ModelInfo {
             id: "small".to_string(),
             name: "Whisper Small".to_string(),
@@ -127,7 +119,39 @@ pub fn get_models<R: Runtime>(app: AppHandle<R>) -> Vec<ModelInfo> {
             coming_soon: false,
             disabled_reason: apple_disabled_reason,
         },
-    ]
+    ];
+
+    // El modelo "base" va primero (es el default de hardware). En Intel (CPU)
+    // usamos el cuantizado q5_1 — misma calidad que el base normal pero ~2.8×
+    // más rápido y 1/3 del tamaño — así que en x86_64 es el ÚNICO base (no se
+    // muestra el full-precision, sería redundante y más lento). En Apple Silicon
+    // (Metal) va el base full-precision.
+    #[cfg(not(target_arch = "aarch64"))]
+    models.insert(
+        0,
+        ModelInfo {
+            id: "base-q5_1".to_string(),
+            name: "Whisper Base".to_string(),
+            size_mb: 57,
+            downloaded: model_exists("base-q5_1"),
+            coming_soon: false,
+            disabled_reason: None,
+        },
+    );
+    #[cfg(target_arch = "aarch64")]
+    models.insert(
+        0,
+        ModelInfo {
+            id: "base".to_string(),
+            name: "Whisper Base".to_string(),
+            size_mb: 141,
+            downloaded: model_exists("base"),
+            coming_soon: false,
+            disabled_reason: None,
+        },
+    );
+
+    models
 }
 
 #[tauri::command]
@@ -143,6 +167,12 @@ pub async fn download_model<R: Runtime>(app: AppHandle<R>, model_id: String) -> 
         "base" => (
             "https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/ggml-base.bin",
             "60ed5bc3dd14eea856493d334349b405782ddcaf0028d4b5df4088345fba2efe",
+        ),
+        // Cuantizado q5_1 — default en Intel (CPU): ≈2.8× más rápido que `small`
+        // con calidad casi idéntica. Verificado 2026-06-30 vía HF x-linked-etag.
+        "base-q5_1" => (
+            "https://huggingface.co/ggerganov/whisper.cpp/resolve/5359861c739e955e79d9a303bcbc70fb988958b1/ggml-base-q5_1.bin",
+            "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
         ),
         "small" => (
             "https://huggingface.co/ggerganov/whisper.cpp/resolve/80da2d8bfee42b0e836fc3a9890373e5defc00a6/ggml-small.bin",

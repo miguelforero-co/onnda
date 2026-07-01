@@ -130,6 +130,56 @@ pub fn migrate_dictionary(dictionary: &[String], custom_words: &str) -> Vec<Stri
         .collect()
 }
 
+/// Decide si un usuario Intel debe migrar del viejo default `small` al nuevo
+/// `base-q5_1` (CPU): ≈2.8× más rápido con calidad casi idéntica. Solo toca
+/// `small` (el default histórico de Intel) — cualquier otra elección explícita
+/// del usuario se respeta. Función pura para poder testearla sin AppHandle.
+///
+/// Solo se llama desde la ruta x86_64 (`migrate_intel_to_base_q5`) y los tests;
+/// en aarch64 sin tests queda sin uso → silenciamos dead_code ahí.
+#[cfg_attr(
+    not(all(target_os = "macos", target_arch = "x86_64")),
+    allow(dead_code)
+)]
+pub fn should_migrate_intel_model(selected_model: &str) -> bool {
+    selected_model == "small"
+}
+
+/// Migración one-time para Intel (x86_64). Corre en background al arrancar:
+/// si el usuario sigue en `small` (el default histórico), descarga `base-q5_1`
+/// (57 MB) SIN tocar el `small` que ya funciona; cuando el modelo aterriza en
+/// disco, cambia la selección a `base-q5_1` y persiste. Idempotente: en cuanto
+/// `selected_model` deja de ser `small` es no-op. Si la descarga falla (red),
+/// se deja `small` intacto y se reintenta en el siguiente arranque.
+#[cfg(all(target_os = "macos", target_arch = "x86_64"))]
+pub async fn migrate_intel_to_base_q5<R: Runtime>(app: &AppHandle<R>) {
+    use tauri::Emitter;
+
+    if !should_migrate_intel_model(&load(app).selected_model) {
+        return;
+    }
+
+    // Si aún no está en disco, descárgalo (mantiene `small` activo mientras baja).
+    let present = crate::models::models_dir(app)
+        .map(|d| d.join("ggml-base-q5_1.bin").exists())
+        .unwrap_or(false);
+    if !present && crate::models::download_model(app.clone(), "base-q5_1".to_string())
+        .await
+        .is_err()
+    {
+        return; // red caída → conservar `small`, reintentar la próxima vez
+    }
+
+    // Re-leer por si el usuario cambió el modelo a mano durante la descarga.
+    let mut current = load(app);
+    if should_migrate_intel_model(&current.selected_model) {
+        current.selected_model = "base-q5_1".to_string();
+        let _ = save(app, &current);
+        // Que la UI refleje el cambio en vivo (dropdown de Ajustes + banner).
+        app.emit("model-migrated", "base-q5_1").ok();
+    }
+}
+
 // In-process cache so shortcut handlers don't hit disk on every key event.
 static CACHE: Mutex<Option<AppSettings>> = Mutex::new(None);
 
@@ -226,6 +276,18 @@ mod tests {
         let old = r#"{"shortcut":"Alt+Space","push_to_talk":true,"selected_language":"auto","selected_model":"base","autostart":false,"onboarding_done":true,"widget_position":"center"}"#;
         let s: AppSettings = serde_json::from_str(old).expect("old settings.json must deserialize");
         assert!(!s.analytics_enabled);
+    }
+
+    #[test]
+    fn intel_migration_only_touches_small() {
+        // El default histórico de Intel (`small`) migra…
+        assert!(should_migrate_intel_model("small"));
+        // …pero cualquier otra elección explícita se respeta (no-op).
+        assert!(!should_migrate_intel_model("base-q5_1"));
+        assert!(!should_migrate_intel_model("medium"));
+        assert!(!should_migrate_intel_model("large-v3-turbo"));
+        assert!(!should_migrate_intel_model("apple-speech"));
+        assert!(!should_migrate_intel_model(""));
     }
 
     #[test]

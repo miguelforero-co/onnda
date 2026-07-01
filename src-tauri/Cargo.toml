@@ -1,6 +1,6 @@
 [package]
 name = "onnda"
-version = "1.7.4"
+version = "1.7.5"
 description = "onnda - transcripción de voz a texto 100% local"
 authors = ["you"]
 edition = "2021"
@@ -39,8 +39,9 @@ webrtc-vad = "0.4"
 # FFT for the spectrum visualizer (audio-bands)
 rustfft = "6"
 
-# Whisper transcription — Metal GPU en todos los Macs (Apple Silicon e Intel).
-# El feature "metal" se activa en el bloque [target.'cfg(target_os = "macos")'] de abajo.
+# Whisper transcription — Metal GPU SOLO en Apple Silicon (bloque aarch64 abajo).
+# En Intel se compila sin Metal y corre en CPU: el backend Metal de whisper.cpp
+# se cuelga en varios Macs Intel (transcripción atascada para siempre).
 whisper-rs = "0.14"
 
 # String similarity (word correction, same crate Aztec Voice uses)
@@ -60,10 +61,11 @@ tauri-plugin-log = "2"
 log = "0.4"
 tauri-plugin-aptabase = "1"
 
-[target.'cfg(target_os = "macos")'.dependencies]
-# Metal GPU para whisper en TODOS los Macs (Apple Silicon e Intel). En Intel,
-# whisper.cpp corre la inferencia en la GPU vía Metal y cae a CPU si no hay Metal.
+[target.'cfg(target_arch = "aarch64")'.dependencies]
+# Metal GPU para whisper SOLO en Apple Silicon (en Intel se cuelga → CPU).
 whisper-rs = { version = "0.14", features = ["metal"] }
+
+[target.'cfg(target_os = "macos")'.dependencies]
 objc2 = "0.6"
 objc2-foundation = { version = "0.3", features = ["NSString", "NSGeometry", "NSData"] }
 objc2-app-kit = { version = "0.3", features = ["NSScreen", "NSWindow", "NSResponder", "NSView", "NSEvent", "NSSound"] }
