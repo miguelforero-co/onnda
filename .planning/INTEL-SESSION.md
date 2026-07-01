@@ -2,6 +2,22 @@
 
 Lee esto + `.planning/RESUME.md` + `CLAUDE.md`. Estás en la rama **`fix/intel-cpu`** (ya pusheada).
 
+## ✅ RESUELTO (2026-06-30, sesión en Intel real — i7-1068NG7, 4c/8t)
+Diagnóstico medido con `cargo run --release --example bench` (nuevo, en `src-tauri/examples/bench.rs`):
+- **El "9s" era throttling térmico/contención**, NO el build ni el algoritmo. Whisper procesa una ventana fija de ~30s → el tiempo es casi constante sin importar la duración del clip (2.4s y 8.9s de audio costaban casi lo mismo en el log).
+- **Build dev == release**: `[profile.dev.package."*"] opt-level=3` SÍ propaga a la compilación CMake de whisper.cpp (`small`: 2.54s en ambos). El comentario del Cargo.toml era correcto.
+- **Threads 4 vs 6: idéntico** en este chip (no afinar threads).
+- Números idle (audio 8.4s, idma=es): `small` 2.69s · `small-q5_1` 2.57s · **`base-q5_1` 0.90s** · `base` 0.95s · `tiny` 0.54s.
+
+**Cambio aplicado:** default de Intel → **`base-q5_1`** (≈2.8× más rápido que `small`, calidad muy similar, 57 MB).
+- `compat.rs::hardware_default_model()` x86_64 → `"base-q5_1"`.
+- `models.rs`: arm de descarga (commit `5359861…`, sha `422f1ae…`). En x86_64 la tarjeta "Whisper Base" ES `base-q5_1` (el base full-precision NO se muestra en Intel — redundante y más lento); en aarch64 "Whisper Base" sigue siendo el `base` normal.
+- 57 tests verdes, `cargo check` limpio (x86_64). `npm run check` NO corrido (Node no instalado en este Mac; no se tocó frontend → sigue 0/0).
+
+**Toolchain de este Mac Intel** (estaba limpio): Rust vía rustup (`~/.cargo`), cmake 4.3.3 en `~/.local/opt/cmake` (symlinks en `~/.local/bin`). Falta **Node** para `npm run tauri dev` y el build de release.
+
+**Pendiente:** (1) verificación en vivo con `npm run tauri dev` (requiere instalar Node); (2) release 1.7.5 (ver abajo).
+
 ## Contexto inmediato
 - onnda **v1.7.4 publicada** (arm64 + Intel). En Intel, whisper.cpp con **Metal se colgaba** (transcripción atascada "transcribing" para siempre). Fix aplicado en esta rama: **Intel usa CPU**.
   - `src-tauri/src/whisper_backend.rs`: en `#[cfg(all(target_os="macos", target_arch="x86_64"))]` → `ctx_params.use_gpu(false)`. Apple Silicon sigue `use_gpu(true)+flash_attn(true)`.

@@ -59,16 +59,20 @@ pub fn physical_ram_gb() -> u64 {
 /// Returns the hardware-appropriate default model ID for first-run setup.
 ///
 /// Rules:
-/// - x86_64 (Intel, any RAM)          → "small"
+/// - x86_64 (Intel, any RAM)          → "base-q5_1"
 /// - aarch64, RAM < 16 GiB            → "small"
 /// - aarch64, RAM ≥ 16 GiB            → "large-v3-turbo" (historical default)
+///
+/// Intel corre whisper en CPU (Metal se cuelga). Medido en un i7 Ice Lake:
+/// `small` tarda ~2.5s por dictado vs ~0.9s de `base-q5_1` (≈2.8× más rápido)
+/// con calidad muy similar — por eso Intel arranca con el modelo cuantizado.
 ///
 /// "apple-speech" is intentionally excluded as a default: it requires macOS
 /// assets to download and has no user confirmation flow yet.
 pub fn hardware_default_model() -> &'static str {
     #[cfg(not(target_arch = "aarch64"))]
     {
-        return "small";
+        return "base-q5_1";
     }
     #[cfg(target_arch = "aarch64")]
     {
@@ -141,7 +145,7 @@ mod tests {
 
     #[test]
     fn hardware_default_model_returns_valid_id() {
-        let valid = ["small", "large-v3-turbo"];
+        let valid = ["base-q5_1", "small", "large-v3-turbo"];
         let result = hardware_default_model();
         assert!(
             valid.contains(&result),
