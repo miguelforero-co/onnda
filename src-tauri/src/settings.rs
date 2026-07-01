@@ -134,6 +134,13 @@ pub fn migrate_dictionary(dictionary: &[String], custom_words: &str) -> Vec<Stri
 /// `base-q5_1` (CPU): ≈2.8× más rápido con calidad casi idéntica. Solo toca
 /// `small` (el default histórico de Intel) — cualquier otra elección explícita
 /// del usuario se respeta. Función pura para poder testearla sin AppHandle.
+///
+/// Solo se llama desde la ruta x86_64 (`migrate_intel_to_base_q5`) y los tests;
+/// en aarch64 sin tests queda sin uso → silenciamos dead_code ahí.
+#[cfg_attr(
+    not(all(target_os = "macos", target_arch = "x86_64")),
+    allow(dead_code)
+)]
 pub fn should_migrate_intel_model(selected_model: &str) -> bool {
     selected_model == "small"
 }
