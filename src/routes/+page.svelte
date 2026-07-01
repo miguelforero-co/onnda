@@ -235,6 +235,13 @@
         // HARDEN-04: hide the "no model" banner once a download finishes
         modelReady = true;
       }),
+      // Migración one-time Intel: el backend pasó `small` → `base-q5_1` en
+      // background. Refleja la nueva selección en la UI sin reiniciar.
+      await listen<string>("model-migrated", async ({ payload: modelId }) => {
+        settings.selected_model = modelId;
+        models = await invoke("get_models");
+        modelReady = true;
+      }),
     );
 
     await init();
